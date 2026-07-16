@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Personnel } from '../types';
+import type { Personnel } from '../types';
 import { getPersonnel, addPersonnel, updatePersonnel, deletePersonnel } from '../services/api';
 
 export default function PersonnelPage() {

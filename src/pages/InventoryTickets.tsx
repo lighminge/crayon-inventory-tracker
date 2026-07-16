@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { InventoryTicket, Personnel, TicketStatus } from '../types';
+import type { InventoryTicket, Personnel, TicketStatus } from '../types';
 import { getTickets, addTicket, updateTicket, deleteTicket, getPersonnel } from '../services/api';
 
 export default function InventoryTicketsPage() {

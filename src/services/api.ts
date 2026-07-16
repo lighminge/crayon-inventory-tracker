@@ -1,6 +1,6 @@
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Personnel, InventoryTicket } from '../types';
+import type { Personnel, InventoryTicket } from '../types';
 
 // Feature Flag to use local storage if Firebase is not configured properly
 const USE_MOCK = false;

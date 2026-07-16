@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { InventoryTicket } from '../types';
+import type { InventoryTicket } from '../types';
 import { getTickets } from '../services/api';
 
 export default function Dashboard() {
