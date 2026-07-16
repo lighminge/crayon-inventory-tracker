@@ -15,8 +15,13 @@ export default function PersonnelPage() {
   }, []);
 
   const loadPersonnel = async () => {
-    const data = await getPersonnel();
-    setPersonnelList(data);
+    try {
+      const data = await getPersonnel();
+      setPersonnelList(data);
+    } catch (error: any) {
+      console.error('讀取失敗：', error);
+      alert('讀取資料失敗，請確認 Firebase 資料庫權限設定是否為公開 (Test Mode)');
+    }
   };
 
   const handleOpenForm = (person?: Personnel) => {
@@ -32,13 +37,18 @@ export default function PersonnelPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingPerson) {
-      await updatePersonnel(editingPerson.id, formData);
-    } else {
-      await addPersonnel(formData);
+    try {
+      if (editingPerson) {
+        await updatePersonnel(editingPerson.id, formData);
+      } else {
+        await addPersonnel(formData);
+      }
+      setIsFormOpen(false);
+      loadPersonnel();
+    } catch (error: any) {
+      alert('儲存失敗！可能是 Firebase 權限問題。詳細錯誤：' + error.message);
+      console.error(error);
     }
-    setIsFormOpen(false);
-    loadPersonnel();
   };
 
   const handleDelete = async (id: string) => {
