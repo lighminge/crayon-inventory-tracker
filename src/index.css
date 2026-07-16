@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Klee+One:wght@400;600&display=swap');
+
+:root {
+  /* Crayon Colors */
+  --crayon-red: #ff4d4d;
+  --crayon-blue: #4da6ff;
+  --crayon-green: #4dff4d;
+  --crayon-yellow: #ffff4d;
+  --crayon-orange: #ffb34d;
+  --crayon-purple: #b34dff;
+  --crayon-dark: #333333;
+  --crayon-bg: #f9f9f9;
+  --crayon-paper: #ffffff;
+  
+  /* Fonts */
+  --font-doodle-en: 'Caveat', cursive;
+  --font-doodle-tw: 'Klee One', cursive, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-doodle-tw);
+  background-color: var(--crayon-bg);
+  color: var(--crayon-dark);
+  /* Subtle paper texture background */
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+  min-height: 100vh;
+  padding: 20px;
+}
+
+/* Doodle Border Mixin Class */
+.doodle-border {
+  border: 3px solid var(--crayon-dark);
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  background-color: var(--crayon-paper);
+  box-shadow: 4px 4px 0px rgba(0,0,0,0.1);
+  transition: all 0.2s ease-in-out;
+}
+
+.doodle-border:hover {
+  transform: scale(1.01) rotate(-1deg);
+  box-shadow: 6px 6px 0px rgba(0,0,0,0.15);
+}
+
+.doodle-button {
+  font-family: var(--font-doodle-tw);
+  font-size: 1.2rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  cursor: pointer;
+  background-color: var(--crayon-blue);
+  color: white;
+  border: 2px solid var(--crayon-dark);
+  border-radius: 15px 225px 15px 255px / 255px 15px 225px 15px;
+  box-shadow: 3px 3px 0px var(--crayon-dark);
+  transition: all 0.2s;
+}
+
+.doodle-button:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0px var(--crayon-dark);
+}
+
+.doodle-button:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px var(--crayon-dark);
+}
+
+.doodle-button.danger {
+  background-color: var(--crayon-red);
+}
+
+.doodle-button.success {
+  background-color: var(--crayon-green);
+  color: var(--crayon-dark);
+}
+
+.doodle-input {
+  font-family: var(--font-doodle-tw);
+  font-size: 1.1rem;
+  padding: 8px 12px;
+  border: 2px solid #999;
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  background-color: transparent;
+  outline: none;
+  width: 100%;
+}
+
+.doodle-input:focus {
+  border-color: var(--crayon-blue);
+  background-color: rgba(77, 166, 255, 0.05);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-doodle-tw);
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--crayon-dark);
+}
+
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Layout */
+.layout {
+  display: flex;
+  gap: 20px;
+  min-height: calc(100vh - 40px);
+}
+
+.sidebar {
+  width: 250px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: var(--crayon-dark);
+  font-size: 1.3rem;
+  font-weight: bold;
+  padding: 10px 15px;
+  display: block;
+  border: 2px solid transparent;
+  border-radius: 15px 225px 15px 255px / 255px 15px 225px 15px;
+  transition: all 0.2s;
+}
+
+.nav-link:hover, .nav-link.active {
+  border-color: var(--crayon-dark);
+  background-color: var(--crayon-yellow);
+  transform: rotate(-1deg);
+}
