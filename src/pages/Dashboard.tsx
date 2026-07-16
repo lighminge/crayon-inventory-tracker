@@ -70,8 +70,7 @@ export default function Dashboard() {
             <div style={{ 
               width: `${stats.completionRate}%`, 
               height: '100%', 
-              backgroundColor: 'var(--crayon-blue)',
-              transition: 'width 1s ease-in-out'
+              backgroundColor: 'var(--crayon-blue)'
             }}></div>
           </div>
           <p style={{ marginTop: '10px', textAlign: 'center', color: '#666' }}>尚有 {stats.inProgress} 張單據處理中</p>
@@ -92,8 +91,7 @@ export default function Dashboard() {
                     backgroundColor: 'var(--crayon-purple)',
                     border: '2px solid var(--crayon-dark)',
                     borderBottom: 'none',
-                    borderRadius: '10px 10px 0 0',
-                    transition: 'height 1s ease'
+                    borderRadius: '10px 10px 0 0'
                   }}></div>
                   <span style={{ fontSize: '0.9rem', marginTop: '5px' }}>{month}</span>
                 </div>

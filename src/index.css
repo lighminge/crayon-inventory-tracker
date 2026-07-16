@@ -43,7 +43,6 @@ body {
 }
 
 .doodle-border:hover {
-  transform: scale(1.01) rotate(-1deg);
   box-shadow: 6px 6px 0px rgba(0,0,0,0.15);
 }
 
@@ -62,12 +61,10 @@ body {
 }
 
 .doodle-button:hover {
-  transform: translate(-2px, -2px);
   box-shadow: 5px 5px 0px var(--crayon-dark);
 }
 
 .doodle-button:active {
-  transform: translate(2px, 2px);
   box-shadow: 1px 1px 0px var(--crayon-dark);
 }
 
@@ -143,5 +140,4 @@ h1, h2, h3, h4, h5, h6 {
 .nav-link:hover, .nav-link.active {
   border-color: var(--crayon-dark);
   background-color: var(--crayon-yellow);
-  transform: rotate(-1deg);
 }
