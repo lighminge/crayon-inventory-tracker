@@ -13,11 +13,20 @@ export default function Layout() {
             <NavLink to="/" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
               📊 儀表板
             </NavLink>
-            <NavLink to="/personnel" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
-              👥 人員管理
+            <NavLink to="/dispatch" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+              📤 盤點單派送
             </NavLink>
             <NavLink to="/tickets" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
               📝 盤點單管理
+            </NavLink>
+            <NavLink to="/workflow" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+              ⚙️ 流程管理
+            </NavLink>
+            <NavLink to="/personnel" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+              👥 人員管理
+            </NavLink>
+            <NavLink to="/statistics" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+              📈 統計作業
             </NavLink>
           </nav>
           <div style={{ marginTop: 'auto' }}>
