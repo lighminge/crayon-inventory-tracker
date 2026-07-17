@@ -8,7 +8,14 @@ export const USE_MOCK = false;
 // --- Personnel API ---
 export const getPersonnel = async (): Promise<Personnel[]> => {
   const snapshot = await getDocs(collection(db, 'personnel'));
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Personnel));
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return { 
+      id: doc.id, 
+      roles: data.roles || ['盤點'], // Default to having '盤點' role for legacy data
+      ...data 
+    } as Personnel;
+  });
 };
 
 export const addPersonnel = async (person: Omit<Personnel, 'id'>): Promise<Personnel> => {

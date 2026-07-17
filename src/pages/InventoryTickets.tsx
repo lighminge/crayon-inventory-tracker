@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { InventoryTicket, Personnel, Workflow } from '../types';
-import { getTickets, updateTicket, deleteTicket, getPersonnel, getWorkflows } from '../services/api';
+import { getTickets, updateTicket, deleteTicket, getPersonnel, getWorkflows, addTicket } from '../services/api';
 
 export default function InventoryTicketsPage() {
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
@@ -209,18 +209,31 @@ export default function InventoryTicketsPage() {
       // If ID changed, we need to create new doc and delete old one, but for simplicity here we assume we can just update other fields or we actually delete & recreate.
       // Firebase updateDoc doesn't change document ID. If they want to change ID, we must recreate.
       if (editFormData.id !== editingTicket.id) {
-         // Firebase updateDoc doesn't change document ID. If they want to change ID, we must recreate.
-         alert('如需更改單號，請刪除後重新派送。本次修改將不包含單號變更。');
+         // Create new ticket with new ID
+         const newTicket: InventoryTicket = {
+            id: editFormData.id,
+            title: editFormData.id, // keep title synced with id
+            ticketType: editFormData.ticketType,
+            assigneeId: editFormData.assigneeId,
+            dispatchDate: editFormData.dispatchDateStr ? new Date(editFormData.dispatchDateStr).getTime() : null,
+            stageDates: newStageDates,
+            closeDate: Object.values(newStageDates).length === workflows.length ? editingTicket.closeDate : null,
+            managerName: editingTicket.managerName,
+            totalProcessingDays: editingTicket.totalProcessingDays
+         };
+         
+         await addTicket(newTicket);
+         await deleteTicket(editingTicket.id);
+      } else {
+         // Update existing
+         await updateTicket(editingTicket.id, {
+           ticketType: editFormData.ticketType,
+           assigneeId: editFormData.assigneeId,
+           dispatchDate: editFormData.dispatchDateStr ? new Date(editFormData.dispatchDateStr).getTime() : null,
+           stageDates: newStageDates,
+           closeDate: Object.values(newStageDates).length === workflows.length ? editingTicket.closeDate : null
+         });
       }
-
-      await updateTicket(editingTicket.id, {
-        ticketType: editFormData.ticketType,
-        assigneeId: editFormData.assigneeId,
-        dispatchDate: editFormData.dispatchDateStr ? new Date(editFormData.dispatchDateStr).getTime() : null,
-        stageDates: newStageDates,
-        // If they clear dates, we might need to clear closeDate too
-        closeDate: Object.values(newStageDates).length === workflows.length ? editingTicket.closeDate : null
-      });
 
       setEditingTicket(null);
       loadData();
@@ -423,6 +436,10 @@ export default function InventoryTicketsPage() {
             <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               
               <div style={{ display: 'flex', gap: '15px' }}>
+                <div style={{ flex: 1 }}>
+                  <label>單號：</label>
+                  <input className="doodle-input" required value={editFormData.id} onChange={e => setEditFormData({...editFormData, id: e.target.value})} />
+                </div>
                 <div style={{ flex: 1 }}>
                   <label>類型：</label>
                   <select className="doodle-input" value={editFormData.ticketType} onChange={e => setEditFormData({...editFormData, ticketType: e.target.value})}>

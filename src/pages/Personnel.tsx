@@ -1,13 +1,24 @@
-import { useState, useEffect } from 'react';
-import type { Personnel } from '../types';
+import { useState, useEffect, useMemo } from 'react';
 import { getPersonnel, addPersonnel, updatePersonnel, deletePersonnel } from '../services/api';
+import type { Personnel } from '../types';
+
+const ROLES_LIST = ['備料', '收料', '盤點', '行政', '生管', '採購', '主管'];
 
 export default function PersonnelPage() {
   const [personnelList, setPersonnelList] = useState<Personnel[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPerson, setEditingPerson] = useState<Personnel | null>(null);
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+
   const [formData, setFormData] = useState<Omit<Personnel, 'id'>>({
-    name: '', gender: 'Male', title: '', notes: ''
+    name: '',
+    gender: 'Male',
+    title: '',
+    notes: '',
+    roles: ['盤點']
   });
 
   useEffect(() => {
@@ -27,12 +38,27 @@ export default function PersonnelPage() {
   const handleOpenForm = (person?: Personnel) => {
     if (person) {
       setEditingPerson(person);
-      setFormData({ name: person.name, gender: person.gender, title: person.title, notes: person.notes });
+      setFormData({
+        name: person.name,
+        gender: person.gender,
+        title: person.title,
+        notes: person.notes,
+        roles: person.roles || ['盤點']
+      });
     } else {
       setEditingPerson(null);
-      setFormData({ name: '', gender: 'Male', title: '', notes: '' });
+      setFormData({ name: '', gender: 'Male', title: '', notes: '', roles: ['盤點'] });
     }
     setIsFormOpen(true);
+  };
+
+  const handleRoleToggle = (role: string) => {
+    const currentRoles = formData.roles || [];
+    if (currentRoles.includes(role)) {
+      setFormData({ ...formData, roles: currentRoles.filter(r => r !== role) });
+    } else {
+      setFormData({ ...formData, roles: [...currentRoles, role] });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,39 +78,101 @@ export default function PersonnelPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('確定要刪除這位人員嗎？')) {
+    if (confirm('確定要刪除這筆人員資料嗎？')) {
       await deletePersonnel(id);
       loadPersonnel();
     }
   };
 
+  // Pagination Logic
+  const totalPages = Math.ceil(personnelList.length / itemsPerPage);
+  const currentPersonnel = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return personnelList.slice(start, start + itemsPerPage);
+  }, [personnelList, currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [itemsPerPage]);
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2>👥 人員管理</h2>
-        <button className="doodle-button" onClick={() => handleOpenForm()}>＋ 新增人員</button>
+        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+          <div>
+            <label>每頁筆數：</label>
+            <select className="doodle-input" style={{ width: 'auto' }} value={itemsPerPage} onChange={e => setItemsPerPage(Number(e.target.value))}>
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={20}>20</option>
+            </select>
+          </div>
+          <button className="doodle-button" onClick={() => handleOpenForm()}>＋ 新增人員</button>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
-        {personnelList.map(p => (
-          <div key={p.id} className="doodle-border" style={{ padding: '15px' }}>
-            <h3 style={{ borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '5px' }}>{p.name}</h3>
-            <p><strong>性別：</strong> {p.gender === 'Male' ? '男' : p.gender === 'Female' ? '女' : '其他'}</p>
-            <p><strong>職稱：</strong> {p.title}</p>
-            <p><strong>備註：</strong> {p.notes || '無'}</p>
-            <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-              <button className="doodle-button" style={{ flex: 1, fontSize: '1rem', padding: '4px' }} onClick={() => handleOpenForm(p)}>編輯</button>
-              <button className="doodle-button danger" style={{ flex: 1, fontSize: '1rem', padding: '4px' }} onClick={() => handleDelete(p.id)}>刪除</button>
-            </div>
-          </div>
-        ))}
-        {personnelList.length === 0 && <p>目前沒有任何人員資料。</p>}
+      <div style={{ marginBottom: '15px', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-blue)' }}>
+        👉 系統中目前共有 {personnelList.length} 位人員
       </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+        {currentPersonnel.map((person, index) => {
+          const seqNum = (currentPage - 1) * itemsPerPage + index + 1;
+          
+          return (
+            <div key={person.id} className="doodle-border" style={{ padding: '20px', backgroundColor: 'var(--crayon-paper)', position: 'relative' }}>
+              <span style={{ 
+                position: 'absolute', top: '10px', right: '10px',
+                backgroundColor: 'var(--crayon-dark)', color: 'white', 
+                padding: '2px 8px', borderRadius: '10px', fontSize: '0.8rem', fontWeight: 'bold' 
+              }}>
+                #{seqNum}
+              </span>
+              <h3 style={{ margin: '0 0 10px 0', borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '5px' }}>
+                {person.name} <span style={{ fontSize: '0.9rem', color: '#666' }}>({person.gender})</span>
+              </h3>
+              <p style={{ margin: '5px 0' }}><strong>職稱：</strong>{person.title}</p>
+              
+              <div style={{ margin: '10px 0', display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
+                <strong>職責：</strong>
+                {(person.roles || []).map(r => (
+                  <span key={r} style={{ 
+                    backgroundColor: 'var(--crayon-yellow)', 
+                    padding: '2px 8px', 
+                    borderRadius: '10px', 
+                    fontSize: '0.85rem',
+                    border: '1px dashed var(--crayon-dark)'
+                  }}>{r}</span>
+                ))}
+                {(!person.roles || person.roles.length === 0) && <span style={{ color: '#888' }}>未設定</span>}
+              </div>
+
+              <p style={{ margin: '5px 0', fontSize: '0.9rem', color: '#555' }}>備註：{person.notes || '無'}</p>
+              
+              <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                <button className="doodle-button success" style={{ flex: 1 }} onClick={() => handleOpenForm(person)}>編輯</button>
+                <button className="doodle-button danger" style={{ flex: 1 }} onClick={() => handleDelete(person.id)}>刪除</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '30px' }}>
+          <button className="doodle-button" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>上一頁</button>
+          <div style={{ padding: '8px 15px', fontWeight: 'bold' }}>{currentPage} / {totalPages}</div>
+          <button className="doodle-button" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>下一頁</button>
+        </div>
+      )}
 
       {isFormOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '400px' }}>
-            <h3>{editingPerson ? '編輯人員' : '新增人員'}</h3>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: 'white' }}>
+            <h3 style={{ marginTop: 0 }}>{editingPerson ? '編輯人員資料' : '新增人員資料'}</h3>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
               <div>
                 <label>姓名：</label>
@@ -103,8 +191,24 @@ export default function PersonnelPage() {
                 <input className="doodle-input" required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
               </div>
               <div>
+                <label>工作職責 (可複選)：</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '5px', padding: '10px', border: '2px dashed var(--crayon-dark)', borderRadius: '10px' }}>
+                  {ROLES_LIST.map(role => (
+                    <label key={role} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={(formData.roles || []).includes(role)}
+                        onChange={() => handleRoleToggle(role)}
+                        style={{ width: '18px', height: '18px', accentColor: 'var(--crayon-blue)' }}
+                      />
+                      {role}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
                 <label>備註：</label>
-                <textarea className="doodle-input" rows={3} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} />
+                <textarea className="doodle-input" style={{ minHeight: '80px' }} value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} />
               </div>
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <button type="submit" className="doodle-button success" style={{ flex: 1 }}>儲存</button>

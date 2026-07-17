@@ -109,16 +109,21 @@ export default function WorkflowManagement() {
                 {index + 1}
               </div>
               <div>
-                <h3 style={{ margin: 0 }}>{w.name}</h3>
+                <h3 style={{ margin: 0 }}>
+                  {w.name} 
+                  {index === 0 && <span style={{ fontSize: '0.8rem', color: '#d32f2f', border: '1px solid #d32f2f', borderRadius: '5px', padding: '2px 5px', marginLeft: '10px' }}>🔒 系統鎖定 (派送起點)</span>}
+                </h3>
                 <p style={{ margin: '5px 0 0 0', color: '#555' }}>預設負責人：{getPersonnelName(w.assigneeId)}</p>
               </div>
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button className="doodle-button" onClick={() => moveOrder(index, 'up')} disabled={index === 0}>↑</button>
-              <button className="doodle-button" onClick={() => moveOrder(index, 'down')} disabled={index === workflows.length - 1}>↓</button>
+              <button className="doodle-button" onClick={() => moveOrder(index, 'up')} disabled={index <= 1}>↑</button>
+              <button className="doodle-button" onClick={() => moveOrder(index, 'down')} disabled={index === 0 || index === workflows.length - 1}>↓</button>
               <button className="doodle-button success" onClick={() => handleOpenForm(w)}>編輯</button>
-              <button className="doodle-button danger" onClick={() => handleDelete(w.id)}>刪除</button>
+              {index !== 0 && (
+                <button className="doodle-button danger" onClick={() => handleDelete(w.id)}>刪除</button>
+              )}
             </div>
           </div>
         ))}

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { getPersonnel, addTicket } from '../services/api';
-import type { Personnel } from '../types';
+import { getPersonnel, addTicket, getWorkflows } from '../services/api';
+import type { Personnel, Workflow } from '../types';
 
 export default function DispatchTickets() {
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [selectedPerson, setSelectedPerson] = useState<Personnel | null>(null);
   
   const [dispatchType, setDispatchType] = useState<'single' | 'multi'>('single');
@@ -16,8 +17,18 @@ export default function DispatchTickets() {
   const today = new Date().toISOString().split('T')[0];
   const [dispatchDate, setDispatchDate] = useState(today);
 
+  // Success Modal
+  const [successMessage, setSuccessMessage] = useState('');
+
   useEffect(() => {
-    getPersonnel().then(setPersonnel);
+    // Only load personnel with the '盤點' role
+    getPersonnel().then(all => {
+      const inventoryStaff = all.filter(p => (p.roles || []).includes('盤點'));
+      setPersonnel(inventoryStaff);
+    });
+    getWorkflows().then(w => {
+      setWorkflows(w.sort((a,b) => a.order - b.order));
+    });
   }, []);
 
   const parseIdSuffix = (idStr: string) => {
@@ -54,6 +65,13 @@ export default function DispatchTickets() {
     }
 
     try {
+      // Find the first workflow stage to automatically check it
+      const firstStage = workflows.length > 0 ? workflows[0] : null;
+      const initialStageDates: Record<string, number> = {};
+      if (firstStage) {
+        initialStageDates[firstStage.id] = timestamp;
+      }
+
       for (const id of idsToCreate) {
         await addTicket({
           id,
@@ -62,11 +80,12 @@ export default function DispatchTickets() {
           assigneeId: selectedPerson.id,
           dispatchDate: timestamp,
           closeDate: null,
-          stageDates: {},
+          stageDates: initialStageDates,
           totalProcessingDays: null
         });
       }
-      alert(`成功派送 ${idsToCreate.length} 筆盤點單！`);
+      
+      setSuccessMessage(`成功派送 ${idsToCreate.length} 筆盤點單！`);
       setSingleId('');
       setMultiStartId('');
       setMultiEndId('');
@@ -82,7 +101,7 @@ export default function DispatchTickets() {
 
       {/* 派送設定區 */}
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '30px', backgroundColor: '#f0f8ff' }}>
-        <h3 style={{ borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '10px' }}>派送設定</h3>
+        <h3 style={{ borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '10px', marginTop: 0 }}>派送設定</h3>
         <div style={{ display: 'flex', gap: '20px', marginTop: '15px', alignItems: 'center' }}>
           <div>
             <label style={{ fontWeight: 'bold', marginRight: '10px' }}>派送模式：</label>
@@ -108,7 +127,7 @@ export default function DispatchTickets() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
         {/* 左側：人員列表 */}
         <div>
-          <h3>1. 點選要派送的人員</h3>
+          <h3>1. 點選要派送的人員 (僅顯示具備盤點權限者)</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
             {personnel.map(p => (
               <div 
@@ -126,6 +145,9 @@ export default function DispatchTickets() {
                 <div style={{ color: '#555', fontSize: '0.9rem' }}>{p.title}</div>
               </div>
             ))}
+            {personnel.length === 0 && (
+              <p style={{ color: '#888' }}>目前沒有具備「盤點」職責的人員。請先至人員管理設定職責。</p>
+            )}
           </div>
         </div>
 
@@ -168,6 +190,20 @@ export default function DispatchTickets() {
           )}
         </div>
       </div>
+
+      {/* 客製化成功視窗 */}
+      {successMessage && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '400px', backgroundColor: 'white', textAlign: 'center' }}>
+            <div style={{ fontSize: '4rem', marginBottom: '10px' }}>✅</div>
+            <h3 style={{ color: 'var(--crayon-green)', fontSize: '2rem', marginTop: 0 }}>派送成功</h3>
+            <p style={{ fontSize: '1.2rem', marginBottom: '25px' }}>{successMessage}</p>
+            <button className="doodle-button success" onClick={() => setSuccessMessage('')}>
+              太棒了！
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

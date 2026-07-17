@@ -4,6 +4,7 @@ export interface Personnel {
   gender: 'Male' | 'Female' | 'Other';
   title: string;
   notes: string;
+  roles?: string[]; // 工作職責
 }
 
 export interface Workflow {
