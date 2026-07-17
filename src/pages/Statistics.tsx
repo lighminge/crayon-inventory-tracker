@@ -102,7 +102,7 @@ export default function Statistics() {
             />
             <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem'}} />
             <Bar dataKey={dataKey} name={yAxisLabel} fill="var(--crayon-blue)" radius={[5, 5, 0, 0]} barSize={50}>
-              {data.map((entry, index) => (
+              {data.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Bar>
@@ -120,10 +120,10 @@ export default function Statistics() {
               cx="50%"
               cy="50%"
               outerRadius={150}
-              label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
+              label={({name, percent}) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
               labelLine={{ stroke: 'var(--crayon-dark)', strokeWidth: 2 }}
             >
-              {data.map((entry, index) => (
+              {data.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="var(--crayon-dark)" strokeWidth={2} />
               ))}
             </Pie>

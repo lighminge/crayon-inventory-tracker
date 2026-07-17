@@ -209,20 +209,8 @@ export default function InventoryTicketsPage() {
       // If ID changed, we need to create new doc and delete old one, but for simplicity here we assume we can just update other fields or we actually delete & recreate.
       // Firebase updateDoc doesn't change document ID. If they want to change ID, we must recreate.
       if (editFormData.id !== editingTicket.id) {
-         // Create new, delete old (simplified logic)
-         const newTicket = {
-            ...editingTicket,
-            id: editFormData.id,
-            title: editFormData.id, // keep title synced with id
-            ticketType: editFormData.ticketType,
-            assigneeId: editFormData.assigneeId,
-            dispatchDate: editFormData.dispatchDateStr ? new Date(editFormData.dispatchDateStr).getTime() : null,
-            stageDates: newStageDates
-         };
-         // Note: we should import addTicket for this if we recreate. But wait, `updateTicket` in api.ts takes id as string.
-         // Let's implement delete+create inline or just warn ID cannot be changed if it's too complex.
+         // Firebase updateDoc doesn't change document ID. If they want to change ID, we must recreate.
          alert('如需更改單號，請刪除後重新派送。本次修改將不包含單號變更。');
-         // Fallback to update existing
       }
 
       await updateTicket(editingTicket.id, {
