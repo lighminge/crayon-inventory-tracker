@@ -3,7 +3,7 @@ import { db } from '../firebase';
 import type { Personnel, InventoryTicket, Workflow } from '../types';
 
 // Feature Flag to use local storage if Firebase is not configured properly
-const USE_MOCK = false;
+export const USE_MOCK = false;
 
 // --- Personnel API ---
 export const getPersonnel = async (): Promise<Personnel[]> => {

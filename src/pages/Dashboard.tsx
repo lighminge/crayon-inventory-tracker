@@ -11,11 +11,11 @@ export default function Dashboard() {
 
   const stats = useMemo(() => {
     const total = tickets.length;
-    const closed = tickets.filter(t => t.status === 'Approved & Closed').length;
-    const inProgress = tickets.filter(t => t.status !== 'Approved & Closed').length;
+    const closed = tickets.filter(t => t.closeDate).length;
+    const inProgress = tickets.filter(t => !t.closeDate).length;
     const completionRate = total === 0 ? 0 : Math.round((closed / total) * 100);
 
-    const closedWithDays = tickets.filter(t => t.status === 'Approved & Closed' && t.totalProcessingDays);
+    const closedWithDays = tickets.filter(t => t.closeDate && t.totalProcessingDays);
     const avgDays = closedWithDays.length === 0 ? 0 : 
       Math.round(closedWithDays.reduce((sum, t) => sum + (t.totalProcessingDays || 0), 0) / closedWithDays.length);
 
