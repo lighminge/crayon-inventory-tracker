@@ -7,6 +7,7 @@ export default function DispatchTickets() {
   const [selectedPerson, setSelectedPerson] = useState<Personnel | null>(null);
   
   const [dispatchType, setDispatchType] = useState<'single' | 'multi'>('single');
+  const [ticketType, setTicketType] = useState<'夾鉗' | 'TKW'>('夾鉗');
   const [singleId, setSingleId] = useState('');
   const [multiStartId, setMultiStartId] = useState('');
   const [multiEndId, setMultiEndId] = useState('');
@@ -57,6 +58,7 @@ export default function DispatchTickets() {
         await addTicket({
           id,
           title: id,
+          ticketType,
           assigneeId: selectedPerson.id,
           dispatchDate: timestamp,
           closeDate: null,
@@ -92,6 +94,13 @@ export default function DispatchTickets() {
           <div>
             <label style={{ fontWeight: 'bold', marginRight: '10px' }}>派送日期：</label>
             <input type="date" className="doodle-input" style={{ width: 'auto' }} value={dispatchDate} onChange={e => setDispatchDate(e.target.value)} />
+          </div>
+          <div>
+            <label style={{ fontWeight: 'bold', marginRight: '10px' }}>盤點類型：</label>
+            <select className="doodle-input" style={{ width: 'auto' }} value={ticketType} onChange={e => setTicketType(e.target.value as '夾鉗' | 'TKW')}>
+              <option value="夾鉗">夾鉗</option>
+              <option value="TKW">TKW</option>
+            </select>
           </div>
         </div>
       </div>
