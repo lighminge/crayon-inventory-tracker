@@ -1,5 +1,6 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+// @ts-ignore
 import { Lunar, Solar } from 'lunar-javascript';
 
 export default function Layout() {
@@ -20,10 +21,10 @@ export default function Layout() {
     const festivals: string[] = [];
     
     // Add solar festivals
-    solar.getFestivals().forEach(f => festivals.push(f));
+    solar.getFestivals().forEach((f: string) => festivals.push(f));
     
     // Add lunar festivals
-    lunar.getFestivals().forEach(f => festivals.push(f));
+    lunar.getFestivals().forEach((f: string) => festivals.push(f));
     
     // Add solar term if exists
     const jieQi = lunar.getJieQi();
