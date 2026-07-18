@@ -17,6 +17,9 @@ export default function InventoryTicketsPage() {
   const [filterEndDate, setFilterEndDate] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'inProgress' | 'closed'>('all');
   const [filterPerson, setFilterPerson] = useState('');
+  
+  // Sort State
+  const [sortMethod, setSortMethod] = useState<'id' | 'dispatchDate' | 'personnel'>('id');
 
   // Modals State
   const [updatingTicket, setUpdatingTicket] = useState<InventoryTicket | null>(null);
@@ -39,8 +42,7 @@ export default function InventoryTicketsPage() {
   const loadData = async () => {
     try {
       const [tData, pData, wData] = await Promise.all([getTickets(), getPersonnel(), getWorkflows()]);
-      // Order by ID ascending
-      setTickets(tData.sort((a, b) => a.id.localeCompare(b.id)));
+      setTickets(tData);
       setPersonnel(pData);
       setWorkflows(wData.sort((a, b) => a.order - b.order));
     } catch (e) {
@@ -63,7 +65,6 @@ export default function InventoryTicketsPage() {
       if (filterStartDate || filterEndDate) {
         if (!t.dispatchDate) return false;
         const dDate = new Date(t.dispatchDate);
-        // set to start/end of day for comparison
         if (filterStartDate) {
           const s = new Date(filterStartDate);
           s.setHours(0,0,0,0);
@@ -85,17 +86,32 @@ export default function InventoryTicketsPage() {
     });
   }, [tickets, filterId, filterStartDate, filterEndDate, filterStatus, filterPerson]);
 
+  // Sort Logic
+  const sortedTickets = useMemo(() => {
+    return [...filteredTickets].sort((a, b) => {
+      if (sortMethod === 'id') {
+        return a.id.localeCompare(b.id);
+      } else if (sortMethod === 'dispatchDate') {
+        return (b.dispatchDate || 0) - (a.dispatchDate || 0);
+      } else if (sortMethod === 'personnel') {
+        const nameA = getAssigneeName(a.assigneeId);
+        const nameB = getAssigneeName(b.assigneeId);
+        return nameA.localeCompare(nameB);
+      }
+      return 0;
+    });
+  }, [filteredTickets, sortMethod, personnel]);
+
   // Pagination Logic
-  const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedTickets.length / itemsPerPage);
   const currentTickets = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
-    return filteredTickets.slice(start, start + itemsPerPage);
-  }, [filteredTickets, currentPage, itemsPerPage]);
+    return sortedTickets.slice(start, start + itemsPerPage);
+  }, [sortedTickets, currentPage, itemsPerPage]);
 
   useEffect(() => {
-    // Reset to page 1 when filters change
     setCurrentPage(1);
-  }, [filterId, filterStartDate, filterEndDate, filterStatus, filterPerson, itemsPerPage]);
+  }, [filterId, filterStartDate, filterEndDate, filterStatus, filterPerson, sortMethod, itemsPerPage]);
 
   const getProgress = (ticket: InventoryTicket) => {
     let completedStages = 0;
@@ -107,8 +123,12 @@ export default function InventoryTicketsPage() {
         break;
       }
     }
-    const totalStages = workflows.length + 1;
-    const percentage = Math.round((completedStages / totalStages) * 100);
+    const totalStages = workflows.length; // 移除 +1 因為移除了結案方塊的視覺佔位，但流程仍包含派送，所以總共是 workflows.length (包含派送的話其實是總 workflows，第一關為派送)
+    // 實際上 workflows 第一關就是派送，所以總共就是 workflows.length
+    
+    completedStages = ticket.stageDates ? Object.keys(ticket.stageDates).length : 0;
+
+    const percentage = totalStages === 0 ? 0 : Math.min(100, Math.round((completedStages / totalStages) * 100));
     return { completedStages, totalStages, percentage };
   };
 
@@ -206,13 +226,10 @@ export default function InventoryTicketsPage() {
         }
       });
 
-      // If ID changed, we need to create new doc and delete old one, but for simplicity here we assume we can just update other fields or we actually delete & recreate.
-      // Firebase updateDoc doesn't change document ID. If they want to change ID, we must recreate.
       if (editFormData.id !== editingTicket.id) {
-         // Create new ticket with new ID
          const newTicket: InventoryTicket = {
             id: editFormData.id,
-            title: editFormData.id, // keep title synced with id
+            title: editFormData.id, 
             ticketType: editFormData.ticketType,
             assigneeId: editFormData.assigneeId,
             dispatchDate: editFormData.dispatchDateStr ? new Date(editFormData.dispatchDateStr).getTime() : null,
@@ -225,7 +242,6 @@ export default function InventoryTicketsPage() {
          await addTicket(newTicket);
          await deleteTicket(editingTicket.id);
       } else {
-         // Update existing
          await updateTicket(editingTicket.id, {
            ticketType: editFormData.ticketType,
            assigneeId: editFormData.assigneeId,
@@ -240,6 +256,22 @@ export default function InventoryTicketsPage() {
     } catch (e) {
       alert('修改失敗');
     }
+  };
+
+  // Helper function to calculate days between two timestamps
+  const calculateDays = (startMs: number, endMs: number) => {
+    const diff = endMs - startMs;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    return days <= 0 ? 1 : days;
+  };
+
+  // Helper function to get current total processing days for incomplete tickets
+  const getCurrentTotalDays = (ticket: InventoryTicket) => {
+    if (ticket.totalProcessingDays) return ticket.totalProcessingDays;
+    if (ticket.dispatchDate) {
+      return calculateDays(ticket.dispatchDate, new Date().getTime());
+    }
+    return 0;
   };
 
   return (
@@ -257,13 +289,13 @@ export default function InventoryTicketsPage() {
         </div>
       </div>
 
-      {/* Filter Bar */}
+      {/* Filter & Sort Bar */}
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#f9f9f9' }}>
-        <h3 style={{ marginTop: 0, marginBottom: '15px', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>🔍 查詢條件</h3>
+        <h3 style={{ marginTop: 0, marginBottom: '15px', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>🔍 查詢與排序</h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>盤點單號：</label>
-            <input className="doodle-input" style={{ width: '150px' }} value={filterId} onChange={e => setFilterId(e.target.value)} placeholder="輸入單號" />
+            <input className="doodle-input" style={{ width: '120px' }} value={filterId} onChange={e => setFilterId(e.target.value)} placeholder="輸入單號" />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>派送日期起：</label>
@@ -288,14 +320,24 @@ export default function InventoryTicketsPage() {
               {personnel.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
-          <button className="doodle-button" style={{ height: '42px' }} onClick={() => {
-            setFilterId(''); setFilterStartDate(''); setFilterEndDate(''); setFilterStatus('all'); setFilterPerson('');
-          }}>清除條件</button>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>排序方式：</label>
+              <select className="doodle-input" style={{ border: '2px solid var(--crayon-blue)' }} value={sortMethod} onChange={e => setSortMethod(e.target.value as any)}>
+                <option value="id">單號排序</option>
+                <option value="dispatchDate">盤點派單日排序</option>
+                <option value="personnel">人員排序</option>
+              </select>
+            </div>
+            <button className="doodle-button" style={{ height: '42px' }} onClick={() => {
+              setFilterId(''); setFilterStartDate(''); setFilterEndDate(''); setFilterStatus('all'); setFilterPerson(''); setSortMethod('id');
+            }}>清除</button>
+          </div>
         </div>
       </div>
 
       <div style={{ marginBottom: '15px', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-blue)' }}>
-        👉 目前符合條件共 {filteredTickets.length} 筆資料
+        👉 目前符合條件共 {sortedTickets.length} 筆資料
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -304,97 +346,147 @@ export default function InventoryTicketsPage() {
           const nextStage = getNextStage(t);
           const isFinished = !nextStage && t.closeDate;
           const isPendingApproval = !nextStage && !t.closeDate;
-          // Calculate global sequence number
           const seqNum = (currentPage - 1) * itemsPerPage + index + 1;
+          const currentTotalDays = getCurrentTotalDays(t);
 
           return (
-            <div key={t.id} className="doodle-border" style={{ padding: '20px', position: 'relative' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                    <span style={{ 
-                      backgroundColor: 'var(--crayon-dark)', color: 'white', 
-                      padding: '2px 10px', borderRadius: '15px', fontWeight: 'bold' 
-                    }}>#{seqNum}</span>
-                    <h3 style={{ margin: 0, fontSize: '1.5rem' }}>單號：{t.id}</h3>
-                    <span style={{
-                      backgroundColor: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)',
-                      color: 'white', padding: '2px 10px', borderRadius: '5px', fontSize: '0.9rem'
-                    }}>{t.ticketType || '未指定'}</span>
-                  </div>
-                  
-                  <div style={{ margin: '15px 0' }}>
-                    <span style={{ 
-                      backgroundColor: 'var(--crayon-yellow)', 
-                      padding: '5px 15px', 
-                      borderRadius: '20px', 
-                      fontWeight: 'bold',
-                      fontSize: '1.1rem',
-                      border: '2px dashed var(--crayon-dark)'
-                    }}>
-                      👤 盤點人員：{getAssigneeName(t.assigneeId)}
-                    </span>
-                  </div>
-                  
-                  {isFinished && (
-                    <div style={{ marginTop: '5px', color: 'var(--crayon-green)', fontWeight: 'bold' }}>
-                      ✓ 已結案 (主管：{t.managerName} | 處理天數：{t.totalProcessingDays} 天)
+            <div key={t.id} className="doodle-border" style={{ padding: '20px', position: 'relative', display: 'flex' }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                      <span style={{ 
+                        backgroundColor: 'var(--crayon-dark)', color: 'white', 
+                        padding: '2px 10px', borderRadius: '15px', fontWeight: 'bold' 
+                      }}>#{seqNum}</span>
+                      <h3 style={{ margin: 0, fontSize: '1.5rem' }}>單號：{t.id}</h3>
+                      <span style={{
+                        backgroundColor: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)',
+                        color: 'white', padding: '2px 10px', borderRadius: '5px', fontSize: '0.9rem'
+                      }}>{t.ticketType || '未指定'}</span>
                     </div>
-                  )}
+                    
+                    <div style={{ margin: '15px 0' }}>
+                      <span style={{ 
+                        backgroundColor: 'var(--crayon-yellow)', 
+                        padding: '5px 15px', 
+                        borderRadius: '20px', 
+                        fontWeight: 'bold',
+                        fontSize: '1.1rem',
+                        border: '2px dashed var(--crayon-dark)'
+                      }}>
+                        👤 盤點人員：{getAssigneeName(t.assigneeId)}
+                      </span>
+                    </div>
+                    
+                    {isFinished && (
+                      <div style={{ marginTop: '5px', color: 'var(--crayon-green)', fontWeight: 'bold' }}>
+                        ✓ 已結案 (主管：{t.managerName})
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '300px' }}>
+                    {!isFinished && nextStage && (
+                      <button className="doodle-button success" onClick={() => openStageUpdate(t, nextStage)}>推進: {nextStage.name}</button>
+                    )}
+                    {!isFinished && isPendingApproval && (
+                      <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-orange)' }} onClick={() => handleOpenManagerForm(t)}>主管核准結案</button>
+                    )}
+                    <button className="doodle-button" onClick={() => openEditModal(t)}>修改</button>
+                    <button className="doodle-button danger" onClick={() => setDeletingId(t.id)}>刪除</button>
+                  </div>
                 </div>
-                
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '300px' }}>
-                  {!isFinished && nextStage && (
-                    <button className="doodle-button success" onClick={() => openStageUpdate(t, nextStage)}>推進: {nextStage.name}</button>
-                  )}
-                  {!isFinished && isPendingApproval && (
-                    <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-orange)' }} onClick={() => handleOpenManagerForm(t)}>主管核准結案</button>
-                  )}
-                  <button className="doodle-button" onClick={() => openEditModal(t)}>修改</button>
-                  <button className="doodle-button danger" onClick={() => setDeletingId(t.id)}>刪除</button>
+
+                {/* Progress Bar & Stages Details */}
+                <div style={{ marginTop: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '0.9rem' }}>
+                    <span>進度：{progress.completedStages} / {progress.totalStages}</span>
+                    <span>{progress.percentage}%</span>
+                  </div>
+                  <div style={{ width: '100%', height: '15px', border: '2px solid var(--crayon-dark)', borderRadius: '15px', overflow: 'hidden' }}>
+                    <div style={{ width: `${progress.percentage}%`, height: '100%', backgroundColor: 'var(--crayon-green)' }}></div>
+                  </div>
+                  
+                  {/* Stage Date Logs (Block style) */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '15px' }}>
+                    {workflows.map((w, wIndex) => {
+                      const isDone = t.stageDates && t.stageDates[w.id];
+                      const isCurrent = !isFinished && nextStage?.id === w.id;
+                      
+                      // Calculate days spent in this stage
+                      let spentDaysText = '';
+                      if (isDone) {
+                        const previousDate = wIndex === 0 ? t.dispatchDate : (t.stageDates && t.stageDates[workflows[wIndex-1].id]);
+                        if (previousDate) {
+                          const days = calculateDays(previousDate, t.stageDates[w.id]);
+                          spentDaysText = days === 1 ? '1日內' : `${days}天`;
+                        }
+                      }
+
+                      return (
+                        <div key={w.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <div style={{ 
+                            padding: '5px 10px', borderRadius: '5px', fontSize: '0.85rem',
+                            backgroundColor: isDone ? '#e8f5e9' : '#f5f5f5',
+                            border: `2px solid ${isDone ? 'var(--crayon-green)' : (isCurrent ? 'var(--crayon-orange)' : '#ccc')}`,
+                            color: isDone ? '#000' : '#888',
+                            position: 'relative'
+                          }}>
+                            {isCurrent && (
+                              <div style={{ 
+                                position: 'absolute', top: '-15px', left: '50%', transform: 'translateX(-50%)', 
+                                fontSize: '1.2rem', animation: 'bounce 1s infinite' 
+                              }}>
+                                📍
+                              </div>
+                            )}
+                            <div style={{ fontWeight: isCurrent ? 'bold' : 'normal' }}>🔹 {w.name}</div>
+                            <div>{isDone ? new Date(t.stageDates[w.id]).toLocaleDateString() : '-'}</div>
+                          </div>
+                          {isDone && spentDaysText && (
+                            <div style={{ 
+                              marginTop: '5px', fontSize: '0.8rem', fontWeight: 'bold', 
+                              color: spentDaysText === '1日內' ? 'var(--crayon-green)' : 'var(--crayon-red)',
+                              backgroundColor: '#fff', padding: '2px 5px', borderRadius: '5px', border: '1px dashed #ccc'
+                            }}>
+                              耗時: {spentDaysText}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
 
-              {/* Progress Bar & Stages Details */}
-              <div style={{ marginTop: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '0.9rem' }}>
-                  <span>進度：{progress.completedStages} / {progress.totalStages}</span>
-                  <span>{progress.percentage}%</span>
+              {/* Huge Total Processing Days Marker on the far right */}
+              <div style={{ 
+                marginLeft: '20px',
+                paddingLeft: '20px',
+                borderLeft: '2px dashed #ccc',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minWidth: '120px'
+              }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#555', marginBottom: '10px' }}>
+                  總處理天數
                 </div>
-                <div style={{ width: '100%', height: '15px', border: '2px solid var(--crayon-dark)', borderRadius: '15px', overflow: 'hidden' }}>
-                  <div style={{ width: `${progress.percentage}%`, height: '100%', backgroundColor: 'var(--crayon-green)' }}></div>
-                </div>
-                
-                {/* Stage Date Logs (Block style) */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '15px' }}>
-                  <div style={{ 
-                    padding: '5px 10px', borderRadius: '5px', fontSize: '0.85rem',
-                    backgroundColor: t.dispatchDate ? '#e8f5e9' : '#f5f5f5',
-                    border: `1px solid ${t.dispatchDate ? 'var(--crayon-green)' : '#ccc'}`
-                  }}>
-                    📤 派送：<br/>{t.dispatchDate ? new Date(t.dispatchDate).toLocaleDateString() : '-'}
-                  </div>
-                  {workflows.map(w => {
-                    const isDone = t.stageDates && t.stageDates[w.id];
-                    return (
-                      <div key={w.id} style={{ 
-                        padding: '5px 10px', borderRadius: '5px', fontSize: '0.85rem',
-                        backgroundColor: isDone ? '#e8f5e9' : '#f5f5f5',
-                        border: `1px solid ${isDone ? 'var(--crayon-green)' : '#ccc'}`,
-                        color: isDone ? '#000' : '#888'
-                      }}>
-                        🔹 {w.name}：<br/>{isDone ? new Date(t.stageDates[w.id]).toLocaleDateString() : '-'}
-                      </div>
-                    )
-                  })}
-                  <div style={{ 
-                    padding: '5px 10px', borderRadius: '5px', fontSize: '0.85rem',
-                    backgroundColor: t.closeDate ? '#e8f5e9' : '#f5f5f5',
-                    border: `1px solid ${t.closeDate ? 'var(--crayon-green)' : '#ccc'}`,
-                    color: t.closeDate ? '#000' : '#888'
-                  }}>
-                    ✅ 結案：<br/>{t.closeDate ? new Date(t.closeDate).toLocaleDateString() : '-'}
-                  </div>
+                <div style={{ 
+                  width: '80px', height: '80px', 
+                  borderRadius: '50%', 
+                  backgroundColor: isFinished ? 'var(--crayon-green)' : '#fff3e0',
+                  border: `3px solid ${isFinished ? 'var(--crayon-dark)' : 'var(--crayon-orange)'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexDirection: 'column',
+                  color: isFinished ? 'white' : 'var(--crayon-orange)',
+                  transform: 'rotate(3deg)',
+                  boxShadow: '3px 3px 0px rgba(0,0,0,0.1)'
+                }}>
+                  <span style={{ fontSize: '2rem', fontWeight: 'bold', lineHeight: '1' }}>{currentTotalDays}</span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>天</span>
                 </div>
               </div>
             </div>
@@ -412,8 +504,6 @@ export default function InventoryTicketsPage() {
         </div>
       )}
 
-      {/* Modals ... (Stage Update, Manager Approval, Delete Confirm, Edit Ticket) */}
-      
       {/* 刪除確認視窗 */}
       {deletingId && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
@@ -431,7 +521,18 @@ export default function InventoryTicketsPage() {
       {/* 修改盤點單視窗 */}
       {editingTicket && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '500px', backgroundColor: 'white', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '500px', backgroundColor: 'white', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
+            <button 
+              onClick={() => setEditingTicket(null)}
+              style={{ 
+                position: 'absolute', top: '15px', right: '15px', 
+                background: 'none', border: 'none', fontSize: '1.5rem', 
+                cursor: 'pointer', color: 'var(--crayon-red)', fontWeight: 'bold'
+              }}
+            >
+              ❌
+            </button>
+            
             <h3 style={{ marginTop: 0 }}>📝 修改盤點單 ({editingTicket.id})</h3>
             <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               
@@ -457,11 +558,6 @@ export default function InventoryTicketsPage() {
 
               <div style={{ borderTop: '2px dashed #ccc', paddingTop: '15px' }}>
                 <h4 style={{ margin: '0 0 10px 0' }}>流程日期修改 (清除日期即可退回流程)</h4>
-                
-                <div style={{ marginBottom: '10px' }}>
-                  <label style={{ fontSize: '0.9rem' }}>派送日期：</label>
-                  <input type="date" className="doodle-input" value={editFormData.dispatchDateStr} onChange={e => setEditFormData({...editFormData, dispatchDateStr: e.target.value})} />
-                </div>
                 
                 {workflows.map(w => (
                   <div key={w.id} style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>

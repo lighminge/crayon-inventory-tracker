@@ -13,6 +13,7 @@
     "date-fns": "^4.4.0",
     "firebase": "^12.16.0",
     "lucide-react": "^1.24.0",
+    "lunar-javascript": "^1.7.7",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",
