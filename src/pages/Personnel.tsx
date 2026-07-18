@@ -113,8 +113,15 @@ export default function PersonnelPage() {
         </div>
       </div>
 
-      <div style={{ marginBottom: '15px', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-blue)' }}>
-        👉 系統中目前共有 {personnelList.length} 位人員
+      <div style={{ marginBottom: '15px', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-blue)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>👉 系統中目前共有 {personnelList.length} 位人員</span>
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button className="doodle-button" style={{ padding: '5px 10px', fontSize: '0.9rem' }} disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>上一頁</button>
+            <div style={{ fontWeight: 'bold', fontSize: '1rem', color: 'var(--crayon-dark)' }}>{currentPage} / {totalPages}</div>
+            <button className="doodle-button" style={{ padding: '5px 10px', fontSize: '0.9rem' }} disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>下一頁</button>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>

@@ -434,6 +434,19 @@ export default function InventoryTicketsPage() {
                               </div>
                             )}
                             <div style={{ fontWeight: 'bold' }}>{w.name}</div>
+                            {/* 加入流程負責人 */}
+                            <div style={{ 
+                              fontSize: '0.8rem', 
+                              color: 'var(--crayon-blue)', 
+                              backgroundColor: 'white', 
+                              padding: '2px 5px', 
+                              borderRadius: '5px',
+                              border: '1px dashed var(--crayon-blue)',
+                              marginTop: '5px',
+                              marginBottom: '5px'
+                            }}>
+                              負責: {getAssigneeName(w.assigneeId || '')}
+                            </div>
                             <div style={{ marginTop: '5px' }}>{isDone ? new Date(t.stageDates[w.id]).toLocaleDateString() : '-'}</div>
                           </div>
                           {/* 耗時顯示 - 明顯的便利貼風格 */}

@@ -51,25 +51,67 @@ export default function Layout() {
         <h1 style={{ margin: 0 }}>🖍️ 塗鴉風盤點派發管理系統</h1>
         
         {dateInfo && (
-          <div className="doodle-border" style={{ 
-            padding: '10px 20px', 
-            backgroundColor: '#fff9c4', 
+          <div style={{ 
             display: 'flex', 
             flexDirection: 'column', 
             alignItems: 'center',
-            transform: 'rotate(2deg)'
+            transform: 'rotate(2deg)',
+            backgroundColor: 'white',
+            border: '2px solid var(--crayon-dark)',
+            borderRadius: '5px',
+            boxShadow: '3px 3px 0px rgba(0,0,0,0.15)',
+            width: '120px',
+            overflow: 'hidden',
+            position: 'relative'
           }}>
-            <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>
-              📅 {dateInfo.dateStr} ({dateInfo.weekStr})
+            {/* Calendar Header / Binder */}
+            <div style={{ 
+              backgroundColor: 'var(--crayon-red)', 
+              color: 'white', 
+              width: '100%', 
+              textAlign: 'center', 
+              padding: '5px 0',
+              fontWeight: 'bold',
+              fontSize: '1rem',
+              borderBottom: '2px dashed var(--crayon-dark)'
+            }}>
+              {dateInfo.dateStr.split('-')[0]} 年 {dateInfo.dateStr.split('-')[1]} 月
             </div>
+            
+            {/* Binder Rings (Decorative) */}
+            <div style={{ position: 'absolute', top: '5px', left: '20px', width: '8px', height: '15px', backgroundColor: 'white', border: '1px solid var(--crayon-dark)', borderRadius: '4px' }}></div>
+            <div style={{ position: 'absolute', top: '5px', right: '20px', width: '8px', height: '15px', backgroundColor: 'white', border: '1px solid var(--crayon-dark)', borderRadius: '4px' }}></div>
+            
+            {/* Large Day Number */}
+            <div style={{ 
+              fontSize: '3rem', 
+              fontWeight: 'bold', 
+              color: 'var(--crayon-dark)',
+              margin: '5px 0',
+              fontFamily: 'Caveat, cursive',
+              lineHeight: '1'
+            }}>
+              {dateInfo.dateStr.split('-')[2]}
+            </div>
+            
+            {/* Weekday */}
+            <div style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '5px' }}>
+              {dateInfo.weekStr}
+            </div>
+
+            {/* Festivals */}
             {dateInfo.festivals.length > 0 && (
               <div style={{ 
-                marginTop: '5px', 
+                width: '100%',
+                backgroundColor: '#fff9c4',
                 color: 'var(--crayon-red)', 
                 fontWeight: 'bold',
-                fontSize: '1.1rem'
+                fontSize: '0.85rem',
+                textAlign: 'center',
+                padding: '2px 0',
+                borderTop: '1px dashed #ccc'
               }}>
-                🌟 {dateInfo.festivals.join('、')}
+                {dateInfo.festivals.join('、')}
               </div>
             )}
           </div>
