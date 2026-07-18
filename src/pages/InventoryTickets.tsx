@@ -114,20 +114,8 @@ export default function InventoryTicketsPage() {
   }, [filterId, filterStartDate, filterEndDate, filterStatus, filterPerson, sortMethod, itemsPerPage]);
 
   const getProgress = (ticket: InventoryTicket) => {
-    let completedStages = 0;
-    if (ticket.dispatchDate) completedStages++;
-    for (const w of workflows) {
-      if (ticket.stageDates && ticket.stageDates[w.id]) {
-        completedStages++;
-      } else {
-        break;
-      }
-    }
-    const totalStages = workflows.length; // 移除 +1 因為移除了結案方塊的視覺佔位，但流程仍包含派送，所以總共是 workflows.length (包含派送的話其實是總 workflows，第一關為派送)
-    // 實際上 workflows 第一關就是派送，所以總共就是 workflows.length
-    
-    completedStages = ticket.stageDates ? Object.keys(ticket.stageDates).length : 0;
-
+    const totalStages = workflows.length;
+    const completedStages = ticket.stageDates ? Object.keys(ticket.stageDates).length : 0;
     const percentage = totalStages === 0 ? 0 : Math.min(100, Math.round((completedStages / totalStages) * 100));
     return { completedStages, totalStages, percentage };
   };
@@ -258,14 +246,12 @@ export default function InventoryTicketsPage() {
     }
   };
 
-  // Helper function to calculate days between two timestamps
   const calculateDays = (startMs: number, endMs: number) => {
     const diff = endMs - startMs;
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     return days <= 0 ? 1 : days;
   };
 
-  // Helper function to get current total processing days for incomplete tickets
   const getCurrentTotalDays = (ticket: InventoryTicket) => {
     if (ticket.totalProcessingDays) return ticket.totalProcessingDays;
     if (ticket.dispatchDate) {
@@ -350,8 +336,8 @@ export default function InventoryTicketsPage() {
           const currentTotalDays = getCurrentTotalDays(t);
 
           return (
-            <div key={t.id} className="doodle-border" style={{ padding: '20px', position: 'relative', display: 'flex' }}>
-              <div style={{ flex: 1 }}>
+            <div key={t.id} className="doodle-border" style={{ padding: '20px', position: 'relative', display: 'flex', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: '300px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
@@ -409,12 +395,11 @@ export default function InventoryTicketsPage() {
                   </div>
                   
                   {/* Stage Date Logs (Block style) */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '15px' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '30px' }}>
                     {workflows.map((w, wIndex) => {
                       const isDone = t.stageDates && t.stageDates[w.id];
                       const isCurrent = !isFinished && nextStage?.id === w.id;
                       
-                      // Calculate days spent in this stage
                       let spentDaysText = '';
                       if (isDone) {
                         const previousDate = wIndex === 0 ? t.dispatchDate : (t.stageDates && t.stageDates[workflows[wIndex-1].id]);
@@ -427,28 +412,41 @@ export default function InventoryTicketsPage() {
                       return (
                         <div key={w.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                           <div style={{ 
-                            padding: '5px 10px', borderRadius: '5px', fontSize: '0.85rem',
-                            backgroundColor: isDone ? '#e8f5e9' : '#f5f5f5',
-                            border: `2px solid ${isDone ? 'var(--crayon-green)' : (isCurrent ? 'var(--crayon-orange)' : '#ccc')}`,
+                            padding: '10px', borderRadius: '10px', fontSize: '0.95rem',
+                            backgroundColor: isDone ? '#e8f5e9' : (isCurrent ? '#fff3e0' : '#f5f5f5'),
+                            border: `3px solid ${isDone ? 'var(--crayon-green)' : (isCurrent ? 'var(--crayon-orange)' : '#ccc')}`,
                             color: isDone ? '#000' : '#888',
-                            position: 'relative'
+                            position: 'relative',
+                            minWidth: '100px',
+                            textAlign: 'center',
+                            boxShadow: isCurrent ? '2px 2px 0px rgba(255, 152, 0, 0.3)' : 'none',
+                            transform: isCurrent ? 'scale(1.05)' : 'none',
+                            transition: 'all 0.3s'
                           }}>
                             {isCurrent && (
                               <div style={{ 
-                                position: 'absolute', top: '-15px', left: '50%', transform: 'translateX(-50%)', 
-                                fontSize: '1.2rem', animation: 'bounce 1s infinite' 
+                                position: 'absolute', top: '-25px', left: '50%', transform: 'translateX(-50%)', 
+                                fontSize: '1rem', fontWeight: 'bold', color: 'var(--crayon-orange)',
+                                backgroundColor: 'white', padding: '2px 8px', borderRadius: '10px', border: '2px dashed var(--crayon-orange)',
+                                whiteSpace: 'nowrap', animation: 'bounce 1s infinite', zIndex: 10
                               }}>
-                                📍
+                                📍 處理中
                               </div>
                             )}
-                            <div style={{ fontWeight: isCurrent ? 'bold' : 'normal' }}>🔹 {w.name}</div>
-                            <div>{isDone ? new Date(t.stageDates[w.id]).toLocaleDateString() : '-'}</div>
+                            <div style={{ fontWeight: 'bold' }}>{w.name}</div>
+                            <div style={{ marginTop: '5px' }}>{isDone ? new Date(t.stageDates[w.id]).toLocaleDateString() : '-'}</div>
                           </div>
+                          {/* 耗時顯示 - 明顯的便利貼風格 */}
                           {isDone && spentDaysText && (
                             <div style={{ 
-                              marginTop: '5px', fontSize: '0.8rem', fontWeight: 'bold', 
-                              color: spentDaysText === '1日內' ? 'var(--crayon-green)' : 'var(--crayon-red)',
-                              backgroundColor: '#fff', padding: '2px 5px', borderRadius: '5px', border: '1px dashed #ccc'
+                              marginTop: '8px', fontSize: '0.9rem', fontWeight: 'bold', 
+                              color: 'var(--crayon-dark)',
+                              backgroundColor: spentDaysText === '1日內' ? '#c8e6c9' : '#ffcdd2', 
+                              padding: '4px 10px', 
+                              borderRadius: '4px', 
+                              border: '2px solid var(--crayon-dark)',
+                              transform: 'rotate(-2deg)',
+                              boxShadow: '1px 1px 0px rgba(0,0,0,0.5)'
                             }}>
                               耗時: {spentDaysText}
                             </div>
@@ -462,31 +460,40 @@ export default function InventoryTicketsPage() {
 
               {/* Huge Total Processing Days Marker on the far right */}
               <div style={{ 
-                marginLeft: '20px',
-                paddingLeft: '20px',
-                borderLeft: '2px dashed #ccc',
+                marginLeft: '30px',
+                paddingLeft: '30px',
+                borderLeft: '4px dashed var(--crayon-dark)',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
                 alignItems: 'center',
-                minWidth: '120px'
+                minWidth: '150px'
               }}>
-                <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#555', marginBottom: '10px' }}>
+                <div style={{ 
+                  fontSize: '1.2rem', 
+                  fontWeight: 'bold', 
+                  color: 'white', 
+                  backgroundColor: 'var(--crayon-dark)',
+                  padding: '5px 15px',
+                  borderRadius: '10px',
+                  marginBottom: '15px',
+                  transform: 'rotate(2deg)'
+                }}>
                   總處理天數
                 </div>
                 <div style={{ 
-                  width: '80px', height: '80px', 
-                  borderRadius: '50%', 
-                  backgroundColor: isFinished ? 'var(--crayon-green)' : '#fff3e0',
-                  border: `3px solid ${isFinished ? 'var(--crayon-dark)' : 'var(--crayon-orange)'}`,
+                  width: '120px', height: '120px', 
+                  borderRadius: '20px', 
+                  backgroundColor: isFinished ? 'var(--crayon-green)' : 'var(--crayon-red)',
+                  border: `4px solid var(--crayon-dark)`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexDirection: 'column',
-                  color: isFinished ? 'white' : 'var(--crayon-orange)',
-                  transform: 'rotate(3deg)',
-                  boxShadow: '3px 3px 0px rgba(0,0,0,0.1)'
+                  color: 'white',
+                  transform: 'rotate(-3deg)',
+                  boxShadow: '5px 5px 0px rgba(0,0,0,0.2)'
                 }}>
-                  <span style={{ fontSize: '2rem', fontWeight: 'bold', lineHeight: '1' }}>{currentTotalDays}</span>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>天</span>
+                  <span style={{ fontSize: '4rem', fontWeight: 'bold', lineHeight: '1', fontFamily: 'Caveat, cursive' }}>{currentTotalDays}</span>
+                  <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>天</span>
                 </div>
               </div>
             </div>
@@ -526,8 +533,11 @@ export default function InventoryTicketsPage() {
               onClick={() => setEditingTicket(null)}
               style={{ 
                 position: 'absolute', top: '15px', right: '15px', 
-                background: 'none', border: 'none', fontSize: '1.5rem', 
-                cursor: 'pointer', color: 'var(--crayon-red)', fontWeight: 'bold'
+                background: 'var(--crayon-paper)', border: '2px solid var(--crayon-dark)', 
+                fontSize: '1.2rem', cursor: 'pointer', color: 'var(--crayon-red)', 
+                fontWeight: 'bold', width: '35px', height: '35px', borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '2px 2px 0px rgba(0,0,0,0.2)'
               }}
             >
               ❌

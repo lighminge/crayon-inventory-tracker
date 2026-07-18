@@ -11,10 +11,9 @@ export default function Dashboard() {
   const [chartType, setChartType] = useState<'bar' | 'line' | 'composed'>('bar');
   
   // Dashboard Personnel Status State
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  });
+  const d = new Date();
+  const [selectedYear, setSelectedYear] = useState<number>(d.getFullYear());
+  const [selectedMonthNum, setSelectedMonthNum] = useState<number>(d.getMonth() + 1);
 
   useEffect(() => {
     loadData();
@@ -53,8 +52,7 @@ export default function Dashboard() {
         return td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth();
       });
       const count = monthTickets.length;
-      const closedCount = monthTickets.filter(t => t.closeDate).length;
-      chartData.push({ month: monthStr, count, closedCount });
+      chartData.push({ month: monthStr, count });
     }
 
     return { total, inProgress, completionRate, avgDays, chartData };
@@ -62,9 +60,8 @@ export default function Dashboard() {
 
   // Personnel specific stats for selected month
   const personnelStats = useMemo(() => {
-    const targetDate = new Date(selectedMonth + '-01');
-    const tYear = targetDate.getFullYear();
-    const tMonth = targetDate.getMonth();
+    const tYear = selectedYear;
+    const tMonth = selectedMonthNum - 1; // 0-indexed for Date comparison
 
     const inventoryStaff = personnel.filter(p => (p.roles || []).includes('盤點'));
     
@@ -109,7 +106,7 @@ export default function Dashboard() {
         avgDays
       };
     }).sort((a, b) => b.incompleteCount - a.incompleteCount);
-  }, [tickets, personnel, selectedMonth]);
+  }, [tickets, personnel, selectedYear, selectedMonthNum]);
 
   const personnelTotals = useMemo(() => {
     return personnelStats.reduce((acc, curr) => ({
@@ -133,7 +130,7 @@ export default function Dashboard() {
           <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18}} allowDecimals={false} />
           <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '2px solid var(--crayon-dark)'}} />
           <Legend />
-          <Line type="monotone" dataKey="count" name="派送數量" stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{r: 8}} />
+          <Line type="monotone" dataKey="count" name="盤點數量" stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{r: 8}} />
         </LineChart>
       );
     }
@@ -145,8 +142,8 @@ export default function Dashboard() {
           <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18}} allowDecimals={false} />
           <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '2px solid var(--crayon-dark)'}} />
           <Legend />
-          <Bar dataKey="count" name="派送數量" fill="var(--crayon-blue)" radius={[5, 5, 0, 0]} barSize={30} />
-          <Line type="monotone" dataKey="closedCount" name="完成數量" stroke="var(--crayon-red)" strokeWidth={4} />
+          <Bar dataKey="count" name="長條圖(盤點數量)" fill="var(--crayon-yellow)" radius={[5, 5, 0, 0]} barSize={40} />
+          <Line type="monotone" dataKey="count" name="折線圖(盤點數量)" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8}} />
         </ComposedChart>
       );
     }
@@ -161,6 +158,10 @@ export default function Dashboard() {
       </BarChart>
     );
   };
+
+  // Generate Year options (e.g. from 2024 to current year + 1)
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({length: 5}, (_, i) => currentYear - 2 + i);
 
   return (
     <div>
@@ -185,6 +186,101 @@ export default function Dashboard() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+        
+        {/* 備料員盤點情況 - Moved ABOVE Chart & Restyled to Doodle Cards */}
+        <div className="doodle-border" style={{ padding: '20px', backgroundColor: '#e0f7fa' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px dashed var(--crayon-dark)', paddingBottom: '10px', flexWrap: 'wrap', gap: '15px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.8rem' }}>👥 備料員盤點情況</h3>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <label style={{ fontWeight: 'bold' }}>查詢期間：</label>
+              <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}>
+                {yearOptions.map(y => <option key={y} value={y}>{y} 年</option>)}
+              </select>
+              <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={selectedMonthNum} onChange={e => setSelectedMonthNum(Number(e.target.value))}>
+                {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>{m} 月</option>)}
+              </select>
+            </div>
+          </div>
+          
+          <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            {/* 總計列設計成顯眼置頂的塗鴉風格面板 */}
+            {personnelStats.length > 0 && (
+              <div className="doodle-border" style={{ 
+                backgroundColor: 'var(--crayon-yellow)', padding: '15px 20px', 
+                display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+                flexWrap: 'wrap', gap: '15px', border: '3px solid var(--crayon-dark)'
+              }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>🌟 全員總計</div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>總未完成</div>
+                  <div style={{ fontSize: '2rem', color: 'var(--crayon-red)', fontWeight: 'bold' }}>{personnelTotals.incompleteCount} 件</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月總派送</div>
+                  <div style={{ fontSize: '2rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>{personnelTotals.monthDispatch} 件</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月總完成</div>
+                  <div style={{ fontSize: '2rem', color: 'var(--crayon-green)', fontWeight: 'bold' }}>{personnelTotals.monthCompleted} 件</div>
+                </div>
+              </div>
+            )}
+
+            {/* 人員卡片列表 */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
+              {personnelStats.map(p => (
+                <div key={p.id} className="doodle-border" style={{ padding: '15px', backgroundColor: 'white', position: 'relative' }}>
+                  <h4 style={{ margin: '0 0 15px 0', fontSize: '1.3rem', borderBottom: '2px solid #ccc', paddingBottom: '5px' }}>
+                    {p.name} <span style={{ fontSize: '0.9rem', color: '#888' }}>({p.title})</span>
+                  </h4>
+                  
+                  {/* 最顯眼的總計未完成 */}
+                  <div style={{ 
+                    position: 'absolute', top: '-10px', right: '-10px',
+                    width: '70px', height: '70px',
+                    backgroundColor: p.incompleteCount > 0 ? '#ffebee' : '#e8f5e9',
+                    border: `3px solid ${p.incompleteCount > 0 ? 'var(--crayon-red)' : 'var(--crayon-green)'}`,
+                    borderRadius: '50%', display: 'flex', flexDirection: 'column', 
+                    alignItems: 'center', justifyContent: 'center',
+                    transform: 'rotate(5deg)', boxShadow: '2px 2px 0px rgba(0,0,0,0.2)'
+                  }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#555' }}>未完成</span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: p.incompleteCount > 0 ? 'var(--crayon-red)' : 'var(--crayon-green)', lineHeight: 1 }}>{p.incompleteCount}</span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div style={{ backgroundColor: '#f5f5f5', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#666' }}>本月派送</div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>{p.monthDispatch}</div>
+                    </div>
+                    <div style={{ backgroundColor: '#f5f5f5', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.85rem', color: '#666' }}>本月完成</div>
+                      <div style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>{p.monthCompleted}</div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginTop: '15px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '5px' }}>
+                      <strong>完成率</strong>
+                      <span>{p.monthCompletionRate}%</span>
+                    </div>
+                    <div style={{ width: '100%', height: '10px', backgroundColor: '#eee', borderRadius: '5px', overflow: 'hidden', border: '1px solid #ccc' }}>
+                      <div style={{ width: `${p.monthCompletionRate}%`, height: '100%', backgroundColor: p.monthCompletionRate === 100 ? 'var(--crayon-green)' : 'var(--crayon-blue)' }}></div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginTop: '10px', textAlign: 'right', fontSize: '0.9rem' }}>
+                    <strong>平均耗時：</strong> <span style={{ color: p.avgDays > 0 ? 'var(--crayon-red)' : '#888', fontWeight: 'bold', fontSize: '1.1rem' }}>{p.avgDays > 0 ? `${p.avgDays} 天` : '-'}</span>
+                  </div>
+                </div>
+              ))}
+              {personnelStats.length === 0 && (
+                <div style={{ padding: '20px', color: '#888', gridColumn: '1 / -1', textAlign: 'center' }}>沒有具備盤點權限的人員。</div>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* 近半年盤點數量趨勢 (Recharts) */}
         <div className="doodle-border" style={{ padding: '20px', backgroundColor: 'var(--crayon-paper)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>
@@ -194,7 +290,7 @@ export default function Dashboard() {
               <select className="doodle-input" style={{ width: 'auto' }} value={chartType} onChange={e => setChartType(e.target.value as any)}>
                 <option value="bar">長條圖</option>
                 <option value="line">折線圖</option>
-                <option value="composed">二者並存 (派送與完成)</option>
+                <option value="composed">二者並存 (同時顯示長條圖與折線圖)</option>
               </select>
             </div>
           </div>
@@ -205,67 +301,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 備料員盤點情況 */}
-        <div className="doodle-border" style={{ padding: '20px', backgroundColor: '#f5f5f5' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>
-            <h3 style={{ margin: 0 }}>👥 備料員盤點情況</h3>
-            <div>
-              <label style={{ fontWeight: 'bold', marginRight: '10px' }}>查詢月份：</label>
-              <input type="month" className="doodle-input" style={{ width: 'auto' }} value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} />
-            </div>
-          </div>
-          
-          <div style={{ overflowX: 'auto', marginTop: '15px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', backgroundColor: 'white' }} className="doodle-border">
-              <thead>
-                <tr style={{ backgroundColor: 'var(--crayon-yellow)' }}>
-                  <th style={{ padding: '10px', borderBottom: '2px solid var(--crayon-dark)' }}>人員姓名</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid var(--crayon-dark)' }}>總計未完成</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid var(--crayon-dark)' }}>本月派送</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid var(--crayon-dark)' }}>本月完成</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid var(--crayon-dark)' }}>本月完成率</th>
-                  <th style={{ padding: '10px', borderBottom: '2px solid var(--crayon-dark)' }}>完成平均日數</th>
-                </tr>
-              </thead>
-              <tbody>
-                {personnelStats.map(p => (
-                  <tr key={p.id} style={{ borderBottom: '1px dashed #ccc' }}>
-                    <td style={{ padding: '10px', fontWeight: 'bold' }}>{p.name} <span style={{ fontSize: '0.8rem', color: '#666' }}>({p.title})</span></td>
-                    <td style={{ padding: '10px', color: p.incompleteCount > 0 ? 'var(--crayon-red)' : 'var(--crayon-green)', fontWeight: 'bold' }}>
-                      {p.incompleteCount} 件
-                    </td>
-                    <td style={{ padding: '10px' }}>{p.monthDispatch}</td>
-                    <td style={{ padding: '10px' }}>{p.monthCompleted}</td>
-                    <td style={{ padding: '10px' }}>
-                      <div style={{ width: '100%', backgroundColor: '#eee', borderRadius: '5px', height: '10px', marginTop: '5px', overflow: 'hidden' }}>
-                        <div style={{ width: `${p.monthCompletionRate}%`, backgroundColor: 'var(--crayon-blue)', height: '100%' }}></div>
-                      </div>
-                      <span style={{ fontSize: '0.85rem' }}>{p.monthCompletionRate}%</span>
-                    </td>
-                    <td style={{ padding: '10px' }}>{p.avgDays > 0 ? `${p.avgDays} 天` : '-'}</td>
-                  </tr>
-                ))}
-                {personnelStats.length === 0 && (
-                  <tr>
-                    <td colSpan={6} style={{ padding: '20px', color: '#888' }}>沒有具備盤點權限的人員。</td>
-                  </tr>
-                )}
-              </tbody>
-              {personnelStats.length > 0 && (
-                <tfoot>
-                  <tr style={{ backgroundColor: '#e3f2fd', fontWeight: 'bold' }}>
-                    <td style={{ padding: '10px', borderTop: '2px solid var(--crayon-dark)' }}>總計 (Total)</td>
-                    <td style={{ padding: '10px', borderTop: '2px solid var(--crayon-dark)' }}>{personnelTotals.incompleteCount} 件</td>
-                    <td style={{ padding: '10px', borderTop: '2px solid var(--crayon-dark)' }}>{personnelTotals.monthDispatch}</td>
-                    <td style={{ padding: '10px', borderTop: '2px solid var(--crayon-dark)' }}>{personnelTotals.monthCompleted}</td>
-                    <td style={{ padding: '10px', borderTop: '2px solid var(--crayon-dark)' }}>-</td>
-                    <td style={{ padding: '10px', borderTop: '2px solid var(--crayon-dark)' }}>-</td>
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          </div>
-        </div>
       </div>
     </div>
   );
