@@ -83,7 +83,8 @@ export default function Dashboard() {
       const pTickets = filteredTickets.filter(t => t.assigneeId === p.id);
       
       // 未完成件數 (All time incomplete)
-      const incompleteCount = pTickets.filter(t => !t.closeDate).length;
+      const incompleteTickets = pTickets.filter(t => !t.closeDate);
+      const incompleteCount = incompleteTickets.length;
       
       // 本月派送
       const monthTickets = pTickets.filter(t => {
@@ -117,6 +118,7 @@ export default function Dashboard() {
 
       return {
         ...p,
+        incompleteTickets,
         incompleteCount,
         monthDispatch,
         monthCompleted,
@@ -359,6 +361,48 @@ export default function Dashboard() {
                   <div style={{ marginTop: '10px', textAlign: 'right', fontSize: '0.9rem' }}>
                     <strong>平均耗時：</strong> <span style={{ color: p.avgDays > 0 ? 'var(--crayon-red)' : '#888', fontWeight: 'bold', fontSize: '1.1rem' }}>{p.avgDays > 0 ? `${p.avgDays} 天` : '-'}</span>
                   </div>
+
+                  {/* 未完成盤點單列表 */}
+                  {p.incompleteCount > 0 && (
+                    <div style={{
+                      marginTop: '20px',
+                      padding: '15px',
+                      backgroundColor: '#fff3e0',
+                      border: '3px dashed var(--crayon-orange)',
+                      borderRadius: '10px',
+                      boxShadow: 'inset 0 0 10px rgba(255, 152, 0, 0.1)'
+                    }}>
+                      <h5 style={{ margin: '0 0 12px 0', color: 'var(--crayon-red)', fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>📋 未完成清單</span>
+                        <span style={{ fontSize: '1rem', backgroundColor: 'var(--crayon-yellow)', padding: '2px 8px', borderRadius: '15px', border: '1px solid var(--crayon-dark)', color: 'var(--crayon-dark)' }}>
+                          共 {p.incompleteCount} 件 / {p.incompleteTickets.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0)} 項
+                        </span>
+                      </h5>
+                      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {p.incompleteTickets.map((t: InventoryTicket, idx: number) => (
+                          <li key={t.id} style={{ 
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            backgroundColor: 'white', padding: '8px 12px', 
+                            border: '2px solid var(--crayon-dark)', borderRadius: '8px',
+                            boxShadow: '3px 3px 0px rgba(0,0,0,0.15)',
+                            transform: `rotate(${Math.random() * 2 - 1}deg)`
+                          }}>
+                            <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
+                              <span style={{ color: 'var(--crayon-blue)', marginRight: '8px', fontSize: '1.2rem' }}>{idx + 1}.</span>
+                              {t.id}
+                            </span>
+                            <span style={{ 
+                              backgroundColor: '#e1bee7', padding: '3px 10px', 
+                              borderRadius: '12px', fontSize: '0.9rem', fontWeight: 'bold',
+                              border: '1px dashed var(--crayon-dark)', color: 'var(--crayon-purple)'
+                            }}>
+                              📦 {t.itemCount || 0} 項
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               ))}
               {personnelStats.length === 0 && (
