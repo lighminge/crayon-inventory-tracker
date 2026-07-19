@@ -125,35 +125,36 @@ export default function Dashboard() {
     if (chartType === 'line') {
       return (
         <LineChart {...commonProps}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-          <XAxis dataKey="month" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18}} />
-          <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18}} allowDecimals={false} />
-          <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '2px solid var(--crayon-dark)'}} />
-          <Legend />
-          <Line type="monotone" dataKey="count" name="盤點數量" stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{r: 8}} />
+          <CartesianGrid strokeDasharray="5 5" stroke="#ccc" />
+          <XAxis dataKey="month" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} />
+          <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />
+          <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#fff9c4', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
+          <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
+          <Line type="monotone" dataKey="count" name="盤點數量" stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />
         </LineChart>
       );
     }
     if (chartType === 'composed') {
       return (
         <ComposedChart {...commonProps}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-          <XAxis dataKey="month" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18}} />
-          <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18}} allowDecimals={false} />
-          <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '2px solid var(--crayon-dark)'}} />
-          <Legend />
+          <CartesianGrid strokeDasharray="5 5" stroke="#ccc" />
+          <XAxis dataKey="month" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} />
+          <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />
+          <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#fff9c4', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
+          <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
           <Bar dataKey="count" name="長條圖(盤點數量)" fill="var(--crayon-yellow)" radius={[5, 5, 0, 0]} barSize={40} />
-          <Line type="monotone" dataKey="count" name="折線圖(盤點數量)" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8}} />
+          <Line type="monotone" dataKey="count" name="折線圖(盤點數量)" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />
         </ComposedChart>
       );
     }
     // Default bar
     return (
       <BarChart {...commonProps}>
-        <XAxis dataKey="month" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18}} />
-        <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18}} allowDecimals={false} />
-        <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '2px solid var(--crayon-dark)'}} />
-        <Legend />
+        <CartesianGrid strokeDasharray="5 5" stroke="#ccc" />
+        <XAxis dataKey="month" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} />
+        <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />
+        <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#fff9c4', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
+        <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
         <Bar dataKey="count" name="盤點數量" fill="var(--crayon-purple)" radius={[5, 5, 0, 0]} barSize={40} />
       </BarChart>
     );
@@ -282,7 +283,10 @@ export default function Dashboard() {
         </div>
 
         {/* 近半年盤點數量趨勢 (Recharts) */}
-        <div className="doodle-border" style={{ padding: '20px', backgroundColor: 'var(--crayon-paper)' }}>
+        <div className="doodle-border" style={{ 
+          padding: '20px', backgroundColor: 'var(--crayon-paper)',
+          transform: 'rotate(-0.5deg)', boxShadow: '5px 5px 0px rgba(0,0,0,0.15)'
+        }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>
             <h3 style={{ margin: 0 }}>📈 近六個月盤點數量</h3>
             <div>
@@ -294,7 +298,10 @@ export default function Dashboard() {
               </select>
             </div>
           </div>
-          <div style={{ height: '300px', marginTop: '20px' }}>
+          <div style={{ 
+            height: '300px', marginTop: '20px', backgroundColor: 'white', 
+            borderRadius: '10px', border: '2px solid var(--crayon-dark)', padding: '10px' 
+          }}>
             <ResponsiveContainer width="100%" height="100%">
               {renderChart()}
             </ResponsiveContainer>

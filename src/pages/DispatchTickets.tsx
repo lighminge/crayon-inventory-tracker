@@ -1,35 +1,38 @@
-import { useState, useEffect } from 'react';
-import { getPersonnel, addTicket, getWorkflows } from '../services/api';
-import type { Personnel, Workflow } from '../types';
+import { useState, useEffect, useMemo } from 'react';
+import { getPersonnel, addTicket, getWorkflows, getTickets } from '../services/api';
+import type { Personnel, Workflow, InventoryTicket } from '../types';
 
 export default function DispatchTickets() {
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
-  const [selectedPerson, setSelectedPerson] = useState<Personnel | null>(null);
+  const [tickets, setTickets] = useState<InventoryTicket[]>([]);
   
+  // Settings State
   const [dispatchType, setDispatchType] = useState<'single' | 'multi'>('single');
   const [ticketType, setTicketType] = useState<'夾鉗' | 'TKW'>('夾鉗');
+  const today = new Date().toISOString().split('T')[0];
+  const [dispatchDate, setDispatchDate] = useState(today);
+
+  // Dispatch Modal State
+  const [targetPerson, setTargetPerson] = useState<Personnel | null>(null);
   const [singleId, setSingleId] = useState('');
   const [multiStartId, setMultiStartId] = useState('');
   const [multiEndId, setMultiEndId] = useState('');
-  
-  // yyyy-MM-dd format for date input
-  const today = new Date().toISOString().split('T')[0];
-  const [dispatchDate, setDispatchDate] = useState(today);
 
   // Success Modal
   const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
-    // Only load personnel with the '盤點' role
-    getPersonnel().then(all => {
-      const inventoryStaff = all.filter(p => (p.roles || []).includes('盤點'));
-      setPersonnel(inventoryStaff);
-    });
-    getWorkflows().then(w => {
-      setWorkflows(w.sort((a,b) => a.order - b.order));
-    });
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    const [allP, wData, tData] = await Promise.all([getPersonnel(), getWorkflows(), getTickets()]);
+    const inventoryStaff = allP.filter(p => (p.roles || []).includes('盤點'));
+    setPersonnel(inventoryStaff);
+    setWorkflows(wData.sort((a,b) => a.order - b.order));
+    setTickets(tData);
+  };
 
   const parseIdSuffix = (idStr: string) => {
     const match = idStr.match(/(\d+)$/);
@@ -39,9 +42,20 @@ export default function DispatchTickets() {
     return { prefix, num: parseInt(numStr, 10), suffixLen: numStr.length };
   };
 
+  const getUnfinishedCount = (personId: string) => {
+    return tickets.filter(t => t.assigneeId === personId && !t.closeDate).length;
+  };
+
+  const handleOpenDispatchModal = (p: Personnel) => {
+    setTargetPerson(p);
+    setSingleId('');
+    setMultiStartId('');
+    setMultiEndId('');
+  };
+
   const handleDispatch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPerson) return alert('請先選擇派送人員！');
+    if (!targetPerson) return;
 
     const timestamp = new Date(dispatchDate).getTime();
     const idsToCreate: string[] = [];
@@ -65,7 +79,6 @@ export default function DispatchTickets() {
     }
 
     try {
-      // Find the first workflow stage to automatically check it
       const firstStage = workflows.length > 0 ? workflows[0] : null;
       const initialStageDates: Record<string, number> = {};
       if (firstStage) {
@@ -77,7 +90,7 @@ export default function DispatchTickets() {
           id,
           title: id,
           ticketType,
-          assigneeId: selectedPerson.id,
+          assigneeId: targetPerson.id,
           dispatchDate: timestamp,
           closeDate: null,
           stageDates: initialStageDates,
@@ -85,11 +98,9 @@ export default function DispatchTickets() {
         });
       }
       
-      setSuccessMessage(`成功派送 ${idsToCreate.length} 筆盤點單！`);
-      setSingleId('');
-      setMultiStartId('');
-      setMultiEndId('');
-      setSelectedPerson(null);
+      setSuccessMessage(`成功派送 ${idsToCreate.length} 筆盤點單給 ${targetPerson.name}！`);
+      setTargetPerson(null);
+      loadData(); // Refresh tickets to update unfinished counts
     } catch (err: any) {
       alert('派送失敗：' + err.message);
     }
@@ -99,10 +110,10 @@ export default function DispatchTickets() {
     <div>
       <h2>📤 盤點單派送</h2>
 
-      {/* 派送設定區 */}
+      {/* 派送通用設定區 */}
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '30px', backgroundColor: '#f0f8ff' }}>
-        <h3 style={{ borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '10px', marginTop: 0 }}>派送設定</h3>
-        <div style={{ display: 'flex', gap: '20px', marginTop: '15px', alignItems: 'center' }}>
+        <h3 style={{ borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px', marginTop: 0 }}>⚙️ 通用派送設定</h3>
+        <div style={{ display: 'flex', gap: '20px', marginTop: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div>
             <label style={{ fontWeight: 'bold', marginRight: '10px' }}>派送模式：</label>
             <select className="doodle-input" style={{ width: 'auto' }} value={dispatchType} onChange={e => setDispatchType(e.target.value as 'single' | 'multi')}>
@@ -124,82 +135,117 @@ export default function DispatchTickets() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
-        {/* 左側：人員列表 */}
-        <div>
-          <h3>1. 點選要派送的人員 (僅顯示具備盤點權限者)</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '15px' }}>
-            {personnel.map(p => (
-              <div 
-                key={p.id} 
-                className="doodle-border" 
-                style={{ 
-                  padding: '15px', 
-                  cursor: 'pointer',
-                  backgroundColor: selectedPerson?.id === p.id ? 'var(--crayon-yellow)' : 'var(--crayon-paper)',
-                  transform: selectedPerson?.id === p.id ? 'scale(1.02)' : 'none'
-                }}
-                onClick={() => setSelectedPerson(p)}
-              >
-                <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{p.name}</div>
-                <div style={{ color: '#555', fontSize: '0.9rem' }}>{p.title}</div>
+      <h3 style={{ marginBottom: '20px', color: 'var(--crayon-dark)' }}>👉 點選人員進行派送</h3>
+
+      {/* 人員卡片網格 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+        {personnel.map(p => {
+          const unfinished = getUnfinishedCount(p.id);
+          return (
+            <div 
+              key={p.id} 
+              className="doodle-border" 
+              style={{ 
+                padding: '20px', 
+                backgroundColor: 'white',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                position: 'relative'
+              }}
+            >
+              <div style={{ marginBottom: '15px' }}>
+                <h3 style={{ margin: '0 0 5px 0', fontSize: '1.5rem', borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '5px' }}>
+                  👤 {p.name}
+                </h3>
+                <div style={{ color: '#555', fontSize: '1rem' }}>{p.title}</div>
               </div>
-            ))}
-            {personnel.length === 0 && (
-              <p style={{ color: '#888' }}>目前沒有具備「盤點」職責的人員。請先至人員管理設定職責。</p>
-            )}
+
+              {/* 未完成單據數量 (塗鴉標籤風格) */}
+              <div style={{ 
+                alignSelf: 'center',
+                backgroundColor: unfinished > 0 ? '#ffebee' : '#e8f5e9',
+                border: `3px solid ${unfinished > 0 ? 'var(--crayon-red)' : 'var(--crayon-green)'}`,
+                borderRadius: '15px',
+                padding: '10px 20px',
+                marginBottom: '20px',
+                transform: 'rotate(-2deg)',
+                textAlign: 'center',
+                boxShadow: '2px 2px 0px rgba(0,0,0,0.1)'
+              }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#555' }}>目前未完成</div>
+                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: unfinished > 0 ? 'var(--crayon-red)' : 'var(--crayon-green)', lineHeight: 1 }}>
+                  {unfinished} <span style={{ fontSize: '1rem' }}>件</span>
+                </div>
+              </div>
+
+              <button 
+                className="doodle-button success" 
+                style={{ width: '100%', fontSize: '1.2rem', padding: '10px' }}
+                onClick={() => handleOpenDispatchModal(p)}
+              >
+                📤 派送盤點單
+              </button>
+            </div>
+          )
+        })}
+        {personnel.length === 0 && (
+          <p style={{ color: '#888', gridColumn: '1 / -1' }}>目前沒有具備「盤點」職責的人員。請先至人員管理設定職責。</p>
+        )}
+      </div>
+
+      {/* 輸入單號的派送 Modal */}
+      {targetPerson && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '400px', backgroundColor: 'var(--crayon-paper)' }}>
+            <h3 style={{ marginTop: 0, color: 'var(--crayon-blue)' }}>📤 派送給：{targetPerson.name}</h3>
+            
+            <div style={{ 
+              backgroundColor: 'white', padding: '10px', borderRadius: '5px', 
+              border: '1px dashed #ccc', marginBottom: '20px', fontSize: '0.9rem' 
+            }}>
+              <strong>目前設定：</strong><br/>
+              模式: {dispatchType === 'single' ? '單筆' : '多筆批次'} | 類型: {ticketType} | 日期: {dispatchDate}
+            </div>
+
+            <form onSubmit={handleDispatch} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              {dispatchType === 'single' ? (
+                <div>
+                  <label style={{ fontWeight: 'bold' }}>輸入單筆盤點單號：</label>
+                  <input className="doodle-input" placeholder="例如: 2607A1" required value={singleId} onChange={e => setSingleId(e.target.value)} />
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label style={{ fontWeight: 'bold' }}>起始盤點單號：</label>
+                    <input className="doodle-input" placeholder="例如: 260701" required value={multiStartId} onChange={e => setMultiStartId(e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={{ fontWeight: 'bold' }}>結束盤點單號：</label>
+                    <input className="doodle-input" placeholder="例如: 260705" required value={multiEndId} onChange={e => setMultiEndId(e.target.value)} />
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: '#666', fontStyle: 'italic' }}>* 系統將自動產生起迄區間內的所有連續編號單據。</p>
+                </>
+              )}
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button type="submit" className="doodle-button success" style={{ flex: 1 }}>確認送出</button>
+                <button type="button" className="doodle-button danger" style={{ flex: 1 }} onClick={() => setTargetPerson(null)}>取消</button>
+              </div>
+            </form>
           </div>
         </div>
-
-        {/* 右側：輸入單號 */}
-        <div>
-          <h3>2. 輸入單號並派送</h3>
-          {selectedPerson ? (
-            <div className="doodle-border" style={{ padding: '20px', marginTop: '15px' }}>
-              <p>目前選擇：<strong>{selectedPerson.name} ({selectedPerson.title})</strong></p>
-              <form onSubmit={handleDispatch} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
-                
-                {dispatchType === 'single' ? (
-                  <div>
-                    <label>單筆盤點單號：</label>
-                    <input className="doodle-input" placeholder="例如: 2607A1" required value={singleId} onChange={e => setSingleId(e.target.value)} />
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <label>起始盤點單號：</label>
-                      <input className="doodle-input" placeholder="例如: 260701" required value={multiStartId} onChange={e => setMultiStartId(e.target.value)} />
-                    </div>
-                    <div>
-                      <label>結束盤點單號：</label>
-                      <input className="doodle-input" placeholder="例如: 260705" required value={multiEndId} onChange={e => setMultiEndId(e.target.value)} />
-                    </div>
-                    <p style={{ fontSize: '0.9rem', color: '#666' }}>系統將自動產生起迄區間內的所有連續編號單據。</p>
-                  </>
-                )}
-
-                <button type="submit" className="doodle-button success" style={{ marginTop: '10px' }}>
-                  確認派送
-                </button>
-              </form>
-            </div>
-          ) : (
-            <div className="doodle-border" style={{ padding: '20px', marginTop: '15px', textAlign: 'center', color: '#888' }}>
-              請先從左側選擇一位人員
-            </div>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* 客製化成功視窗 */}
       {successMessage && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '400px', backgroundColor: 'white', textAlign: 'center' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '10px' }}>✅</div>
+            <div style={{ fontSize: '4rem', marginBottom: '10px' }}>🎉</div>
             <h3 style={{ color: 'var(--crayon-green)', fontSize: '2rem', marginTop: 0 }}>派送成功</h3>
-            <p style={{ fontSize: '1.2rem', marginBottom: '25px' }}>{successMessage}</p>
+            <p style={{ fontSize: '1.2rem', marginBottom: '25px', fontWeight: 'bold' }}>{successMessage}</p>
             <button className="doodle-button success" onClick={() => setSuccessMessage('')}>
-              太棒了！
+              繼續派送
             </button>
           </div>
         </div>

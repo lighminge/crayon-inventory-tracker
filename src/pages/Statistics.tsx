@@ -188,41 +188,68 @@ export default function Statistics() {
       <h2>📈 統計作業</h2>
 
       {/* 條件篩選 */}
-      <div className="doodle-border" style={{ padding: '20px', marginBottom: '30px', backgroundColor: '#f9f9f9', display: 'flex', gap: '20px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-        <h3 style={{ margin: 0, width: '100%', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>📅 設定統計條件</h3>
-        <div>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>起始日期：</label>
-          <input type="date" className="doodle-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
-        </div>
-        <div>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>結束日期：</label>
-          <input type="date" className="doodle-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
-        </div>
-        <div style={{ marginLeft: '10px', paddingLeft: '20px', borderLeft: '2px dashed #ccc' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>盤點單號起：</label>
-          <input className="doodle-input" placeholder="例如: 260101" value={startTicketId} onChange={e => setStartTicketId(e.target.value)} />
-        </div>
-        <div>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>盤點單號迄：</label>
-          <input className="doodle-input" placeholder="例如: 261299" value={endTicketId} onChange={e => setEndTicketId(e.target.value)} />
+      <div className="doodle-border" style={{ padding: '20px', marginBottom: '30px', backgroundColor: '#f9f9f9' }}>
+        <h3 style={{ margin: 0, marginBottom: '15px', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>📅 設定統計條件</h3>
+        
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+          {/* 日期區間卡片 */}
+          <div style={{ 
+            flex: 1, minWidth: '250px', backgroundColor: '#fff3e0', 
+            padding: '15px', borderRadius: '10px', border: '2px solid var(--crayon-orange)',
+            transform: 'rotate(-1deg)' 
+          }}>
+            <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-orange)' }}>📌 依日期區間</h4>
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>起始日期：</label>
+                <input type="date" className="doodle-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>結束日期：</label>
+                <input type="date" className="doodle-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
+              </div>
+            </div>
+          </div>
+
+          {/* 單號區間卡片 */}
+          <div style={{ 
+            flex: 1, minWidth: '250px', backgroundColor: '#e8f5e9', 
+            padding: '15px', borderRadius: '10px', border: '2px solid var(--crayon-green)',
+            transform: 'rotate(1deg)' 
+          }}>
+            <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-green)' }}>📌 依盤點單號區間</h4>
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>單號起：</label>
+                <input className="doodle-input" placeholder="例如: 260101" value={startTicketId} onChange={e => setStartTicketId(e.target.value)} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>單號迄：</label>
+                <input className="doodle-input" placeholder="例如: 261299" value={endTicketId} onChange={e => setEndTicketId(e.target.value)} />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* 各流程平均處理天數 */}
       {workflows.length > 0 && (
-        <div className="doodle-border" style={{ padding: '20px', marginBottom: '30px', backgroundColor: '#e0f7fa' }}>
+        <div className="doodle-border" style={{ 
+          padding: '20px', marginBottom: '30px', backgroundColor: '#e0f7fa',
+          transform: 'rotate(-0.5deg)', boxShadow: '5px 5px 0px rgba(0,0,0,0.15)'
+        }}>
           <h3 style={{ marginTop: 0, borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>⏳ 各流程平均處理天數</h3>
-          <div style={{ marginTop: '20px', height: '300px' }}>
+          <div style={{ marginTop: '20px', height: '300px', backgroundColor: 'white', borderRadius: '10px', border: '2px solid var(--crayon-dark)', padding: '10px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={statsByWorkflow} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-                <XAxis dataKey="name" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 16}} />
-                <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 16}} />
+                <CartesianGrid strokeDasharray="5 5" stroke="#ccc" />
+                <XAxis dataKey="name" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} />
+                <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} />
                 <Tooltip 
-                  contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '2px solid var(--crayon-dark)'}}
+                  contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#fff9c4', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}}
                   formatter={(value) => [`${value} 天`, '平均天數']}
                 />
-                <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem'}} />
+                <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
                 <Bar dataKey="avgDays" name="平均處理天數 (天)" fill="var(--crayon-orange)" radius={[5, 5, 0, 0]} barSize={50} />
               </BarChart>
             </ResponsiveContainer>
@@ -250,7 +277,10 @@ export default function Statistics() {
       </div>
 
       {/* 動態圖表區塊 */}
-      <div className="doodle-border" style={{ padding: '20px', marginBottom: '30px', backgroundColor: 'white' }}>
+      <div className="doodle-border" style={{ 
+        padding: '20px', marginBottom: '30px', backgroundColor: 'white',
+        transform: 'rotate(0.5deg)', boxShadow: '5px 5px 0px rgba(0,0,0,0.1)'
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '15px', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
           <h3 style={{ margin: 0 }}>📊 人員績效圖表分析</h3>
           <div style={{ display: 'flex', gap: '15px' }}>
@@ -272,7 +302,9 @@ export default function Statistics() {
           </div>
         </div>
         
-        {renderChart()}
+        <div style={{ padding: '10px', backgroundColor: '#fafafa', borderRadius: '10px', border: '2px solid #ddd' }}>
+          {renderChart()}
+        </div>
       </div>
 
       {/* 個人詳細數據列表 */}
