@@ -9,6 +9,10 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState<InventoryTask[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState('');
   
+  // Personnel Cards State
+  const [activeTab, setActiveTab] = useState<Record<string, 'stats' | 'incomplete'>>({});
+  const [incompletePage, setIncompletePage] = useState<Record<string, number>>({});
+  
   // Dashboard Chart State
   const [chartType, setChartType] = useState<'bar' | 'line' | 'composed'>('bar');
   const [chartMetric, setChartMetric] = useState<'ticketCount' | 'itemCount' | 'all'>('ticketCount');
@@ -305,106 +309,152 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* 人員卡片列表 */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px' }}>
-              {personnelStats.map(p => (
-                <div key={p.id} className="doodle-border" style={{ padding: '15px', backgroundColor: 'white', position: 'relative' }}>
-                  <h4 style={{ margin: '0 0 15px 0', fontSize: '1.3rem', borderBottom: '2px solid #ccc', paddingBottom: '5px' }}>
-                    {p.name} <span style={{ fontSize: '0.9rem', color: '#888' }}>({p.title})</span>
-                  </h4>
-                  
-                  {/* 最顯眼的總計未完成 */}
-                  <div style={{ 
-                    position: 'absolute', top: '-10px', right: '-10px',
-                    width: '70px', height: '70px',
-                    backgroundColor: p.incompleteCount > 0 ? '#ffebee' : '#e8f5e9',
-                    border: `3px solid ${p.incompleteCount > 0 ? 'var(--crayon-red)' : 'var(--crayon-green)'}`,
-                    borderRadius: '50%', display: 'flex', flexDirection: 'column', 
-                    alignItems: 'center', justifyContent: 'center',
-                    transform: 'rotate(5deg)', boxShadow: '2px 2px 0px rgba(0,0,0,0.2)'
-                  }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#555' }}>未完成</span>
-                    <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: p.incompleteCount > 0 ? 'var(--crayon-red)' : 'var(--crayon-green)', lineHeight: 1 }}>{p.incompleteCount}</span>
-                  </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+              {personnelStats.map(p => {
+                const currentTab = activeTab[p.id] || 'stats';
+                const currentPage = incompletePage[p.id] || 1;
+                const itemsPerPage = 5;
+                const totalPages = Math.ceil(p.incompleteCount / itemsPerPage);
+                const startIndex = (currentPage - 1) * itemsPerPage;
+                const paginatedTickets = p.incompleteTickets.slice(startIndex, startIndex + itemsPerPage);
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div style={{ backgroundColor: '#f5f5f5', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.85rem', color: '#666' }}>本月派送</div>
-                      <div style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>{p.monthDispatch}</div>
-                    </div>
-                    <div style={{ backgroundColor: '#f5f5f5', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.85rem', color: '#666' }}>本月完成</div>
-                      <div style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>{p.monthCompleted}</div>
-                    </div>
-                  </div>
-                  
-                  <div style={{ 
-                    marginTop: '15px', backgroundColor: '#e8eaf6', padding: '10px', 
-                    borderRadius: '10px', textAlign: 'center', border: '1px dashed var(--crayon-blue)' 
-                  }}>
-                    <div style={{ fontSize: '0.9rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
-                      {selectedTaskId ? '此任務已盤點項目數' : '已完成總項目數'}
-                    </div>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{p.totalCompletedItems}</div>
-                  </div>
-
-                  <div style={{ marginTop: '15px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '5px' }}>
-                      <strong>完成率</strong>
-                      <span>{p.monthCompletionRate}%</span>
-                    </div>
-                    <div style={{ width: '100%', height: '10px', backgroundColor: '#eee', borderRadius: '5px', overflow: 'hidden', border: '1px solid #ccc' }}>
-                      <div style={{ width: `${p.monthCompletionRate}%`, height: '100%', backgroundColor: p.monthCompletionRate === 100 ? 'var(--crayon-green)' : 'var(--crayon-blue)' }}></div>
-                    </div>
-                  </div>
-                  
-                  <div style={{ marginTop: '10px', textAlign: 'right', fontSize: '0.9rem' }}>
-                    <strong>平均耗時：</strong> <span style={{ color: p.avgDays > 0 ? 'var(--crayon-red)' : '#888', fontWeight: 'bold', fontSize: '1.1rem' }}>{p.avgDays > 0 ? `${p.avgDays} 天` : '-'}</span>
-                  </div>
-
-                  {/* 未完成盤點單列表 */}
-                  {p.incompleteCount > 0 && (
-                    <div style={{
-                      marginTop: '20px',
-                      padding: '15px',
-                      backgroundColor: '#fff3e0',
-                      border: '3px dashed var(--crayon-orange)',
-                      borderRadius: '10px',
-                      boxShadow: 'inset 0 0 10px rgba(255, 152, 0, 0.1)'
-                    }}>
-                      <h5 style={{ margin: '0 0 12px 0', color: 'var(--crayon-red)', fontSize: '1.2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>📋 未完成清單</span>
-                        <span style={{ fontSize: '1rem', backgroundColor: 'var(--crayon-yellow)', padding: '2px 8px', borderRadius: '15px', border: '1px solid var(--crayon-dark)', color: 'var(--crayon-dark)' }}>
-                          共 {p.incompleteCount} 件 / {p.incompleteTickets.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0)} 項
-                        </span>
-                      </h5>
-                      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {p.incompleteTickets.map((t: InventoryTicket, idx: number) => (
-                          <li key={t.id} style={{ 
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            backgroundColor: 'white', padding: '8px 12px', 
-                            border: '2px solid var(--crayon-dark)', borderRadius: '8px',
-                            boxShadow: '3px 3px 0px rgba(0,0,0,0.15)',
-                            transform: `rotate(${Math.random() * 2 - 1}deg)`
+                return (
+                  <div key={p.id} className="doodle-border" style={{ padding: '15px', backgroundColor: 'white', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+                    <h4 style={{ margin: '0 0 15px 0', fontSize: '1.3rem', borderBottom: '2px solid #ccc', paddingBottom: '5px' }}>
+                      {p.name} <span style={{ fontSize: '0.9rem', color: '#888' }}>({p.title})</span>
+                    </h4>
+                    
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                      <button 
+                        className={`doodle-button ${currentTab === 'stats' ? 'success' : ''}`} 
+                        style={{ flex: 1, padding: '5px', minHeight: 'auto' }}
+                        onClick={() => setActiveTab(prev => ({...prev, [p.id]: 'stats'}))}
+                      >
+                        📊 統計數據
+                      </button>
+                      <button 
+                        className={`doodle-button ${currentTab === 'incomplete' ? 'success' : ''}`} 
+                        style={{ flex: 1, padding: '5px', minHeight: 'auto', position: 'relative' }}
+                        onClick={() => setActiveTab(prev => ({...prev, [p.id]: 'incomplete'}))}
+                      >
+                        📋 未完成
+                        {p.incompleteCount > 0 && (
+                          <span style={{
+                            position: 'absolute', top: '-10px', right: '-10px',
+                            backgroundColor: 'var(--crayon-red)', color: 'white',
+                            border: '2px solid var(--crayon-dark)',
+                            borderRadius: '50%', width: '24px', height: '24px',
+                            fontSize: '0.9rem', fontWeight: 'bold', display: 'flex', 
+                            alignItems: 'center', justifyContent: 'center', zIndex: 1
                           }}>
-                            <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
-                              <span style={{ color: 'var(--crayon-blue)', marginRight: '8px', fontSize: '1.2rem' }}>{idx + 1}.</span>
-                              {t.id}
-                            </span>
-                            <span style={{ 
-                              backgroundColor: '#e1bee7', padding: '3px 10px', 
-                              borderRadius: '12px', fontSize: '0.9rem', fontWeight: 'bold',
-                              border: '1px dashed var(--crayon-dark)', color: 'var(--crayon-purple)'
-                            }}>
-                              📦 {t.itemCount || 0} 項
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
+                            {p.incompleteCount}
+                          </span>
+                        )}
+                      </button>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    <div style={{ flex: 1 }}>
+                      {currentTab === 'stats' ? (
+                        <>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                            <div style={{ backgroundColor: '#f5f5f5', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
+                              <div style={{ fontSize: '0.85rem', color: '#666' }}>本月派送</div>
+                              <div style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>{p.monthDispatch}</div>
+                            </div>
+                            <div style={{ backgroundColor: '#f5f5f5', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
+                              <div style={{ fontSize: '0.85rem', color: '#666' }}>本月完成</div>
+                              <div style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>{p.monthCompleted}</div>
+                            </div>
+                          </div>
+                          
+                          <div style={{ 
+                            marginTop: '15px', backgroundColor: '#e8eaf6', padding: '10px', 
+                            borderRadius: '10px', textAlign: 'center', border: '1px dashed var(--crayon-blue)' 
+                          }}>
+                            <div style={{ fontSize: '0.9rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
+                              {selectedTaskId ? '此任務已盤點項目數' : '已完成總項目數'}
+                            </div>
+                            <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{p.totalCompletedItems}</div>
+                          </div>
+
+                          <div style={{ marginTop: '15px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '5px' }}>
+                              <strong>完成率</strong>
+                              <span>{p.monthCompletionRate}%</span>
+                            </div>
+                            <div style={{ width: '100%', height: '10px', backgroundColor: '#eee', borderRadius: '5px', overflow: 'hidden', border: '1px solid #ccc' }}>
+                              <div style={{ width: `${p.monthCompletionRate}%`, height: '100%', backgroundColor: p.monthCompletionRate === 100 ? 'var(--crayon-green)' : 'var(--crayon-blue)' }}></div>
+                            </div>
+                          </div>
+                          
+                          <div style={{ marginTop: '10px', textAlign: 'right', fontSize: '0.9rem' }}>
+                            <strong>平均耗時：</strong> <span style={{ color: p.avgDays > 0 ? 'var(--crayon-red)' : '#888', fontWeight: 'bold', fontSize: '1.1rem' }}>{p.avgDays > 0 ? `${p.avgDays} 天` : '-'}</span>
+                          </div>
+                        </>
+                      ) : (
+                        <div style={{
+                          padding: '10px',
+                          backgroundColor: '#fff3e0',
+                          border: '2px dashed var(--crayon-orange)',
+                          borderRadius: '10px',
+                          height: '100%',
+                          display: 'flex',
+                          flexDirection: 'column'
+                        }}>
+                          <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>總計項目：{p.incompleteTickets.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0)} 項</span>
+                          </div>
+                          
+                          {p.incompleteCount === 0 ? (
+                            <div style={{ textAlign: 'center', color: '#888', padding: '20px 0' }}>太棒了！目前沒有未完成的單據 🎉</div>
+                          ) : (
+                            <>
+                              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                                {paginatedTickets.map((t: InventoryTicket, idx: number) => (
+                                  <li key={t.id} style={{ 
+                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                    backgroundColor: 'white', padding: '6px 10px', 
+                                    border: '2px solid var(--crayon-dark)', borderRadius: '8px',
+                                    boxShadow: '2px 2px 0px rgba(0,0,0,0.1)'
+                                  }}>
+                                    <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>
+                                      <span style={{ color: 'var(--crayon-blue)', marginRight: '5px' }}>{startIndex + idx + 1}.</span>
+                                      {t.id}
+                                    </span>
+                                    <span style={{ 
+                                      backgroundColor: '#e1bee7', padding: '2px 8px', 
+                                      borderRadius: '10px', fontSize: '0.85rem', fontWeight: 'bold',
+                                      border: '1px dashed var(--crayon-dark)', color: 'var(--crayon-purple)'
+                                    }}>
+                                      📦 {t.itemCount || 0}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                              
+                              {totalPages > 1 && (
+                                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginTop: '15px' }}>
+                                  <button 
+                                    className="doodle-button" style={{ padding: '2px 8px', minHeight: 'auto', fontSize: '0.8rem' }}
+                                    disabled={currentPage === 1}
+                                    onClick={() => setIncompletePage(prev => ({...prev, [p.id]: currentPage - 1}))}
+                                  >◀</button>
+                                  <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{currentPage} / {totalPages}</span>
+                                  <button 
+                                    className="doodle-button" style={{ padding: '2px 8px', minHeight: 'auto', fontSize: '0.8rem' }}
+                                    disabled={currentPage === totalPages}
+                                    onClick={() => setIncompletePage(prev => ({...prev, [p.id]: currentPage + 1}))}
+                                  >▶</button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
               {personnelStats.length === 0 && (
                 <div style={{ padding: '20px', color: '#888', gridColumn: '1 / -1', textAlign: 'center' }}>沒有具備盤點權限的人員。</div>
               )}
