@@ -34,6 +34,9 @@ export default function PersonnelPage() {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
+  
+  // Filter State
+  const [filterRole, setFilterRole] = useState('');
 
   const [formData, setFormData] = useState<Omit<Personnel, 'id'>>({
     name: '',
@@ -106,24 +109,36 @@ export default function PersonnelPage() {
     }
   };
 
-  // Pagination Logic
-  const totalPages = Math.ceil(personnelList.length / itemsPerPage);
+  // Filter & Pagination Logic
+  const filteredPersonnel = useMemo(() => {
+    if (!filterRole) return personnelList;
+    return personnelList.filter(p => (p.roles || []).includes(filterRole));
+  }, [personnelList, filterRole]);
+
+  const totalPages = Math.ceil(filteredPersonnel.length / itemsPerPage);
   const currentPersonnel = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
-    return personnelList.slice(start, start + itemsPerPage);
-  }, [personnelList, currentPage, itemsPerPage]);
+    return filteredPersonnel.slice(start, start + itemsPerPage);
+  }, [filteredPersonnel, currentPage, itemsPerPage]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [itemsPerPage]);
+  }, [itemsPerPage, filterRole]);
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
         <h2>👥 人員管理</h2>
-        <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div>
-            <label>每頁筆數：</label>
+            <label style={{ fontWeight: 'bold' }}>工作職責：</label>
+            <select className="doodle-input" style={{ width: 'auto' }} value={filterRole} onChange={e => setFilterRole(e.target.value)}>
+              <option value="">-- 全部職責 --</option>
+              {ROLES_LIST.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontWeight: 'bold' }}>每頁筆數：</label>
             <select className="doodle-input" style={{ width: 'auto' }} value={itemsPerPage} onChange={e => setItemsPerPage(Number(e.target.value))}>
               <option value={5}>5</option>
               <option value={10}>10</option>
@@ -131,12 +146,12 @@ export default function PersonnelPage() {
               <option value={20}>20</option>
             </select>
           </div>
-          <button className="doodle-button" onClick={() => handleOpenForm()}>＋ 新增人員</button>
+          <button className="doodle-button success" onClick={() => handleOpenForm()}>＋ 新增人員</button>
         </div>
       </div>
 
       <div style={{ marginBottom: '15px', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-blue)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span>👉 系統中目前共有 {personnelList.length} 位人員</span>
+        <span>👉 系統中目前共有 {filteredPersonnel.length} 位符合條件的人員</span>
         {totalPages > 1 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button className="doodle-button" style={{ padding: '5px 10px', fontSize: '0.9rem' }} disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>上一頁</button>
@@ -159,7 +174,7 @@ export default function PersonnelPage() {
               }}>
                 #{seqNum}
               </span>
-              <h3 style={{ margin: '0 0 10px 0', borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '5px', display: 'flex', alignItems: 'center' }}>
+              <h3 style={{ margin: '0 0 10px 0', borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '5px', display: 'flex', alignItems: 'center', fontSize: '2rem', fontWeight: '900', color: 'var(--crayon-dark)' }}>
                 {person.name} 
                 <span style={{ 
                   fontSize: '1.2rem', 
@@ -215,7 +230,20 @@ export default function PersonnelPage() {
 
       {isFormOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: 'white' }}>
+          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: 'white', position: 'relative' }}>
+            <button 
+              onClick={() => setIsFormOpen(false)}
+              style={{ 
+                position: 'absolute', top: '15px', right: '15px', 
+                background: 'var(--crayon-paper)', border: '2px solid var(--crayon-dark)', 
+                fontSize: '1.2rem', cursor: 'pointer', color: 'var(--crayon-red)', 
+                fontWeight: 'bold', width: '35px', height: '35px', borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '2px 2px 0px rgba(0,0,0,0.2)'
+              }}
+            >
+              ❌
+            </button>
             <h3 style={{ marginTop: 0 }}>{editingPerson ? '編輯人員資料' : '新增人員資料'}</h3>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
               <div>

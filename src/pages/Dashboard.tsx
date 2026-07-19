@@ -340,12 +340,14 @@ export default function Dashboard() {
                         📋 未完成
                         {p.incompleteCount > 0 && (
                           <span style={{
-                            position: 'absolute', top: '-10px', right: '-10px',
+                            position: 'absolute', top: '-15px', right: '-15px',
                             backgroundColor: 'var(--crayon-red)', color: 'white',
-                            border: '2px solid var(--crayon-dark)',
-                            borderRadius: '50%', width: '24px', height: '24px',
-                            fontSize: '0.9rem', fontWeight: 'bold', display: 'flex', 
-                            alignItems: 'center', justifyContent: 'center', zIndex: 1
+                            border: '3px solid var(--crayon-dark)',
+                            borderRadius: '50%', width: '32px', height: '32px',
+                            fontSize: '1.2rem', fontWeight: '900', display: 'flex', 
+                            alignItems: 'center', justifyContent: 'center', zIndex: 1,
+                            boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                            transform: 'rotate(5deg)'
                           }}>
                             {p.incompleteCount}
                           </span>
@@ -402,7 +404,7 @@ export default function Dashboard() {
                           flexDirection: 'column'
                         }}>
                           <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>總計項目：{p.incompleteTickets.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0)} 項</span>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>總計單據：{p.incompleteCount} 件 / 總計項目：{p.incompleteTickets.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0)} 項</span>
                           </div>
                           
                           {p.incompleteCount === 0 ? (

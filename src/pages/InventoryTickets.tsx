@@ -382,8 +382,19 @@ export default function InventoryTicketsPage() {
         </div>
       </div>
 
-      <div style={{ marginBottom: '15px', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-blue)' }}>
-        👉 目前符合條件共 {sortedTickets.length} 筆資料
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+        <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-blue)' }}>
+          👉 目前符合條件共 {sortedTickets.length} 筆資料
+        </div>
+        
+        {/* Top Pagination Controls */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button className="doodle-button" style={{ padding: '5px 15px', minHeight: 'auto' }} disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>上一頁</button>
+            <div style={{ padding: '5px 15px', fontWeight: 'bold' }}>{currentPage} / {totalPages}</div>
+            <button className="doodle-button" style={{ padding: '5px 15px', minHeight: 'auto' }} disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>下一頁</button>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -397,20 +408,6 @@ export default function InventoryTicketsPage() {
 
           return (
             <div key={t.id} className="doodle-border" style={{ padding: '20px', position: 'relative', display: 'flex', flexWrap: 'wrap' }}>
-              {index === 0 && totalPages > 1 && (
-                <div style={{ 
-                  position: 'absolute', top: '-18px', right: '20px', 
-                  display: 'flex', alignItems: 'center', gap: '8px', 
-                  backgroundColor: 'var(--crayon-paper)', padding: '5px 15px',
-                  border: '2px solid var(--crayon-dark)', borderRadius: '20px',
-                  boxShadow: '3px 3px 0px rgba(0,0,0,0.15)', zIndex: 10,
-                  transform: 'rotate(1deg)'
-                }}>
-                  <button className="doodle-button" style={{ padding: '2px 10px', minHeight: 'auto', fontSize: '0.9rem' }} disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>◀</button>
-                  <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: 'var(--crayon-blue)' }}>{currentPage} / {totalPages}</div>
-                  <button className="doodle-button" style={{ padding: '2px 10px', minHeight: 'auto', fontSize: '0.9rem' }} disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>▶</button>
-                </div>
-              )}
               <div style={{ flex: 1, minWidth: '300px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
