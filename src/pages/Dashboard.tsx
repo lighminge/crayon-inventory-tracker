@@ -11,6 +11,7 @@ export default function Dashboard() {
   
   // Dashboard Chart State
   const [chartType, setChartType] = useState<'bar' | 'line' | 'composed'>('bar');
+  const [chartMetric, setChartMetric] = useState<'ticketCount' | 'itemCount' | 'all'>('ticketCount');
   
   // Dashboard Personnel Status State
   const d = new Date();
@@ -62,7 +63,8 @@ export default function Dashboard() {
         return td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth();
       });
       const count = monthTickets.length;
-      chartData.push({ month: monthStr, count });
+      const itemCount = monthTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+      chartData.push({ month: monthStr, count, itemCount });
     }
 
     return { total, inProgress, completionRate, avgDays, chartData };
@@ -107,12 +109,9 @@ export default function Dashboard() {
       const avgDays = monthCompletedTickets.length === 0 ? 0 :
         Math.round(monthCompletedTickets.reduce((sum, t) => sum + (t.totalProcessingDays || 0), 0) / monthCompletedTickets.length);
 
-      // Task Item calculation
-      let taskCompletedItems = 0;
-      if (selectedTaskId) {
-        const taskTickets = pTickets.filter(t => t.closeDate); // pTickets is already filtered by task
-        taskCompletedItems = taskTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
-      }
+      // Completed Items calculation
+      const completedTickets = pTickets.filter(t => t.closeDate);
+      const totalCompletedItems = completedTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
 
       return {
         ...p,
@@ -121,7 +120,7 @@ export default function Dashboard() {
         monthCompleted,
         monthCompletionRate,
         avgDays,
-        taskCompletedItems
+        totalCompletedItems
       };
     }).sort((a, b) => b.incompleteCount - a.incompleteCount);
   }, [filteredTickets, personnel, selectedYear, selectedMonthNum, selectedTaskId]);
@@ -131,7 +130,8 @@ export default function Dashboard() {
       incompleteCount: acc.incompleteCount + curr.incompleteCount,
       monthDispatch: acc.monthDispatch + curr.monthDispatch,
       monthCompleted: acc.monthCompleted + curr.monthCompleted,
-    }), { incompleteCount: 0, monthDispatch: 0, monthCompleted: 0 });
+      totalCompletedItems: acc.totalCompletedItems + curr.totalCompletedItems
+    }), { incompleteCount: 0, monthDispatch: 0, monthCompleted: 0, totalCompletedItems: 0 });
   }, [personnelStats]);
 
   const renderChart = () => {
@@ -139,6 +139,9 @@ export default function Dashboard() {
       data: stats.chartData,
       margin: { top: 20, right: 30, left: 0, bottom: 5 }
     };
+    
+    const showTicket = chartMetric === 'ticketCount' || chartMetric === 'all';
+    const showItem = chartMetric === 'itemCount' || chartMetric === 'all';
     
     if (chartType === 'line') {
       return (
@@ -148,7 +151,8 @@ export default function Dashboard() {
           <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />
           <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#fff9c4', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
           <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
-          <Line type="monotone" dataKey="count" name="盤點數量" stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />
+          {showTicket && <Line type="monotone" dataKey="count" name="盤點數量" stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />}
+          {showItem && <Line type="monotone" dataKey="itemCount" name="盤點項目數量" stroke="var(--crayon-orange)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />}
         </LineChart>
       );
     }
@@ -157,11 +161,12 @@ export default function Dashboard() {
         <ComposedChart {...commonProps}>
           <CartesianGrid strokeDasharray="5 5" stroke="#ccc" />
           <XAxis dataKey="month" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} />
-          <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />
+          <YAxis yAxisId="left" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />
+          {showTicket && showItem && <YAxis yAxisId="right" orientation="right" stroke="var(--crayon-orange)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />}
           <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#fff9c4', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
           <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
-          <Bar dataKey="count" name="長條圖(盤點數量)" fill="var(--crayon-yellow)" radius={[5, 5, 0, 0]} barSize={40} />
-          <Line type="monotone" dataKey="count" name="折線圖(盤點數量)" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />
+          {showTicket && <Bar yAxisId="left" dataKey="count" name="長條圖(盤點數量)" fill="var(--crayon-yellow)" radius={[5, 5, 0, 0]} barSize={40} />}
+          {showItem && <Line yAxisId={showTicket ? "right" : "left"} type="monotone" dataKey="itemCount" name="折線圖(盤點項目數)" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />}
         </ComposedChart>
       );
     }
@@ -173,7 +178,8 @@ export default function Dashboard() {
         <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />
         <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#fff9c4', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
         <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
-        <Bar dataKey="count" name="盤點數量" fill="var(--crayon-purple)" radius={[5, 5, 0, 0]} barSize={40} />
+        {showTicket && <Bar dataKey="count" name="盤點數量" fill="var(--crayon-purple)" radius={[5, 5, 0, 0]} barSize={40} />}
+        {showItem && <Bar dataKey="itemCount" name="盤點項目數量" fill="var(--crayon-orange)" radius={[5, 5, 0, 0]} barSize={40} />}
       </BarChart>
     );
   };
@@ -276,6 +282,10 @@ export default function Dashboard() {
                   <div style={{ fontSize: '2rem', color: 'var(--crayon-red)', fontWeight: 'bold' }}>{personnelTotals.incompleteCount} 件</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>已完成總項目數</div>
+                  <div style={{ fontSize: '2rem', color: 'var(--crayon-orange)', fontWeight: 'bold' }}>{personnelTotals.totalCompletedItems} 項</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月總派送</div>
                   <div style={{ fontSize: '2rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>{personnelTotals.monthDispatch} 件</div>
                 </div>
@@ -319,15 +329,15 @@ export default function Dashboard() {
                     </div>
                   </div>
                   
-                  {selectedTaskId && (
-                    <div style={{ 
-                      marginTop: '15px', backgroundColor: '#e8eaf6', padding: '10px', 
-                      borderRadius: '10px', textAlign: 'center', border: '1px dashed var(--crayon-blue)' 
-                    }}>
-                      <div style={{ fontSize: '0.9rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>此任務已盤點項目數</div>
-                      <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{p.taskCompletedItems}</div>
+                  <div style={{ 
+                    marginTop: '15px', backgroundColor: '#e8eaf6', padding: '10px', 
+                    borderRadius: '10px', textAlign: 'center', border: '1px dashed var(--crayon-blue)' 
+                  }}>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
+                      {selectedTaskId ? '此任務已盤點項目數' : '已完成總項目數'}
                     </div>
-                  )}
+                    <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{p.totalCompletedItems}</div>
+                  </div>
 
                   <div style={{ marginTop: '15px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '5px' }}>
@@ -358,13 +368,23 @@ export default function Dashboard() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>
             <h3 style={{ margin: 0 }}>📈 近六個月盤點數量</h3>
-            <div>
-              <label style={{ fontWeight: 'bold', marginRight: '10px' }}>圖表類型：</label>
-              <select className="doodle-input" style={{ width: 'auto' }} value={chartType} onChange={e => setChartType(e.target.value as any)}>
-                <option value="bar">長條圖</option>
-                <option value="line">折線圖</option>
-                <option value="composed">二者並存 (同時顯示長條圖與折線圖)</option>
-              </select>
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div>
+                <label style={{ fontWeight: 'bold', marginRight: '5px' }}>統計數據：</label>
+                <select className="doodle-input" style={{ width: 'auto' }} value={chartMetric} onChange={e => setChartMetric(e.target.value as any)}>
+                  <option value="ticketCount">盤點數量 (件)</option>
+                  <option value="itemCount">盤點項目數量 (項)</option>
+                  <option value="all">全部顯示</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold', marginRight: '5px' }}>圖表類型：</label>
+                <select className="doodle-input" style={{ width: 'auto' }} value={chartType} onChange={e => setChartType(e.target.value as any)}>
+                  <option value="bar">長條圖</option>
+                  <option value="line">折線圖</option>
+                  <option value="composed">二者並存</option>
+                </select>
+              </div>
             </div>
           </div>
           <div style={{ 

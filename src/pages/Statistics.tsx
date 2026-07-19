@@ -207,7 +207,7 @@ export default function Statistics() {
             transform: 'rotate(-1deg)' 
           }}>
             <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-orange)' }}>📌 依日期區間</h4>
-            <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>起始日期：</label>
                 <input type="date" className="doodle-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
@@ -226,7 +226,7 @@ export default function Statistics() {
             transform: 'rotate(1deg)' 
           }}>
             <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-green)' }}>📌 依盤點單號區間</h4>
-            <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>單號起：</label>
                 <input className="doodle-input" placeholder="例如: 260101" value={startTicketId} onChange={e => setStartTicketId(e.target.value)} />
