@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { getPersonnel, addTicket, getWorkflows, getTickets } from '../services/api';
 import type { Personnel, Workflow, InventoryTicket } from '../types';
 
