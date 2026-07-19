@@ -147,6 +147,7 @@ export default function InventoryTicketsPage() {
     setUpdatingTicket(ticket);
     setSelectedStageId(stage.id);
     setSelectedDate(new Date().toISOString().split('T')[0]);
+    setManagerName('');
   };
 
   const handleStageUpdate = async (e: React.FormEvent) => {
@@ -156,8 +157,22 @@ export default function InventoryTicketsPage() {
     const timestamp = new Date(selectedDate).getTime();
     const newStageDates = { ...updatingTicket.stageDates, [selectedStageId]: timestamp };
     
+    const currentIndex = workflows.findIndex(w => w.id === selectedStageId);
+    const isLastStage = currentIndex === workflows.length - 1;
+    
     try {
-      await updateTicket(updatingTicket.id, { stageDates: newStageDates });
+      if (isLastStage) {
+        const processingDays = updatingTicket.dispatchDate ? 
+          Math.max(1, Math.ceil((timestamp - updatingTicket.dispatchDate) / (1000 * 60 * 60 * 24))) : 1;
+        await updateTicket(updatingTicket.id, { 
+          stageDates: newStageDates,
+          closeDate: timestamp,
+          managerName: managerName,
+          totalProcessingDays: processingDays
+        });
+      } else {
+        await updateTicket(updatingTicket.id, { stageDates: newStageDates });
+      }
       setUpdatingTicket(null);
       loadData();
     } catch (e) {
@@ -698,12 +713,22 @@ export default function InventoryTicketsPage() {
           <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '400px', backgroundColor: 'white' }}>
             <h3>更新流程進度</h3>
             <p>單號：{updatingTicket.id}</p>
-            <p>即將推進至：<strong>{workflows.find(w => w.id === selectedStageId)?.name}</strong></p>
+            {(() => {
+              const currentIndex = workflows.findIndex(w => w.id === selectedStageId);
+              const nextFlow = workflows[currentIndex + 1];
+              return <p>即將推進至：<strong>{nextFlow ? nextFlow.name : '✅ 結案'}</strong></p>;
+            })()}
             <form onSubmit={handleStageUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
               <div>
                 <label>完成日期：</label>
                 <input type="date" className="doodle-input" required value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
               </div>
+              {workflows.findIndex(w => w.id === selectedStageId) === workflows.length - 1 && (
+                <div>
+                  <label>核准主管姓名：</label>
+                  <input className="doodle-input" required value={managerName} onChange={e => setManagerName(e.target.value)} />
+                </div>
+              )}
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <button type="submit" className="doodle-button success" style={{ flex: 1 }}>確認推進</button>
                 <button type="button" className="doodle-button danger" style={{ flex: 1 }} onClick={() => {setUpdatingTicket(null); setSelectedStageId('');}}>取消</button>
