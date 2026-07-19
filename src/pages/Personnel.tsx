@@ -137,8 +137,22 @@ export default function PersonnelPage() {
               }}>
                 #{seqNum}
               </span>
-              <h3 style={{ margin: '0 0 10px 0', borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '5px' }}>
-                {person.name} <span style={{ fontSize: '0.9rem', color: '#666' }}>({person.gender})</span>
+              <h3 style={{ margin: '0 0 10px 0', borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '5px', display: 'flex', alignItems: 'center' }}>
+                {person.name} 
+                <span style={{ 
+                  fontSize: '1.2rem', 
+                  marginLeft: '10px',
+                  backgroundColor: person.gender === 'Male' ? '#e3f2fd' : person.gender === 'Female' ? '#fce4ec' : '#f5f5f5',
+                  border: `2px dashed ${person.gender === 'Male' ? 'var(--crayon-blue)' : person.gender === 'Female' ? 'var(--crayon-red)' : 'var(--crayon-dark)'}`,
+                  padding: '2px 10px',
+                  borderRadius: '20px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--crayon-dark)'
+                }}>
+                  {person.gender === 'Male' ? '👦 男' : person.gender === 'Female' ? '👧 女' : '🧑 其他'}
+                </span>
               </h3>
               <p style={{ margin: '5px 0' }}><strong>職稱：</strong>{person.title}</p>
               

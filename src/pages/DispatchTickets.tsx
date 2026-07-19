@@ -151,15 +151,6 @@ export default function DispatchTickets() {
               <option value="TKW">TKW</option>
             </select>
           </div>
-          <div>
-            <label style={{ fontWeight: 'bold', marginRight: '10px' }}>關聯盤點任務：</label>
-            <select className="doodle-input" style={{ width: 'auto' }} value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
-              <option value="">-- 不指定任務 --</option>
-              {tasks.map(t => (
-                <option key={t.id} value={t.id}>{t.name}</option>
-              ))}
-            </select>
-          </div>
         </div>
       </div>
 
@@ -237,6 +228,16 @@ export default function DispatchTickets() {
             </div>
 
             <form onSubmit={handleDispatch} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div>
+                <label style={{ fontWeight: 'bold', color: 'var(--crayon-dark)' }}>關聯盤點任務 (選填)：</label>
+                <select className="doodle-input" value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
+                  <option value="">-- 不指定任務 --</option>
+                  {tasks.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+              
               {dispatchType === 'single' ? (
                 <>
                   <div>

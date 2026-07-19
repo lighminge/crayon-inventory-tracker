@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { InventoryTicket, Personnel, Workflow } from '../types';
-import { getTickets, getPersonnel, getWorkflows } from '../services/api';
+import type { InventoryTicket, Personnel, Workflow, InventoryTask } from '../types';
+import { getTickets, getPersonnel, getWorkflows, getTasks } from '../services/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid } from 'recharts';
 
 export default function Statistics() {
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [tasks, setTasks] = useState<InventoryTask[]>([]);
   
   // Date range state
   const [startDate, setStartDate] = useState(() => {
@@ -20,6 +21,9 @@ export default function Statistics() {
   const [startTicketId, setStartTicketId] = useState('');
   const [endTicketId, setEndTicketId] = useState('');
 
+  // Task filter state
+  const [selectedTaskId, setSelectedTaskId] = useState('');
+
   // Chart configuration state
   const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
   const [chartMetric, setChartMetric] = useState<'total' | 'completionRate' | 'avgDays'>('total');
@@ -30,10 +34,11 @@ export default function Statistics() {
 
   const loadData = async () => {
     try {
-      const [tData, pData, wData] = await Promise.all([getTickets(), getPersonnel(), getWorkflows()]);
+      const [tData, pData, wData, tasksData] = await Promise.all([getTickets(), getPersonnel(), getWorkflows(), getTasks()]);
       setTickets(tData);
       setPersonnel(pData);
       setWorkflows(wData.sort((a, b) => a.order - b.order));
+      setTasks(tasksData);
     } catch (e) {
       console.error(e);
       alert('讀取資料失敗');
@@ -54,9 +59,12 @@ export default function Statistics() {
       if (startTicketId && t.id.localeCompare(startTicketId) < 0) return false;
       if (endTicketId && t.id.localeCompare(endTicketId) > 0) return false;
 
+      // Task filter
+      if (selectedTaskId && t.taskId !== selectedTaskId) return false;
+
       return true;
     });
-  }, [tickets, startDate, endDate, startTicketId, endTicketId]);
+  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskId]);
 
   const statsByPerson = useMemo(() => {
     return personnel.map(p => {
@@ -227,6 +235,22 @@ export default function Statistics() {
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>單號迄：</label>
                 <input className="doodle-input" placeholder="例如: 261299" value={endTicketId} onChange={e => setEndTicketId(e.target.value)} />
               </div>
+            </div>
+          </div>
+
+          {/* 盤點任務區塊 */}
+          <div style={{ 
+            flex: 1, minWidth: '250px', backgroundColor: '#e1bee7', 
+            padding: '15px', borderRadius: '10px', border: '2px solid var(--crayon-purple)',
+            transform: 'rotate(-0.5deg)' 
+          }}>
+            <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-purple)' }}>📌 依盤點任務</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <label style={{ display: 'block', fontWeight: 'bold' }}>選取任務 (過濾該任務單據)：</label>
+              <select className="doodle-input" value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
+                <option value="">-- 全域資料 (不指定) --</option>
+                {tasks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
             </div>
           </div>
         </div>
