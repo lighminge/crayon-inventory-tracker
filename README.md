@@ -1,32 +1,78 @@
-# React + TypeScript + Vite
+# 🖍️ 蠟筆塗鴉風盤點系統 (Crayon Inventory Tracker)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+這是一個以「手繪、蠟筆塗鴉」為主題風格的現代化盤點管理系統。透過充滿童趣且溫暖的 UI 設計，將原本枯燥乏味的盤點流程轉化為輕鬆愉快的工作體驗。系統支援完整的盤點生命週期管理，包含人員設定、流程自訂、任務指派、單據派送，以及豐富的圖表數據統計。
 
-Currently, two official plugins are available:
+## 🛠️ 技術架構
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **前端框架**：React + TypeScript + Vite
+- **UI 呈現**：客製化純 CSS 蠟筆塗鴉風格 (搭配 Caveat 手寫字體)
+- **圖表元件**：Recharts
+- **後端與資料庫**：Firebase (Firestore)
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## ✨ 核心功能說明與範例
 
-## Expanding the Oxlint configuration
+### 1. 📊 儀表板 (Dashboard)
+儀表板提供系統整體的即時總覽，讓管理者一目了然目前的盤點狀態。
+- **核心指標統計**：顯示「處理中單據」、「處理中項目數」、「整體完成率」以及「平均處理天數」。
+- **備料員盤點情況 (人員績效)**：
+  - 獨立列出每位盤點人員的「未完成件數」、「本月派送」、「本月完成」以及「完成率」。
+  - 設有「🌟 全員總計」看板，方便查看整個團隊的總和表現。
+  - **範例**：管理者在月初登入時，可透過下拉選單切換至「本年度/本月份」，迅速看出小明這個月已完成 5 件盤點，還有 2 件未完成（並有醒目的紅色標記提示）。
+- **近六個月盤點趨勢圖**：
+  - 以圖表呈現過去半年每月的盤點業務量。
+  - 支援下拉選單自由切換要顯示的圖表類型（長條圖、折線圖、二者並存）以及數據（盤點單數量、盤點項目數量、全部顯示）。
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+### 2. 📝 盤點單管理 (Inventory Tickets)
+負責追蹤每一張盤點單目前的進度與生命週期。
+- **流程推進與結案**：每張單據會列出預設的關卡（例如：初盤 ➔ 複盤 ➔ 主管核准）。點擊「推進」可帶入下一個流程，若是最後一關（主管核准），則會提示輸入核准主管姓名並自動結案。
+- **多維度查詢與排序**：支援依據單號、派送日期、狀態（處理中/已完成）、人員、年度/月份及特定「盤點任務」進行過濾。
+- **便利貼風格耗時顯示**：每個已完成的流程下方，會以斜掛的便利貼標示出該流程花費的天數（如：`耗時: 1日內` 或 `耗時: 3天`）。
+- **範例**：盤點員小美完成初盤後，點擊單號「260120」的「推進：複盤」，系統會記錄初盤完成日期並交棒給複盤人員。
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
+### 3. 🎯 盤點任務 (Inventory Tasks)
+用來管理大型或週期性的專案級別盤點任務（例如：「2026 年度大盤點」）。
+- **任務設定**：可自訂任務名稱、起訖日期、盤點類別以及「預計盤點總項目數」。
+- **進度追蹤**：系統會根據隸屬於該任務且已結案的單據，自動計算「已完成項目數」並顯示達成率百分比。
+- **範例**：年底要進行「全廠零件年終盤點」，預計總共要盤 1000 項。主管在此建立任務後，派送單據時將其關聯至該任務，儀表板便會即時顯示目前已盤點了 650 項（達成率 65%）。
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+### 4. 📤 盤點單派送 (Dispatch Tickets)
+將盤點作業指派給特定人員。
+- **單筆派送**：點擊人員專屬的「個人卡片」上的「派送」按鈕，輸入盤點單號、類型（夾鉗/TKW）、項目數量，並可選擇要歸屬的盤點任務，即可完成派發。
+- **批次派送**：支援將一段連續的單號（例如 260001 到 260050）一次性派發給某位人員，系統會自動產出 50 張盤點單（此模式會預設隱藏單筆項目數）。
+- **範例**：主管收到 10 張新工單，直接在派送頁面找到「小強」的卡片，點擊「派送」，輸入單號即可將工作交給他。卡片上也會即時顯示小強目前還有幾件未完成的單據，避免勞逸不均。
+
+### 5. 📈 統計作業 (Statistics)
+進階的數據分析報表，幫助管理層進行效能檢討。
+- **自訂過濾條件**：可輸入「日期區間」、「盤點單號區間」或是指定某個「盤點任務」來產生特定範圍的報表。
+- **人員績效圖表**：支援直條圖與圓餅圖，可切換檢視每位人員的「總盤點數量」、「完成率」或「平均處理天數」。
+- **各流程平均處理天數**：統計並用圖表展示每個階段（如：初盤、收料）平均卡關的天數，幫助找出瓶頸。
+- **範例**：主管想知道「2026年第一季」大家的效率，便輸入日期區間，系統立即算出團隊總計盤點數，並畫出各流程的平均天數長條圖，主管一看發現「複盤」平均耗時高達 5 天，便能著手進行流程改善。
+
+### 6. ⚙️ 流程管理 (Workflow Management)
+系統具有高度彈性，可由管理者自訂盤點的 SOP 關卡。
+- **自訂關卡與順序**：可隨時新增、刪除或透過上下箭頭調整流程的先後順序。
+- **起點與終點鎖定**：系統會自動鎖定第一個流程（派送起點）與最後一個流程（主管核准終點），確保邏輯不被破壞。
+- **範例**：原本流程只有「初盤 ➔ 主管核准」，後來因為 ISO 要求需要加入「複盤」，主管只要在流程管理中新增「複盤」並將其移動至初盤之後即可，隨即生效於後續的新單據。
+
+### 7. 👥 人員管理 (Personnel Management)
+維護系統的權限與人員名單。
+- **人員設定**：可設定姓名、職稱、工作職責（如：備料、盤點、生管等）與備註。
+- **手繪性別圖示**：捨棄傳統 Emoji，採用純手工繪製的 SVG 性別符號（♂ 男 / ♀ 女 / ⚥ 其他），並加上活潑的傾斜設計。
+- **分頁機制**：支援自訂每頁顯示筆數，並在畫面上下方皆提供方便的翻頁按鈕。
+- **範例**：新人小陳報到，管理員至此頁面點擊「新增人員」，輸入小陳的基本資料並勾選「盤點」與「備料」職責，小陳專屬的塗鴉卡片便會建立完成。
+
+---
+
+## 🎨 設計理念
+
+本系統最大的特色在於**「視覺紓壓」**。
+工作系統通常充滿生硬的直線與表格，我們大量採用了：
+- **不規則邊框 (`doodle-border`)**：模擬奇異筆畫出的粗黑線條。
+- **手寫感字體 (Caveat)**：在標題、圖表座標軸與重點數字上套用。
+- **微傾斜 (Rotate)**：所有資訊卡片、標籤、便利貼都帶有 1~5 度的隨機傾斜，打破死板的網格感。
+- **柔和色彩**：搭配馬卡龍色系的底色（淡黃、淡藍、淡紫等），營造出如同繪本般的視覺饗宴。
+
+---
+*Developed as a customized Inventory Tracking Solution.*
