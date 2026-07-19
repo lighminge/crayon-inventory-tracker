@@ -95,8 +95,10 @@ export default function Statistics() {
     const globalClosedWithDays = filteredTickets.filter(t => t.closeDate && t.totalProcessingDays);
     const avgDays = globalClosedWithDays.length === 0 ? 0 : 
       Math.round(globalClosedWithDays.reduce((sum, t) => sum + (t.totalProcessingDays || 0), 0) / globalClosedWithDays.length);
+      
+    const totalItems = filteredTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
 
-    return { total, closed, completionRate, avgDays };
+    return { total, closed, completionRate, avgDays, totalItems };
   }, [statsByPerson, filteredTickets]);
 
   // Helper function to calculate days between two timestamps (min 1 day)
@@ -201,10 +203,9 @@ export default function Statistics() {
         
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
           {/* 日期區間卡片 */}
-          <div style={{ 
+          <div className="doodle-border" style={{ 
             flex: 1, minWidth: '250px', backgroundColor: '#fff3e0', 
-            padding: '15px', borderRadius: '10px', border: '2px solid var(--crayon-orange)',
-            transform: 'rotate(-1deg)' 
+            padding: '15px', transform: 'rotate(-1deg)' 
           }}>
             <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-orange)' }}>📌 依日期區間</h4>
             <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -220,10 +221,9 @@ export default function Statistics() {
           </div>
 
           {/* 單號區間卡片 */}
-          <div style={{ 
+          <div className="doodle-border" style={{ 
             flex: 1, minWidth: '250px', backgroundColor: '#e8f5e9', 
-            padding: '15px', borderRadius: '10px', border: '2px solid var(--crayon-green)',
-            transform: 'rotate(1deg)' 
+            padding: '15px', transform: 'rotate(1deg)' 
           }}>
             <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-green)' }}>📌 依盤點單號區間</h4>
             <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -239,10 +239,9 @@ export default function Statistics() {
           </div>
 
           {/* 盤點任務區塊 */}
-          <div style={{ 
+          <div className="doodle-border" style={{ 
             flex: 1, minWidth: '250px', backgroundColor: '#e1bee7', 
-            padding: '15px', borderRadius: '10px', border: '2px solid var(--crayon-purple)',
-            transform: 'rotate(-0.5deg)' 
+            padding: '15px', transform: 'rotate(-0.5deg)' 
           }}>
             <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-purple)' }}>📌 依盤點任務</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -282,18 +281,22 @@ export default function Statistics() {
       )}
 
       {/* 全局統計 (全部人員) */}
-      <div className="doodle-border" style={{ padding: '20px', marginBottom: '30px', backgroundColor: 'var(--crayon-yellow)', border: '3px solid var(--crayon-dark)' }}>
+      <div className="doodle-border" style={{ padding: '20px', marginBottom: '30px', backgroundColor: 'var(--crayon-yellow)' }}>
         <h3 style={{ marginTop: 0, textAlign: 'center', fontSize: '1.8rem', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>🌟 全部人員總計</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', textAlign: 'center', marginTop: '20px' }}>
-          <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '10px', border: '2px solid var(--crayon-dark)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', textAlign: 'center', marginTop: '20px' }}>
+          <div className="doodle-border" style={{ backgroundColor: 'white', padding: '15px', transform: 'rotate(-1deg)' }}>
             <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold' }}>總盤點數</div>
             <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{globalStats.total}</div>
           </div>
-          <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '10px', border: '2px solid var(--crayon-dark)' }}>
+          <div className="doodle-border" style={{ backgroundColor: 'white', padding: '15px', transform: 'rotate(1deg)' }}>
+            <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold' }}>總項目數</div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-orange)' }}>{globalStats.totalItems}</div>
+          </div>
+          <div className="doodle-border" style={{ backgroundColor: 'white', padding: '15px', transform: 'rotate(-1deg)' }}>
             <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold' }}>平均完成率</div>
             <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-green)' }}>{globalStats.completionRate}%</div>
           </div>
-          <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '10px', border: '2px solid var(--crayon-dark)' }}>
+          <div className="doodle-border" style={{ backgroundColor: 'white', padding: '15px', transform: 'rotate(1deg)' }}>
             <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold' }}>平均處理天數</div>
             <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>{globalStats.avgDays} <span style={{fontSize:'1rem'}}>天</span></div>
           </div>

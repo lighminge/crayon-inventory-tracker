@@ -4,6 +4,27 @@ import type { Personnel } from '../types';
 
 const ROLES_LIST = ['備料', '收料', '盤點', '行政', '生管', '採購', '主管'];
 
+const MaleIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-5deg)' }}>
+    <circle cx="12" cy="7" r="4" strokeDasharray="15 2" />
+    <path d="M12 11v6M9 22l3-5 3 5M9 14h6" />
+  </svg>
+);
+
+const FemaleIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(5deg)' }}>
+    <circle cx="12" cy="7" r="4" strokeDasharray="15 2" />
+    <path d="M12 11l-3 5h6zM12 16v6M9 22l3-2 3 2M9 13l3 2 3-2" />
+  </svg>
+);
+
+const OtherIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="7" r="4" strokeDasharray="15 2" />
+    <path d="M12 11v6M9 22l3-5 3 5M6 12l6 2 6-2" />
+  </svg>
+);
+
 export default function PersonnelPage() {
   const [personnelList, setPersonnelList] = useState<Personnel[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -144,14 +165,15 @@ export default function PersonnelPage() {
                   marginLeft: '10px',
                   backgroundColor: person.gender === 'Male' ? '#e3f2fd' : person.gender === 'Female' ? '#fce4ec' : '#f5f5f5',
                   border: `2px dashed ${person.gender === 'Male' ? 'var(--crayon-blue)' : person.gender === 'Female' ? 'var(--crayon-red)' : 'var(--crayon-dark)'}`,
-                  padding: '2px 10px',
+                  padding: '4px 10px',
                   borderRadius: '20px',
                   display: 'inline-flex',
                   alignItems: 'center',
+                  gap: '5px',
                   justifyContent: 'center',
                   color: 'var(--crayon-dark)'
                 }}>
-                  {person.gender === 'Male' ? '👦 男' : person.gender === 'Female' ? '👧 女' : '🧑 其他'}
+                  {person.gender === 'Male' ? <><MaleIcon /> 男</> : person.gender === 'Female' ? <><FemaleIcon /> 女</> : <><OtherIcon /> 其他</>}
                 </span>
               </h3>
               <p style={{ margin: '5px 0' }}><strong>職稱：</strong>{person.title}</p>

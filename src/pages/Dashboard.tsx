@@ -44,7 +44,9 @@ export default function Dashboard() {
   const stats = useMemo(() => {
     const total = filteredTickets.length;
     const closed = filteredTickets.filter(t => t.closeDate).length;
-    const inProgress = filteredTickets.filter(t => !t.closeDate).length;
+    const inProgressTickets = filteredTickets.filter(t => !t.closeDate);
+    const inProgress = inProgressTickets.length;
+    const inProgressItems = inProgressTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
     const completionRate = total === 0 ? 0 : Math.round((closed / total) * 100);
 
     const closedWithDays = filteredTickets.filter(t => t.closeDate && t.totalProcessingDays);
@@ -67,7 +69,7 @@ export default function Dashboard() {
       chartData.push({ month: monthStr, count, itemCount });
     }
 
-    return { total, inProgress, completionRate, avgDays, chartData };
+    return { total, inProgress, inProgressItems, completionRate, avgDays, chartData };
   }, [filteredTickets]);
 
   // Personnel specific stats for selected month
@@ -238,6 +240,11 @@ export default function Dashboard() {
         <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#fff3e0' }}>
           <h3>處理中單據</h3>
           <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--crayon-orange)' }}>{stats.inProgress}</div>
+        </div>
+        
+        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#e8f5e9' }}>
+          <h3>處理中項目數</h3>
+          <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--crayon-green)' }}>{stats.inProgressItems}</div>
         </div>
         
         <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#e3f2fd' }}>
