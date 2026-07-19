@@ -5,23 +5,24 @@ import type { Personnel } from '../types';
 const ROLES_LIST = ['備料', '收料', '盤點', '行政', '生管', '採購', '主管'];
 
 const MaleIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-5deg)' }}>
-    <circle cx="12" cy="7" r="4" strokeDasharray="15 2" />
-    <path d="M12 11v6M9 22l3-5 3 5M9 14h6" />
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-5deg)' }}>
+    <circle cx="10" cy="14" r="5" strokeDasharray="15 2" />
+    <path d="M13.5 10.5L20 4M15 4h5v5" />
   </svg>
 );
 
 const FemaleIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(5deg)' }}>
-    <circle cx="12" cy="7" r="4" strokeDasharray="15 2" />
-    <path d="M12 11l-3 5h6zM12 16v6M9 22l3-2 3 2M9 13l3 2 3-2" />
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(5deg)' }}>
+    <circle cx="12" cy="9" r="5" strokeDasharray="15 2" />
+    <path d="M12 14v8M9 18h6" />
   </svg>
 );
 
 const OtherIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="7" r="4" strokeDasharray="15 2" />
-    <path d="M12 11v6M9 22l3-5 3 5M6 12l6 2 6-2" />
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="10" cy="11" r="4" strokeDasharray="12 2" />
+    <path d="M13 8l5-5M14 3h4v4" />
+    <path d="M10 15v5M8 18h4" />
   </svg>
 );
 
