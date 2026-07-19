@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { InventoryTicket, Personnel } from '../types';
-import { getTickets, getPersonnel } from '../services/api';
+import type { InventoryTicket, Personnel, InventoryTask } from '../types';
+import { getTickets, getPersonnel, getTasks } from '../services/api';
 import { BarChart, Bar, LineChart, Line, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 
 export default function Dashboard() {
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
+  const [tasks, setTasks] = useState<InventoryTask[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState('');
   
   // Dashboard Chart State
   const [chartType, setChartType] = useState<'bar' | 'line' | 'composed'>('bar');
@@ -21,22 +23,30 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
-      const [tData, pData] = await Promise.all([getTickets(), getPersonnel()]);
+      const [tData, pData, tasksData] = await Promise.all([getTickets(), getPersonnel(), getTasks()]);
       setTickets(tData);
       setPersonnel(pData);
+      
+      const now = new Date().getTime();
+      setTasks(tasksData.filter(t => t.endDate >= now - (24 * 60 * 60 * 1000)));
     } catch (e) {
       console.error(e);
       alert('讀取資料失敗');
     }
   };
 
+  const filteredTickets = useMemo(() => {
+    if (!selectedTaskId) return tickets;
+    return tickets.filter(t => t.taskId === selectedTaskId);
+  }, [tickets, selectedTaskId]);
+
   const stats = useMemo(() => {
-    const total = tickets.length;
-    const closed = tickets.filter(t => t.closeDate).length;
-    const inProgress = tickets.filter(t => !t.closeDate).length;
+    const total = filteredTickets.length;
+    const closed = filteredTickets.filter(t => t.closeDate).length;
+    const inProgress = filteredTickets.filter(t => !t.closeDate).length;
     const completionRate = total === 0 ? 0 : Math.round((closed / total) * 100);
 
-    const closedWithDays = tickets.filter(t => t.closeDate && t.totalProcessingDays);
+    const closedWithDays = filteredTickets.filter(t => t.closeDate && t.totalProcessingDays);
     const avgDays = closedWithDays.length === 0 ? 0 : 
       Math.round(closedWithDays.reduce((sum, t) => sum + (t.totalProcessingDays || 0), 0) / closedWithDays.length);
 
@@ -46,7 +56,7 @@ export default function Dashboard() {
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthStr = `${d.getMonth() + 1}月`;
-      const monthTickets = tickets.filter(t => {
+      const monthTickets = filteredTickets.filter(t => {
         if (!t.dispatchDate) return false;
         const td = new Date(t.dispatchDate);
         return td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth();
@@ -56,7 +66,7 @@ export default function Dashboard() {
     }
 
     return { total, inProgress, completionRate, avgDays, chartData };
-  }, [tickets]);
+  }, [filteredTickets]);
 
   // Personnel specific stats for selected month
   const personnelStats = useMemo(() => {
@@ -66,7 +76,7 @@ export default function Dashboard() {
     const inventoryStaff = personnel.filter(p => (p.roles || []).includes('盤點'));
     
     return inventoryStaff.map(p => {
-      const pTickets = tickets.filter(t => t.assigneeId === p.id);
+      const pTickets = filteredTickets.filter(t => t.assigneeId === p.id);
       
       // 未完成件數 (All time incomplete)
       const incompleteCount = pTickets.filter(t => !t.closeDate).length;
@@ -97,16 +107,24 @@ export default function Dashboard() {
       const avgDays = monthCompletedTickets.length === 0 ? 0 :
         Math.round(monthCompletedTickets.reduce((sum, t) => sum + (t.totalProcessingDays || 0), 0) / monthCompletedTickets.length);
 
+      // Task Item calculation
+      let taskCompletedItems = 0;
+      if (selectedTaskId) {
+        const taskTickets = pTickets.filter(t => t.closeDate); // pTickets is already filtered by task
+        taskCompletedItems = taskTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+      }
+
       return {
         ...p,
         incompleteCount,
         monthDispatch,
         monthCompleted,
         monthCompletionRate,
-        avgDays
+        avgDays,
+        taskCompletedItems
       };
     }).sort((a, b) => b.incompleteCount - a.incompleteCount);
-  }, [tickets, personnel, selectedYear, selectedMonthNum]);
+  }, [filteredTickets, personnel, selectedYear, selectedMonthNum, selectedTaskId]);
 
   const personnelTotals = useMemo(() => {
     return personnelStats.reduce((acc, curr) => ({
@@ -166,8 +184,49 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h2 style={{ marginBottom: '20px' }}>📊 儀表板</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+        <h2 style={{ margin: 0 }}>📊 儀表板</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <label style={{ fontWeight: 'bold' }}>切換盤點任務：</label>
+          <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e3f2fd' }} value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
+            <option value="">-- 全域資料 (不指定任務) --</option>
+            {tasks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        </div>
+      </div>
       
+      {/* 任務進度摘要區塊 (僅在選擇任務時顯示) */}
+      {selectedTaskId && (
+        <div className="doodle-border" style={{ 
+          backgroundColor: '#fff9c4', padding: '20px', marginBottom: '20px', 
+          border: '3px dashed var(--crayon-orange)', boxShadow: '5px 5px 0px rgba(0,0,0,0.1)' 
+        }}>
+          {(() => {
+            const task = tasks.find(t => t.id === selectedTaskId);
+            if (!task) return null;
+            const completedItems = filteredTickets.filter(t => t.closeDate).reduce((sum, t) => sum + (t.itemCount || 0), 0);
+            const rate = task.totalItemCount > 0 ? Math.min(100, Math.round((completedItems / task.totalItemCount) * 100)) : 0;
+            return (
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', alignItems: 'center', gap: '20px' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>🎯 {task.name}</div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1rem', color: '#555' }}>需盤點總項目數</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{task.totalItemCount}</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1rem', color: '#555' }}>已完成項目數</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--crayon-green)' }}>{completedItems}</div>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1rem', color: '#555' }}>任務完成率</div>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)', fontFamily: 'Caveat, cursive' }}>{rate}%</div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
       {/* 核心指標區塊 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
         <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#fff3e0' }}>
@@ -260,6 +319,16 @@ export default function Dashboard() {
                     </div>
                   </div>
                   
+                  {selectedTaskId && (
+                    <div style={{ 
+                      marginTop: '15px', backgroundColor: '#e8eaf6', padding: '10px', 
+                      borderRadius: '10px', textAlign: 'center', border: '1px dashed var(--crayon-blue)' 
+                    }}>
+                      <div style={{ fontSize: '0.9rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>此任務已盤點項目數</div>
+                      <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{p.taskCompletedItems}</div>
+                    </div>
+                  )}
+
                   <div style={{ marginTop: '15px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '5px' }}>
                       <strong>完成率</strong>

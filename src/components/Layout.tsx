@@ -124,6 +124,9 @@ export default function Layout() {
             <NavLink to="/" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
               📊 儀表板
             </NavLink>
+            <NavLink to="/tasks" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+              🎯 盤點任務
+            </NavLink>
             <NavLink to="/dispatch" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
               📤 盤點單派送
             </NavLink>

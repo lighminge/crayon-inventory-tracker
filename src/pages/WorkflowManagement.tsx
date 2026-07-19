@@ -62,7 +62,10 @@ export default function WorkflowManagement() {
   };
 
   const moveOrder = async (index: number, direction: 'up' | 'down') => {
-    if (direction === 'up' && index > 0) {
+    // Locked items cannot move
+    if (index === 0 || index === workflows.length - 1) return;
+
+    if (direction === 'up' && index > 1) {
       const current = workflows[index];
       const prev = workflows[index - 1];
       await Promise.all([
@@ -70,7 +73,7 @@ export default function WorkflowManagement() {
         updateWorkflow(prev.id, { order: current.order })
       ]);
       loadData();
-    } else if (direction === 'down' && index < workflows.length - 1) {
+    } else if (direction === 'down' && index < workflows.length - 2) {
       const current = workflows[index];
       const next = workflows[index + 1];
       await Promise.all([
@@ -95,38 +98,45 @@ export default function WorkflowManagement() {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        {workflows.map((w, index) => (
-          <div key={w.id} className="doodle-border" style={{ padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{ 
-                backgroundColor: 'var(--crayon-yellow)', 
-                width: '40px', height: '40px', 
-                borderRadius: '50%', 
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontWeight: 'bold', fontSize: '1.2rem',
-                border: '2px solid var(--crayon-dark)'
-              }}>
-                {index + 1}
+        {workflows.map((w, index) => {
+          const isFirst = index === 0;
+          const isLast = index === workflows.length - 1;
+          const isLocked = isFirst || isLast;
+          
+          return (
+            <div key={w.id} className="doodle-border" style={{ padding: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <div style={{ 
+                  backgroundColor: 'var(--crayon-yellow)', 
+                  width: '40px', height: '40px', 
+                  borderRadius: '50%', 
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 'bold', fontSize: '1.2rem',
+                  border: '2px solid var(--crayon-dark)'
+                }}>
+                  {index + 1}
+                </div>
+                <div>
+                  <h3 style={{ margin: 0 }}>
+                    {w.name} 
+                    {isFirst && <span style={{ fontSize: '0.8rem', color: '#d32f2f', border: '1px solid #d32f2f', borderRadius: '5px', padding: '2px 5px', marginLeft: '10px' }}>🔒 系統鎖定 (起點)</span>}
+                    {isLast && <span style={{ fontSize: '0.8rem', color: '#d32f2f', border: '1px solid #d32f2f', borderRadius: '5px', padding: '2px 5px', marginLeft: '10px' }}>🔒 系統鎖定 (終點)</span>}
+                  </h3>
+                  <p style={{ margin: '5px 0 0 0', color: '#555' }}>預設負責人：{getPersonnelName(w.assigneeId)}</p>
+                </div>
               </div>
-              <div>
-                <h3 style={{ margin: 0 }}>
-                  {w.name} 
-                  {index === 0 && <span style={{ fontSize: '0.8rem', color: '#d32f2f', border: '1px solid #d32f2f', borderRadius: '5px', padding: '2px 5px', marginLeft: '10px' }}>🔒 系統鎖定 (派送起點)</span>}
-                </h3>
-                <p style={{ margin: '5px 0 0 0', color: '#555' }}>預設負責人：{getPersonnelName(w.assigneeId)}</p>
-              </div>
-            </div>
 
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button className="doodle-button" onClick={() => moveOrder(index, 'up')} disabled={index <= 1}>↑</button>
-              <button className="doodle-button" onClick={() => moveOrder(index, 'down')} disabled={index === 0 || index === workflows.length - 1}>↓</button>
-              <button className="doodle-button success" onClick={() => handleOpenForm(w)}>編輯</button>
-              {index !== 0 && (
-                <button className="doodle-button danger" onClick={() => handleDelete(w.id)}>刪除</button>
-              )}
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button className="doodle-button" onClick={() => moveOrder(index, 'up')} disabled={index <= 1 || isLast}>↑</button>
+                <button className="doodle-button" onClick={() => moveOrder(index, 'down')} disabled={isFirst || index >= workflows.length - 2}>↓</button>
+                <button className="doodle-button success" onClick={() => handleOpenForm(w)}>編輯</button>
+                {!isLocked && (
+                  <button className="doodle-button danger" onClick={() => handleDelete(w.id)}>刪除</button>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {isFormOpen && (

@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { InventoryTicket, Personnel, Workflow } from '../types';
-import { getTickets, updateTicket, deleteTicket, getPersonnel, getWorkflows, addTicket } from '../services/api';
+import { getTickets, updateTicket, deleteTicket, getPersonnel, getWorkflows, addTicket, getTasks } from '../services/api';
 
 export default function InventoryTicketsPage() {
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -17,6 +18,9 @@ export default function InventoryTicketsPage() {
   const [filterEndDate, setFilterEndDate] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'inProgress' | 'closed'>('all');
   const [filterPerson, setFilterPerson] = useState('');
+  const [filterYear, setFilterYear] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
+  const [filterTaskId, setFilterTaskId] = useState('');
   
   // Sort State
   const [sortMethod, setSortMethod] = useState<'id' | 'dispatchDate' | 'personnel'>('id');
@@ -41,10 +45,11 @@ export default function InventoryTicketsPage() {
 
   const loadData = async () => {
     try {
-      const [tData, pData, wData] = await Promise.all([getTickets(), getPersonnel(), getWorkflows()]);
+      const [tData, pData, wData, tasksData] = await Promise.all([getTickets(), getPersonnel(), getWorkflows(), getTasks()]);
       setTickets(tData);
       setPersonnel(pData);
       setWorkflows(wData.sort((a, b) => a.order - b.order));
+      setTasks(tasksData);
     } catch (e) {
       console.error(e);
       alert('讀取失敗');
@@ -81,10 +86,18 @@ export default function InventoryTicketsPage() {
       if (filterStatus === 'closed' && !t.closeDate) return false;
       // 4. Person
       if (filterPerson && t.assigneeId !== filterPerson) return false;
+      // 5. Task
+      if (filterTaskId && t.taskId !== filterTaskId) return false;
+      // 6. Year / Month (based on dispatchDate)
+      if ((filterYear || filterMonth) && t.dispatchDate) {
+        const dDate = new Date(t.dispatchDate);
+        if (filterYear && dDate.getFullYear().toString() !== filterYear) return false;
+        if (filterMonth && (dDate.getMonth() + 1).toString() !== filterMonth) return false;
+      }
 
       return true;
     });
-  }, [tickets, filterId, filterStartDate, filterEndDate, filterStatus, filterPerson]);
+  }, [tickets, filterId, filterStartDate, filterEndDate, filterStatus, filterPerson, filterTaskId, filterYear, filterMonth]);
 
   // Sort Logic
   const sortedTickets = useMemo(() => {
@@ -111,7 +124,7 @@ export default function InventoryTicketsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterId, filterStartDate, filterEndDate, filterStatus, filterPerson, sortMethod, itemsPerPage]);
+  }, [filterId, filterStartDate, filterEndDate, filterStatus, filterPerson, filterTaskId, filterYear, filterMonth, sortMethod, itemsPerPage]);
 
   const getProgress = (ticket: InventoryTicket) => {
     const totalStages = workflows.length;
@@ -195,6 +208,8 @@ export default function InventoryTicketsPage() {
       id: t.id,
       ticketType: t.ticketType || '夾鉗',
       assigneeId: t.assigneeId,
+      itemCount: t.itemCount || '',
+      taskId: t.taskId || '',
       dispatchDateStr: t.dispatchDate ? new Date(t.dispatchDate).toISOString().split('T')[0] : '',
       stageDatesStr: workflows.reduce((acc: any, w) => {
         acc[w.id] = (t.stageDates && t.stageDates[w.id]) ? new Date(t.stageDates[w.id]).toISOString().split('T')[0] : '';
@@ -224,19 +239,24 @@ export default function InventoryTicketsPage() {
             stageDates: newStageDates,
             closeDate: Object.values(newStageDates).length === workflows.length ? editingTicket.closeDate : null,
             managerName: editingTicket.managerName,
-            totalProcessingDays: editingTicket.totalProcessingDays
+            totalProcessingDays: editingTicket.totalProcessingDays,
          };
+         if (editFormData.itemCount) newTicket.itemCount = Number(editFormData.itemCount);
+         if (editFormData.taskId) newTicket.taskId = editFormData.taskId;
          
          await addTicket(newTicket);
          await deleteTicket(editingTicket.id);
       } else {
-         await updateTicket(editingTicket.id, {
+         const updates: any = {
            ticketType: editFormData.ticketType,
            assigneeId: editFormData.assigneeId,
            dispatchDate: editFormData.dispatchDateStr ? new Date(editFormData.dispatchDateStr).getTime() : null,
            stageDates: newStageDates,
-           closeDate: Object.values(newStageDates).length === workflows.length ? editingTicket.closeDate : null
-         });
+           closeDate: Object.values(newStageDates).length === workflows.length ? editingTicket.closeDate : null,
+           itemCount: editFormData.itemCount ? Number(editFormData.itemCount) : null,
+           taskId: editFormData.taskId || null
+         };
+         await updateTicket(editingTicket.id, updates);
       }
 
       setEditingTicket(null);
@@ -306,6 +326,31 @@ export default function InventoryTicketsPage() {
               {personnel.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>年度：</label>
+            <select className="doodle-input" value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+              <option value="">-- 全部 --</option>
+              {Array.from({length: 5}, (_, i) => new Date().getFullYear() - 2 + i).map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>月份：</label>
+            <select className="doodle-input" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}>
+              <option value="">-- 全部 --</option>
+              {Array.from({length: 12}, (_, i) => i + 1).map(m => (
+                <option key={m} value={m}>{m} 月</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>盤點任務：</label>
+            <select className="doodle-input" value={filterTaskId} onChange={e => setFilterTaskId(e.target.value)}>
+              <option value="">-- 全部 --</option>
+              {tasks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>排序方式：</label>
@@ -316,7 +361,7 @@ export default function InventoryTicketsPage() {
               </select>
             </div>
             <button className="doodle-button" style={{ height: '42px' }} onClick={() => {
-              setFilterId(''); setFilterStartDate(''); setFilterEndDate(''); setFilterStatus('all'); setFilterPerson(''); setSortMethod('id');
+              setFilterId(''); setFilterStartDate(''); setFilterEndDate(''); setFilterStatus('all'); setFilterPerson(''); setFilterTaskId(''); setFilterYear(''); setFilterMonth(''); setSortMethod('id');
             }}>清除</button>
           </div>
         </div>
@@ -352,7 +397,7 @@ export default function InventoryTicketsPage() {
                       }}>{t.ticketType || '未指定'}</span>
                     </div>
                     
-                    <div style={{ margin: '15px 0' }}>
+                    <div style={{ margin: '15px 0', display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
                       <span style={{ 
                         backgroundColor: 'var(--crayon-yellow)', 
                         padding: '5px 15px', 
@@ -363,6 +408,30 @@ export default function InventoryTicketsPage() {
                       }}>
                         👤 盤點人員：{getAssigneeName(t.assigneeId)}
                       </span>
+                      {t.itemCount !== undefined && t.itemCount !== null && (
+                        <span style={{ 
+                          backgroundColor: '#e1bee7', 
+                          padding: '5px 15px', 
+                          borderRadius: '20px', 
+                          fontWeight: 'bold',
+                          fontSize: '1.1rem',
+                          border: '2px dashed var(--crayon-dark)'
+                        }}>
+                          📦 項目數量：{t.itemCount}
+                        </span>
+                      )}
+                      {t.taskId && (
+                        <span style={{ 
+                          backgroundColor: '#b2dfdb', 
+                          padding: '5px 15px', 
+                          borderRadius: '20px', 
+                          fontWeight: 'bold',
+                          fontSize: '1.1rem',
+                          border: '2px dashed var(--crayon-dark)'
+                        }}>
+                          🎯 任務：{tasks.find(tk => tk.id === t.taskId)?.name || '未知任務'}
+                        </span>
+                      )}
                     </div>
                     
                     {isFinished && (
@@ -575,6 +644,20 @@ export default function InventoryTicketsPage() {
                   <label>盤點人員：</label>
                   <select className="doodle-input" value={editFormData.assigneeId} onChange={e => setEditFormData({...editFormData, assigneeId: e.target.value})}>
                     {personnel.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '15px' }}>
+                <div style={{ flex: 1 }}>
+                  <label>項目數量 (選填)：</label>
+                  <input type="number" className="doodle-input" value={editFormData.itemCount} onChange={e => setEditFormData({...editFormData, itemCount: e.target.value})} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label>關聯任務 (選填)：</label>
+                  <select className="doodle-input" value={editFormData.taskId} onChange={e => setEditFormData({...editFormData, taskId: e.target.value})}>
+                    <option value="">-- 無 --</option>
+                    {tasks.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
               </div>

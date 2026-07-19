@@ -1,21 +1,24 @@
 import { useState, useEffect } from 'react';
-import { getPersonnel, addTicket, getWorkflows, getTickets } from '../services/api';
-import type { Personnel, Workflow, InventoryTicket } from '../types';
+import { getPersonnel, addTicket, getWorkflows, getTickets, getTasks } from '../services/api';
+import type { Personnel, Workflow, InventoryTicket, InventoryTask } from '../types';
 
 export default function DispatchTickets() {
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
+  const [tasks, setTasks] = useState<InventoryTask[]>([]);
   
   // Settings State
   const [dispatchType, setDispatchType] = useState<'single' | 'multi'>('single');
   const [ticketType, setTicketType] = useState<'夾鉗' | 'TKW'>('夾鉗');
   const today = new Date().toISOString().split('T')[0];
   const [dispatchDate, setDispatchDate] = useState(today);
+  const [selectedTaskId, setSelectedTaskId] = useState('');
 
   // Dispatch Modal State
   const [targetPerson, setTargetPerson] = useState<Personnel | null>(null);
   const [singleId, setSingleId] = useState('');
+  const [singleItemCount, setSingleItemCount] = useState<number>(1);
   const [multiStartId, setMultiStartId] = useState('');
   const [multiEndId, setMultiEndId] = useState('');
 
@@ -27,11 +30,15 @@ export default function DispatchTickets() {
   }, []);
 
   const loadData = async () => {
-    const [allP, wData, tData] = await Promise.all([getPersonnel(), getWorkflows(), getTickets()]);
+    const [allP, wData, tData, tasksData] = await Promise.all([getPersonnel(), getWorkflows(), getTickets(), getTasks()]);
     const inventoryStaff = allP.filter(p => (p.roles || []).includes('盤點'));
     setPersonnel(inventoryStaff);
     setWorkflows(wData.sort((a,b) => a.order - b.order));
     setTickets(tData);
+    
+    const now = new Date().getTime();
+    // Only show active tasks (end date is >= today)
+    setTasks(tasksData.filter(t => t.endDate >= now - (24*60*60*1000)));
   };
 
   const parseIdSuffix = (idStr: string) => {
@@ -51,6 +58,7 @@ export default function DispatchTickets() {
     setSingleId('');
     setMultiStartId('');
     setMultiEndId('');
+    setSingleItemCount(1);
   };
 
   const handleDispatch = async (e: React.FormEvent) => {
@@ -62,6 +70,7 @@ export default function DispatchTickets() {
 
     if (dispatchType === 'single') {
       if (!singleId) return alert('請輸入單據編號');
+      if (singleItemCount <= 0) return alert('盤點項目數量必須大於 0');
       idsToCreate.push(singleId);
     } else {
       if (!multiStartId || !multiEndId) return alert('請輸入起迄編號');
@@ -86,7 +95,7 @@ export default function DispatchTickets() {
       }
 
       for (const id of idsToCreate) {
-        await addTicket({
+        const newTicket: InventoryTicket = {
           id,
           title: id,
           ticketType,
@@ -95,7 +104,17 @@ export default function DispatchTickets() {
           closeDate: null,
           stageDates: initialStageDates,
           totalProcessingDays: null
-        });
+        };
+
+        if (selectedTaskId) {
+          newTicket.taskId = selectedTaskId;
+        }
+
+        if (dispatchType === 'single') {
+          newTicket.itemCount = singleItemCount;
+        }
+
+        await addTicket(newTicket);
       }
       
       setSuccessMessage(`成功派送 ${idsToCreate.length} 筆盤點單給 ${targetPerson.name}！`);
@@ -130,6 +149,15 @@ export default function DispatchTickets() {
             <select className="doodle-input" style={{ width: 'auto' }} value={ticketType} onChange={e => setTicketType(e.target.value as '夾鉗' | 'TKW')}>
               <option value="夾鉗">夾鉗</option>
               <option value="TKW">TKW</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontWeight: 'bold', marginRight: '10px' }}>關聯盤點任務：</label>
+            <select className="doodle-input" style={{ width: 'auto' }} value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
+              <option value="">-- 不指定任務 --</option>
+              {tasks.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -210,10 +238,16 @@ export default function DispatchTickets() {
 
             <form onSubmit={handleDispatch} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               {dispatchType === 'single' ? (
-                <div>
-                  <label style={{ fontWeight: 'bold' }}>輸入單筆盤點單號：</label>
-                  <input className="doodle-input" placeholder="例如: 2607A1" required value={singleId} onChange={e => setSingleId(e.target.value)} />
-                </div>
+                <>
+                  <div>
+                    <label style={{ fontWeight: 'bold' }}>輸入單筆盤點單號：</label>
+                    <input className="doodle-input" placeholder="例如: 2607A1" required value={singleId} onChange={e => setSingleId(e.target.value)} />
+                  </div>
+                  <div>
+                    <label style={{ fontWeight: 'bold' }}>盤點項目數量：</label>
+                    <input type="number" min="1" className="doodle-input" required value={singleItemCount} onChange={e => setSingleItemCount(Number(e.target.value))} />
+                  </div>
+                </>
               ) : (
                 <>
                   <div>
@@ -224,7 +258,10 @@ export default function DispatchTickets() {
                     <label style={{ fontWeight: 'bold' }}>結束盤點單號：</label>
                     <input className="doodle-input" placeholder="例如: 260705" required value={multiEndId} onChange={e => setMultiEndId(e.target.value)} />
                   </div>
-                  <p style={{ fontSize: '0.85rem', color: '#666', fontStyle: 'italic' }}>* 系統將自動產生起迄區間內的所有連續編號單據。</p>
+                  <div style={{ padding: '10px', backgroundColor: '#ffebee', borderRadius: '5px', border: '1px solid var(--crayon-red)', color: 'var(--crayon-red)', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                    ⚠️ 盤點項目數量不適用批次派送，請使用單筆派送以輸入數量。
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: '#666', fontStyle: 'italic', marginTop: 0 }}>* 系統將自動產生起迄區間內的所有連續編號單據。</p>
                 </>
               )}
 

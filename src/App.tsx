@@ -7,6 +7,7 @@ import DispatchTickets from './pages/DispatchTickets';
 import WorkflowManagement from './pages/WorkflowManagement';
 import Statistics from './pages/Statistics';
 import Login from './pages/Login';
+import InventoryTasks from './pages/InventoryTasks';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
+          <Route path="tasks" element={<InventoryTasks />} />
           <Route path="dispatch" element={<DispatchTickets />} />
           <Route path="tickets" element={<InventoryTickets />} />
           <Route path="workflow" element={<WorkflowManagement />} />

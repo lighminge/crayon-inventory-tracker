@@ -14,6 +14,15 @@ export interface Workflow {
   assigneeId?: string;
 }
 
+export interface InventoryTask {
+  id: string;
+  name: string;
+  startDate: number;
+  endDate: number;
+  ticketType: '夾鉗' | 'TKW';
+  totalItemCount: number;
+}
+
 export interface InventoryTicket {
   id: string; // Firestore document ID (can be the custom manual ID like '260701')
   title: string; // We can use this as description/notes or just the ID again
@@ -24,4 +33,6 @@ export interface InventoryTicket {
   stageDates: Record<string, number>; // Maps workflow.id to timestamp
   managerName?: string;
   totalProcessingDays: number | null;
+  itemCount?: number; // 盤點項目數量
+  taskId?: string; // 關聯的盤點任務 ID
 }

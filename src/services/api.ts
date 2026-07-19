@@ -1,9 +1,30 @@
 import { collection, getDocs, setDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
-import type { Personnel, InventoryTicket, Workflow } from '../types';
+import type { Personnel, InventoryTicket, Workflow, InventoryTask } from '../types';
 
 // Feature Flag to use local storage if Firebase is not configured properly
 export const USE_MOCK = false;
+
+// --- Tasks API ---
+export const getTasks = async (): Promise<InventoryTask[]> => {
+  const snapshot = await getDocs(collection(db, 'inventory_tasks'));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryTask)).sort((a, b) => b.startDate - a.startDate);
+};
+
+export const addTask = async (task: Omit<InventoryTask, 'id'>): Promise<InventoryTask> => {
+  const newRef = doc(collection(db, 'inventory_tasks'));
+  await setDoc(newRef, task);
+  return { id: newRef.id, ...task };
+};
+
+export const updateTask = async (id: string, task: Partial<InventoryTask>): Promise<void> => {
+  await updateDoc(doc(db, 'inventory_tasks', id), task);
+};
+
+export const deleteTask = async (id: string): Promise<void> => {
+  await deleteDoc(doc(db, 'inventory_tasks', id));
+};
+
 
 // --- Personnel API ---
 export const getPersonnel = async (): Promise<Personnel[]> => {
