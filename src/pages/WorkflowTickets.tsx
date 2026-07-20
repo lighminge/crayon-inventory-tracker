@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { InventoryTicket, Personnel, Workflow } from '../types';
 import { getTickets, updateTicket, getPersonnel, getWorkflows } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
@@ -72,6 +72,17 @@ export default function WorkflowTickets() {
       }
     }
     return null;
+  };
+
+  const getProgress = (ticket: InventoryTicket) => {
+    const totalStages = workflows.length;
+    const completedStages = ticket.stageDates ? Object.keys(ticket.stageDates).length : 0;
+    const percentage = totalStages === 0 ? 0 : Math.min(100, Math.round((completedStages / totalStages) * 100));
+    return { completedStages, totalStages, percentage };
+  };
+
+  const calculateDays = (startMs: number, endMs: number) => {
+    return calculateBusinessDays(startMs, endMs);
   };
 
   const openStageUpdate = (ticket: InventoryTicket, stage: Workflow) => {
@@ -313,44 +324,135 @@ export default function WorkflowTickets() {
                 }
               }
 
+              const progress = getProgress(t);
+
               return (
-                <tr key={t.id} style={{ borderBottom: '2px dashed #ccc', backgroundColor: index % 2 === 0 ? '#fafafa' : '#fff' }}>
-                  <td style={{ padding: '15px' }}>
-                    <input type="checkbox" style={{ width: '18px', height: '18px', accentColor: 'var(--crayon-blue)' }} 
-                      checked={selectedTickets.has(t.id)}
-                      onChange={() => toggleSelectTicket(t.id)}
-                    />
-                  </td>
-                  <td style={{ padding: '15px', fontWeight: 'bold', fontSize: '1.2rem' }}>{t.id}</td>
-                  <td style={{ padding: '15px' }}>
-                    <span style={{ backgroundColor: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)', color: 'white', padding: '4px 10px', borderRadius: '5px' }}>
-                      {t.ticketType || '未指定'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '15px', fontWeight: 'bold' }}>{getAssigneeName(t.assigneeId)}</td>
-                  <td style={{ padding: '15px', color: isPendingApproval ? 'var(--crayon-orange)' : 'inherit', fontWeight: isPendingApproval ? 'bold' : 'normal' }}>
-                    {currentStageName}
-                  </td>
-                  <td style={{ padding: '15px' }}>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      {nextStage && (
-                        <button className="doodle-button success" style={{ padding: '5px 15px', fontSize: '0.9rem' }} onClick={() => openStageUpdate(t, nextStage)}>
-                          推進至 {nextStage.name}
-                        </button>
-                      )}
-                      {isPendingApproval && (
-                        <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-orange)', padding: '5px 15px', fontSize: '0.9rem' }} onClick={() => handleOpenManagerForm(t)}>
-                          主管核准結案
-                        </button>
-                      )}
-                      {t.stageDates && Object.keys(t.stageDates).length > 0 && (
-                        <button className="doodle-button danger" style={{ padding: '5px 15px', fontSize: '0.9rem' }} onClick={() => revertToPreviousStage(t)}>
-                          退回上一關
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                <React.Fragment key={t.id}>
+                  <tr style={{ borderTop: '2px dashed #ccc', backgroundColor: index % 2 === 0 ? '#fafafa' : '#fff' }}>
+                    <td style={{ padding: '15px' }}>
+                      <input type="checkbox" style={{ width: '18px', height: '18px', accentColor: 'var(--crayon-blue)' }} 
+                        checked={selectedTickets.has(t.id)}
+                        onChange={() => toggleSelectTicket(t.id)}
+                      />
+                    </td>
+                    <td style={{ padding: '15px', fontWeight: 'bold', fontSize: '1.2rem' }}>{t.id}</td>
+                    <td style={{ padding: '15px' }}>
+                      <span style={{ backgroundColor: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)', color: 'white', padding: '4px 10px', borderRadius: '5px' }}>
+                        {t.ticketType || '未指定'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '15px', fontWeight: 'bold' }}>{getAssigneeName(t.assigneeId)}</td>
+                    <td style={{ padding: '15px', color: isPendingApproval ? 'var(--crayon-orange)' : 'inherit', fontWeight: isPendingApproval ? 'bold' : 'normal' }}>
+                      {currentStageName}
+                    </td>
+                    <td style={{ padding: '15px' }}>
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        {nextStage && (
+                          <button className="doodle-button success" style={{ padding: '5px 15px', fontSize: '0.9rem' }} onClick={() => openStageUpdate(t, nextStage)}>
+                            推進至 {nextStage.name}
+                          </button>
+                        )}
+                        {isPendingApproval && (
+                          <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-orange)', padding: '5px 15px', fontSize: '0.9rem' }} onClick={() => handleOpenManagerForm(t)}>
+                            主管核准結案
+                          </button>
+                        )}
+                        {t.stageDates && Object.keys(t.stageDates).length > 0 && (
+                          <button className="doodle-button danger" style={{ padding: '5px 15px', fontSize: '0.9rem' }} onClick={() => revertToPreviousStage(t)}>
+                            退回上一關
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                  <tr style={{ borderBottom: '2px dashed #ccc', backgroundColor: index % 2 === 0 ? '#fafafa' : '#fff' }}>
+                    <td colSpan={6} style={{ padding: '0 15px 15px 15px' }}>
+                      {/* Progress Bar & Stages Details */}
+                      <div style={{ marginTop: '10px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '0.9rem' }}>
+                          <span>進度：{progress.completedStages} / {progress.totalStages}</span>
+                          <span>{progress.percentage}%</span>
+                        </div>
+                        <div style={{ width: '100%', height: '15px', border: '2px solid var(--crayon-dark)', borderRadius: '15px', overflow: 'hidden' }}>
+                          <div style={{ width: `${progress.percentage}%`, height: '100%', backgroundColor: 'var(--crayon-green)' }}></div>
+                        </div>
+                        
+                        {/* Stage Date Logs */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '30px' }}>
+                          {workflows.map((w, wIndex) => {
+                            const isDone = t.stageDates && t.stageDates[w.id];
+                            const isCurrent = !t.closeDate && nextStage?.id === w.id;
+                            
+                            let spentDaysText = '';
+                            if (isDone) {
+                              const previousDate = wIndex === 0 ? t.dispatchDate : (t.stageDates && t.stageDates[workflows[wIndex-1].id]);
+                              if (previousDate) {
+                                const days = calculateDays(previousDate, t.stageDates[w.id]);
+                                spentDaysText = days === 0 ? '0天' : `${days}天`;
+                              }
+                            }
+
+                            return (
+                              <div key={w.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <div style={{ 
+                                  padding: '10px', borderRadius: '10px', fontSize: '0.95rem',
+                                  backgroundColor: isDone ? '#e8f5e9' : (isCurrent ? '#fff3e0' : '#f5f5f5'),
+                                  border: `3px solid ${isDone ? 'var(--crayon-green)' : (isCurrent ? 'var(--crayon-orange)' : '#ccc')}`,
+                                  color: isDone ? '#000' : '#888',
+                                  position: 'relative',
+                                  minWidth: '100px',
+                                  textAlign: 'center',
+                                  boxShadow: isCurrent ? '2px 2px 0px rgba(255, 152, 0, 0.3)' : 'none',
+                                  transform: isCurrent ? 'scale(1.05)' : 'none',
+                                  transition: 'all 0.3s'
+                                }}>
+                                  {isCurrent && (
+                                    <div style={{ 
+                                      position: 'absolute', top: '-25px', left: '50%', transform: 'translateX(-50%)', 
+                                      fontSize: '1rem', fontWeight: 'bold', color: 'var(--crayon-orange)',
+                                      backgroundColor: 'white', padding: '2px 8px', borderRadius: '10px', border: '2px dashed var(--crayon-orange)',
+                                      whiteSpace: 'nowrap', animation: 'bounce 1s infinite', zIndex: 10
+                                    }}>
+                                      📍 處理中
+                                    </div>
+                                  )}
+                                  <div style={{ fontWeight: 'bold' }}>{w.name}</div>
+                                  <div style={{ 
+                                    fontSize: '0.8rem', 
+                                    color: 'var(--crayon-blue)', 
+                                    backgroundColor: 'white', 
+                                    padding: '2px 5px', 
+                                    borderRadius: '5px',
+                                    border: '1px dashed var(--crayon-blue)',
+                                    marginTop: '5px',
+                                    marginBottom: '5px'
+                                  }}>
+                                    負責: {getAssigneeName(w.assigneeId || '')}
+                                  </div>
+                                  <div style={{ marginTop: '5px' }}>{isDone ? new Date(t.stageDates[w.id]).toLocaleDateString() : '-'}</div>
+                                </div>
+                                {isDone && spentDaysText && (
+                                  <div style={{ 
+                                    marginTop: '8px', fontSize: '0.9rem', fontWeight: 'bold', 
+                                    color: 'var(--crayon-dark)',
+                                    backgroundColor: spentDaysText === '0天' ? '#c8e6c9' : '#ffcdd2', 
+                                    padding: '4px 10px', 
+                                    borderRadius: '4px', 
+                                    border: '2px solid var(--crayon-dark)',
+                                    transform: 'rotate(-2deg)',
+                                    boxShadow: '1px 1px 0px rgba(0,0,0,0.5)'
+                                  }}>
+                                    耗時: {spentDaysText}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </React.Fragment>
               );
             })}
             {currentTickets.length === 0 && (

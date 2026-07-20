@@ -164,7 +164,7 @@ export default function InventoryTicketsPage() {
     try {
       if (isLastStage) {
         const processingDays = updatingTicket.dispatchDate ? 
-          calculateBusinessDays(updatingTicket.dispatchDate, timestamp) : 1;
+          calculateBusinessDays(updatingTicket.dispatchDate, timestamp) : 0;
         await updateTicket(updatingTicket.id, { 
           stageDates: newStageDates,
           closeDate: timestamp,
@@ -194,7 +194,7 @@ export default function InventoryTicketsPage() {
     
     const timestamp = new Date(selectedDate).getTime();
     const processingDays = updatingTicket.dispatchDate ? 
-      calculateBusinessDays(updatingTicket.dispatchDate, timestamp) : 1;
+      calculateBusinessDays(updatingTicket.dispatchDate, timestamp) : 0;
 
     try {
       await updateTicket(updatingTicket.id, {
@@ -287,7 +287,7 @@ export default function InventoryTicketsPage() {
   };
 
   const getCurrentTotalDays = (ticket: InventoryTicket) => {
-    if (ticket.totalProcessingDays) return ticket.totalProcessingDays;
+    if (ticket.totalProcessingDays !== undefined && ticket.totalProcessingDays !== null) return ticket.totalProcessingDays;
     if (ticket.dispatchDate) {
       return calculateDays(ticket.dispatchDate, new Date().getTime());
     }
@@ -502,7 +502,7 @@ export default function InventoryTicketsPage() {
                         const previousDate = wIndex === 0 ? t.dispatchDate : (t.stageDates && t.stageDates[workflows[wIndex-1].id]);
                         if (previousDate) {
                           const days = calculateDays(previousDate, t.stageDates[w.id]);
-                          spentDaysText = days === 1 ? '1日內' : `${days}天`;
+                          spentDaysText = days === 0 ? '0天' : `${days}天`;
                         }
                       }
 
@@ -551,7 +551,7 @@ export default function InventoryTicketsPage() {
                             <div style={{ 
                               marginTop: '8px', fontSize: '0.9rem', fontWeight: 'bold', 
                               color: 'var(--crayon-dark)',
-                              backgroundColor: spentDaysText === '1日內' ? '#c8e6c9' : '#ffcdd2', 
+                              backgroundColor: spentDaysText === '0天' ? '#c8e6c9' : '#ffcdd2', 
                               padding: '4px 10px', 
                               borderRadius: '4px', 
                               border: '2px solid var(--crayon-dark)',
