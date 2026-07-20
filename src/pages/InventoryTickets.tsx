@@ -245,6 +245,9 @@ export default function InventoryTicketsPage() {
         }
       });
 
+      const lastWorkflowId = workflows.length > 0 ? workflows[workflows.length - 1].id : null;
+      const newCloseDate = lastWorkflowId && newStageDates[lastWorkflowId] ? newStageDates[lastWorkflowId] : null;
+
       if (editFormData.id !== editingTicket.id) {
          const newTicket: InventoryTicket = {
             id: editFormData.id,
@@ -253,7 +256,7 @@ export default function InventoryTicketsPage() {
             assigneeId: editFormData.assigneeId,
             dispatchDate: editFormData.dispatchDateStr ? new Date(editFormData.dispatchDateStr).getTime() : null,
             stageDates: newStageDates,
-            closeDate: Object.values(newStageDates).length === workflows.length ? editingTicket.closeDate : null,
+            closeDate: newCloseDate,
             managerName: editingTicket.managerName,
             totalProcessingDays: editingTicket.totalProcessingDays,
          };
@@ -268,7 +271,7 @@ export default function InventoryTicketsPage() {
            assigneeId: editFormData.assigneeId,
            dispatchDate: editFormData.dispatchDateStr ? new Date(editFormData.dispatchDateStr).getTime() : null,
            stageDates: newStageDates,
-           closeDate: Object.values(newStageDates).length === workflows.length ? editingTicket.closeDate : null,
+           closeDate: newCloseDate,
            itemCount: editFormData.itemCount ? Number(editFormData.itemCount) : null,
            taskId: editFormData.taskId || null
          };
