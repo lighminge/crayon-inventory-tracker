@@ -335,7 +335,7 @@ export default function WorkflowTickets() {
               <th style={{ padding: '15px' }}>單號</th>
               <th style={{ padding: '15px' }}>類型</th>
               <th style={{ padding: '15px' }}>盤點人員</th>
-              <th style={{ padding: '15px' }}>目前進度</th>
+              <th style={{ padding: '15px' }}>盤點項目數量</th>
               <th style={{ padding: '15px' }}>操作</th>
             </tr>
           </thead>
@@ -343,15 +343,6 @@ export default function WorkflowTickets() {
             {currentTickets.map((t, index) => {
               const nextStage = getNextStage(t);
               const isPendingApproval = !nextStage && !t.closeDate;
-              let currentStageName = '已派送 (未開始)';
-              if (!nextStage) currentStageName = '等待主管核准結案';
-              else if (t.stageDates) {
-                const completedCount = Object.keys(t.stageDates).length;
-                if (completedCount > 0 && completedCount <= workflows.length) {
-                  currentStageName = `進行中 (${nextStage.name})`;
-                }
-              }
-
               const progress = getProgress(t);
 
               return (
@@ -366,28 +357,34 @@ export default function WorkflowTickets() {
                     <td style={{ padding: '15px', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-blue)' }}>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                     <td style={{ padding: '15px', fontWeight: 'bold', fontSize: '1.5rem', color: 'var(--crayon-dark)' }}>{t.id}</td>
                     <td style={{ padding: '15px' }}>
-                      <span style={{ backgroundColor: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)', color: 'white', padding: '4px 10px', borderRadius: '5px' }}>
+                      <span style={{ backgroundColor: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)', color: 'white', padding: '4px 10px', borderRadius: '5px', fontWeight: 'bold' }}>
                         {t.ticketType || '未指定'}
                       </span>
                     </td>
-                    <td style={{ padding: '15px', fontWeight: '900', fontSize: '1.3rem' }}>{getAssigneeName(t.assigneeId)}</td>
-                    <td style={{ padding: '15px', color: isPendingApproval ? 'var(--crayon-orange)' : 'inherit', fontWeight: '900', fontSize: '1.3rem' }}>
-                      {currentStageName}
+                    <td style={{ padding: '15px' }}>
+                      <span style={{ backgroundColor: '#fff3e0', border: '2px dashed var(--crayon-orange)', color: 'var(--crayon-orange)', fontWeight: '900', fontSize: '1.4rem', padding: '5px 15px', borderRadius: '10px', display: 'inline-block', transform: 'rotate(-2deg)' }}>
+                        {getAssigneeName(t.assigneeId)}
+                      </span>
+                    </td>
+                    <td style={{ padding: '15px' }}>
+                      <span style={{ backgroundColor: '#e1bee7', border: '2px dashed var(--crayon-purple)', color: 'var(--crayon-purple)', fontWeight: '900', fontSize: '1.4rem', padding: '5px 15px', borderRadius: '10px', display: 'inline-block', transform: 'rotate(2deg)' }}>
+                        {t.itemCount || 0} 項
+                      </span>
                     </td>
                     <td style={{ padding: '15px' }}>
                       <div style={{ display: 'flex', gap: '10px' }}>
                         {nextStage && (
-                          <button className="doodle-button success" style={{ padding: '5px 15px', fontSize: '0.9rem' }} onClick={() => openStageUpdate(t, nextStage)}>
+                          <button className="doodle-button success" style={{ padding: '10px 20px', fontSize: '1.3rem', fontWeight: 'bold' }} onClick={() => openStageUpdate(t, nextStage)}>
                             推進至 {nextStage.name}
                           </button>
                         )}
                         {isPendingApproval && (
-                          <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-orange)', padding: '5px 15px', fontSize: '0.9rem' }} onClick={() => handleOpenManagerForm(t)}>
+                          <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-orange)', padding: '10px 20px', fontSize: '1.3rem', fontWeight: 'bold' }} onClick={() => handleOpenManagerForm(t)}>
                             主管核准結案
                           </button>
                         )}
                         {t.stageDates && Object.keys(t.stageDates).length > 0 && (
-                          <button className="doodle-button danger" style={{ padding: '5px 15px', fontSize: '0.9rem' }} onClick={() => confirmRevertStage(t)}>
+                          <button className="doodle-button danger" style={{ padding: '10px 20px', fontSize: '1.3rem', fontWeight: 'bold' }} onClick={() => confirmRevertStage(t)}>
                             退回上一關
                           </button>
                         )}
