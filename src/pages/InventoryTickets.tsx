@@ -490,7 +490,13 @@ export default function InventoryTicketsPage() {
                       <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-orange)' }} onClick={() => handleOpenManagerForm(t)}>主管核准結案</button>
                     )}
                     <button className="doodle-button" onClick={() => openEditModal(t)}>修改</button>
-                    <button className="doodle-button danger" onClick={() => setDeletingId(t.id)}>刪除</button>
+                    <button 
+                      className={`doodle-button ${t.closeDate ? '' : 'danger'}`} 
+                      style={{ opacity: t.closeDate ? 0.5 : 1, cursor: t.closeDate ? 'not-allowed' : 'pointer', border: t.closeDate ? '2px dashed #999' : undefined, color: t.closeDate ? '#666' : undefined }}
+                      onClick={() => !t.closeDate && setDeletingId(t.id)}
+                      disabled={!!t.closeDate}
+                      title={t.closeDate ? '已結案的盤點單無法刪除' : ''}
+                    >刪除</button>
                   </div>
                 </div>
 

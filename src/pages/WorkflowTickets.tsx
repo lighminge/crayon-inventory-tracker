@@ -151,7 +151,10 @@ export default function WorkflowTickets() {
     }
   };
 
-  const revertToPreviousStage = async (ticket: InventoryTicket) => {
+  const [revertingTicket, setRevertingTicket] = useState<InventoryTicket | null>(null);
+  const [revertStageId, setRevertStageId] = useState<string>('');
+
+  const confirmRevertStage = (ticket: InventoryTicket) => {
     if (!ticket.stageDates || Object.keys(ticket.stageDates).length === 0) {
       alert('此單據尚未完成任何關卡，無法退回。');
       return;
@@ -167,15 +170,19 @@ export default function WorkflowTickets() {
     }
 
     if (!lastCompletedStageId) return;
+    setRevertingTicket(ticket);
+    setRevertStageId(lastCompletedStageId);
+  };
 
-    const confirmMsg = `確定要將單號 ${ticket.id} 退回上一個流程嗎？\n這將會清除「${workflows.find(w => w.id === lastCompletedStageId)?.name}」的完成紀錄。`;
-    if (!confirm(confirmMsg)) return;
-
+  const handleRevertToPreviousStage = async () => {
+    if (!revertingTicket || !revertStageId) return;
     try {
-      const newStageDates = { ...ticket.stageDates };
-      delete newStageDates[lastCompletedStageId];
+      const newStageDates = { ...revertingTicket.stageDates };
+      delete newStageDates[revertStageId];
       
-      await updateTicket(ticket.id, { stageDates: newStageDates });
+      await updateTicket(revertingTicket.id, { stageDates: newStageDates });
+      setRevertingTicket(null);
+      setRevertStageId('');
       loadData();
     } catch (e) {
       alert('退回失敗');
@@ -247,10 +254,6 @@ export default function WorkflowTickets() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
         <h2>🔄 盤點單流程 (未結案)</h2>
-        <form onSubmit={handleSearchAndOpen} style={{ display: 'flex', gap: '10px' }}>
-          <input className="doodle-input" required value={searchId} onChange={e => setSearchId(e.target.value)} placeholder="輸入單號快速推進..." />
-          <button type="submit" className="doodle-button">🔍 快查推進</button>
-        </form>
       </div>
 
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#e3f2fd', display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -286,6 +289,14 @@ export default function WorkflowTickets() {
             </div>
           )}
         </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+        <form onSubmit={handleSearchAndOpen} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>🚀 快速處理：</label>
+          <input className="doodle-input" style={{ width: '250px', textAlign: 'center', fontSize: '1.2rem' }} required value={searchId} onChange={e => setSearchId(e.target.value)} placeholder="輸入單號快速推進..." />
+          <button type="submit" className="doodle-button" style={{ fontSize: '1.1rem' }}>🔍 快查推進</button>
+        </form>
       </div>
 
       <div className="doodle-border" style={{ overflowX: 'auto', backgroundColor: 'white' }}>
@@ -328,21 +339,21 @@ export default function WorkflowTickets() {
 
               return (
                 <React.Fragment key={t.id}>
-                  <tr style={{ borderTop: '2px dashed #ccc', backgroundColor: index % 2 === 0 ? '#fafafa' : '#fff' }}>
+                  <tr style={{ borderTop: '4px solid var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fafafa' : '#fff' }}>
                     <td style={{ padding: '15px' }}>
                       <input type="checkbox" style={{ width: '18px', height: '18px', accentColor: 'var(--crayon-blue)' }} 
                         checked={selectedTickets.has(t.id)}
                         onChange={() => toggleSelectTicket(t.id)}
                       />
                     </td>
-                    <td style={{ padding: '15px', fontWeight: 'bold', fontSize: '1.2rem' }}>{t.id}</td>
+                    <td style={{ padding: '15px', fontWeight: 'bold', fontSize: '1.5rem', color: 'var(--crayon-dark)' }}>{t.id}</td>
                     <td style={{ padding: '15px' }}>
                       <span style={{ backgroundColor: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)', color: 'white', padding: '4px 10px', borderRadius: '5px' }}>
                         {t.ticketType || '未指定'}
                       </span>
                     </td>
-                    <td style={{ padding: '15px', fontWeight: 'bold' }}>{getAssigneeName(t.assigneeId)}</td>
-                    <td style={{ padding: '15px', color: isPendingApproval ? 'var(--crayon-orange)' : 'inherit', fontWeight: isPendingApproval ? 'bold' : 'normal' }}>
+                    <td style={{ padding: '15px', fontWeight: '900', fontSize: '1.3rem' }}>{getAssigneeName(t.assigneeId)}</td>
+                    <td style={{ padding: '15px', color: isPendingApproval ? 'var(--crayon-orange)' : 'inherit', fontWeight: '900', fontSize: '1.3rem' }}>
                       {currentStageName}
                     </td>
                     <td style={{ padding: '15px' }}>
@@ -358,14 +369,14 @@ export default function WorkflowTickets() {
                           </button>
                         )}
                         {t.stageDates && Object.keys(t.stageDates).length > 0 && (
-                          <button className="doodle-button danger" style={{ padding: '5px 15px', fontSize: '0.9rem' }} onClick={() => revertToPreviousStage(t)}>
+                          <button className="doodle-button danger" style={{ padding: '5px 15px', fontSize: '0.9rem' }} onClick={() => confirmRevertStage(t)}>
                             退回上一關
                           </button>
                         )}
                       </div>
                     </td>
                   </tr>
-                  <tr style={{ borderBottom: '2px dashed #ccc', backgroundColor: index % 2 === 0 ? '#fafafa' : '#fff' }}>
+                  <tr style={{ borderBottom: '4px solid var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fafafa' : '#fff' }}>
                     <td colSpan={6} style={{ padding: '0 15px 15px 15px' }}>
                       {/* Progress Bar & Stages Details */}
                       <div style={{ marginTop: '10px' }}>
@@ -475,17 +486,17 @@ export default function WorkflowTickets() {
       {/* Stage Update Modal */}
       {updatingTicket && selectedStageId && !isManagerFormOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '400px', backgroundColor: 'white' }}>
-            <h3>更新流程進度</h3>
-            <p>單號：{updatingTicket.id}</p>
+          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '500px', backgroundColor: 'white' }}>
+            <h3 style={{ fontSize: '1.8rem', marginTop: 0 }}>🚀 更新流程進度</h3>
+            <p style={{ fontSize: '1.3rem', fontWeight: 'bold' }}>單號：{updatingTicket.id}</p>
             {(() => {
               const currentIndex = workflows.findIndex(w => w.id === selectedStageId);
               const nextFlow = workflows[currentIndex + 1];
               return (
                 <div style={{ marginBottom: '15px' }}>
-                  <p style={{ margin: '5px 0' }}>即將推進至：<strong>{nextFlow ? nextFlow.name : '✅ 結案'}</strong></p>
+                  <p style={{ margin: '5px 0', fontSize: '1.2rem', fontWeight: 'bold' }}>即將推進至：<strong style={{ fontSize: '1.6rem', color: 'var(--crayon-orange)' }}>{nextFlow ? nextFlow.name : '✅ 結案'}</strong></p>
                   {nextFlow && (
-                    <p style={{ margin: '5px 0', color: 'var(--crayon-blue)' }}>
+                    <p style={{ margin: '5px 0', fontSize: '1.1rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
                       下一關負責人：<strong>{getAssigneeName(nextFlow.assigneeId || '')}</strong>
                     </p>
                   )}
@@ -520,9 +531,9 @@ export default function WorkflowTickets() {
       {/* Manager Approval Modal */}
       {isManagerFormOpen && updatingTicket && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '400px', backgroundColor: 'white' }}>
-            <h3>主管核准結案</h3>
-            <p>單號：{updatingTicket.id}</p>
+          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '500px', backgroundColor: 'white' }}>
+            <h3 style={{ fontSize: '1.8rem', marginTop: 0 }}>🛡️ 主管核准結案</h3>
+            <p style={{ fontSize: '1.3rem', fontWeight: 'bold' }}>單號：{updatingTicket.id}</p>
             <form onSubmit={handleApproveAndClose} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
               <div>
                 <label>核准日期：</label>
@@ -542,6 +553,23 @@ export default function WorkflowTickets() {
                 <button type="button" className="doodle-button danger" style={{ flex: 1 }} onClick={() => setIsManagerFormOpen(false)}>取消</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Revert Confirm Modal */}
+      {revertingTicket && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '450px', backgroundColor: 'white', textAlign: 'center' }}>
+            <h3 style={{ color: 'var(--crayon-red)', fontSize: '2rem', marginTop: 0 }}>⚠️ 退回確認</h3>
+            <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>確定要將單號 <strong>{revertingTicket.id}</strong> 退回上一個流程嗎？</p>
+            <p style={{ fontSize: '1.1rem', color: 'var(--crayon-orange)' }}>
+              這將會清除「{workflows.find(w => w.id === revertStageId)?.name}」的完成紀錄。
+            </p>
+            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '25px' }}>
+              <button className="doodle-button danger" onClick={handleRevertToPreviousStage}>確認退回</button>
+              <button className="doodle-button" onClick={() => { setRevertingTicket(null); setRevertStageId(''); }}>取消</button>
+            </div>
           </div>
         </div>
       )}

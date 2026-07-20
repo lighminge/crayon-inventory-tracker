@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { InventoryTicket, Personnel, InventoryTask } from '../types';
-import { getTickets, getPersonnel, getTasks } from '../services/api';
+import type { InventoryTicket, Personnel, InventoryTask, Workflow } from '../types';
+import { getTickets, getPersonnel, getTasks, getWorkflows } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
 import { BarChart, Bar, LineChart, Line, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 
@@ -8,6 +8,7 @@ export default function Dashboard() {
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [tasks, setTasks] = useState<InventoryTask[]>([]);
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState('');
   
   // Personnel Cards State
@@ -29,9 +30,10 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
-      const [tData, pData, tasksData] = await Promise.all([getTickets(), getPersonnel(), getTasks()]);
+      const [tData, pData, tasksData, wData] = await Promise.all([getTickets(), getPersonnel(), getTasks(), getWorkflows()]);
       setTickets(tData);
       setPersonnel(pData);
+      setWorkflows(wData.sort((a, b) => a.order - b.order));
       
       const now = new Date().getTime();
       setTasks(tasksData.filter(t => t.endDate >= now - (24 * 60 * 60 * 1000)));
@@ -51,6 +53,16 @@ export default function Dashboard() {
       return Math.min(...Object.values(t.stageDates));
     }
     return t.dispatchDate;
+  };
+
+  const getNextStage = (ticket: InventoryTicket): Workflow | null => {
+    if (!ticket.dispatchDate) return null;
+    for (const w of workflows) {
+      if (!ticket.stageDates || !ticket.stageDates[w.id]) {
+        return w;
+      }
+    }
+    return null;
   };
 
   const stats = useMemo(() => {
@@ -420,31 +432,42 @@ export default function Dashboard() {
                           ) : (
                             <>
                               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
-                                {paginatedTickets.map((t: InventoryTicket, idx: number) => (
-                                  <li key={t.id} style={{ 
-                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                    backgroundColor: 'white', padding: '6px 10px', 
-                                    border: '2px solid var(--crayon-dark)', borderRadius: '8px',
-                                    boxShadow: '2px 2px 0px rgba(0,0,0,0.1)'
-                                  }}>
-                                    <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>
-                                      <span style={{ color: 'var(--crayon-blue)', marginRight: '5px' }}>{startIndex + idx + 1}.</span>
-                                      {t.id}
-                                      {t.ticketType && (
-                                        <span style={{ marginLeft: '8px', fontSize: '0.8rem', color: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)', border: `1px solid ${t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)'}`, borderRadius: '4px', padding: '1px 6px' }}>
-                                          {t.ticketType}
-                                        </span>
-                                      )}
-                                    </span>
-                                    <span style={{ 
-                                      backgroundColor: '#e1bee7', padding: '2px 8px', 
-                                      borderRadius: '10px', fontSize: '0.85rem', fontWeight: 'bold',
-                                      border: '1px dashed var(--crayon-dark)', color: 'var(--crayon-purple)'
+                                {paginatedTickets.map((t: InventoryTicket, idx: number) => {
+                                  const nextStage = getNextStage(t);
+                                  let currentStageName = '未開始';
+                                  if (!nextStage) currentStageName = '等候結案';
+                                  else if (t.stageDates && Object.keys(t.stageDates).length > 0) {
+                                    currentStageName = nextStage.name;
+                                  }
+                                  return (
+                                    <li key={t.id} style={{ 
+                                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                      backgroundColor: 'white', padding: '6px 10px', 
+                                      border: '2px solid var(--crayon-dark)', borderRadius: '8px',
+                                      boxShadow: '2px 2px 0px rgba(0,0,0,0.1)'
                                     }}>
-                                      📦 {t.itemCount || 0}
-                                    </span>
-                                  </li>
-                                ))}
+                                      <span style={{ fontWeight: 'bold', fontSize: '1rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '5px' }}>
+                                        <span style={{ color: 'var(--crayon-blue)', marginRight: '5px' }}>{startIndex + idx + 1}.</span>
+                                        {t.id}
+                                        {t.ticketType && (
+                                          <span style={{ fontSize: '0.8rem', color: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)', border: `1px solid ${t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)'}`, borderRadius: '4px', padding: '1px 6px' }}>
+                                            {t.ticketType}
+                                          </span>
+                                        )}
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--crayon-orange)', backgroundColor: '#fff3e0', padding: '2px 6px', borderRadius: '4px', border: '1px dashed var(--crayon-orange)' }}>
+                                          {currentStageName}
+                                        </span>
+                                      </span>
+                                      <span style={{ 
+                                        backgroundColor: '#e1bee7', padding: '2px 8px', 
+                                        borderRadius: '10px', fontSize: '0.85rem', fontWeight: 'bold',
+                                        border: '1px dashed var(--crayon-dark)', color: 'var(--crayon-purple)'
+                                      }}>
+                                        📦 {t.itemCount || 0}
+                                      </span>
+                                    </li>
+                                  );
+                                })}
                               </ul>
                               
                               {totalPages > 1 && (
