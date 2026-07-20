@@ -373,11 +373,16 @@ export default function WorkflowTickets() {
                     </td>
                     <td style={{ padding: '15px' }}>
                       <div style={{ display: 'flex', gap: '10px' }}>
-                        {nextStage && (
-                          <button className="doodle-button success" style={{ padding: '10px 20px', fontSize: '1.3rem', fontWeight: 'bold' }} onClick={() => openStageUpdate(t, nextStage)}>
-                            推進至 {nextStage.name}
-                          </button>
-                        )}
+                        {nextStage && (() => {
+                          const cIdx = workflows.findIndex(w => w.id === nextStage.id);
+                          const nNext = cIdx !== -1 && cIdx + 1 < workflows.length ? workflows[cIdx + 1] : null;
+                          const btnText = nNext ? `推進至 ${nNext.name}` : '結案';
+                          return (
+                            <button className="doodle-button success" style={{ padding: '10px 20px', fontSize: '1.3rem', fontWeight: 'bold' }} onClick={() => openStageUpdate(t, nextStage)}>
+                              {btnText}
+                            </button>
+                          );
+                        })()}
                         {isPendingApproval && (
                           <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-orange)', padding: '10px 20px', fontSize: '1.3rem', fontWeight: 'bold' }} onClick={() => handleOpenManagerForm(t)}>
                             主管核准結案

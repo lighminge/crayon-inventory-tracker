@@ -483,9 +483,16 @@ export default function InventoryTicketsPage() {
                   </div>
                   
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '300px' }}>
-                    {!isFinished && nextStage && (
-                      <button className="doodle-button success" onClick={() => openStageUpdate(t, nextStage)}>推進: {nextStage.name}</button>
-                    )}
+                    {!isFinished && nextStage && (() => {
+                      const cIdx = workflows.findIndex(w => w.id === nextStage.id);
+                      const nNext = cIdx !== -1 && cIdx + 1 < workflows.length ? workflows[cIdx + 1] : null;
+                      const btnText = nNext ? `推進至 ${nNext.name}` : '結案';
+                      return (
+                        <button className="doodle-button success" onClick={() => openStageUpdate(t, nextStage)}>
+                          {btnText}
+                        </button>
+                      );
+                    })()}
                     {!isFinished && isPendingApproval && (
                       <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-orange)' }} onClick={() => handleOpenManagerForm(t)}>主管核准結案</button>
                     )}
