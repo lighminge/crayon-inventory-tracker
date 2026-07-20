@@ -286,12 +286,20 @@ export default function InventoryTicketsPage() {
     return calculateBusinessDays(startMs, endMs);
   };
 
-  const getCurrentTotalDays = (ticket: InventoryTicket) => {
-    if (ticket.dispatchDate && ticket.closeDate) {
-      return calculateDays(ticket.dispatchDate, ticket.closeDate);
+  const getFirstStageDate = (ticket: InventoryTicket) => {
+    if (ticket.stageDates && Object.keys(ticket.stageDates).length > 0) {
+      return Math.min(...Object.values(ticket.stageDates));
     }
-    if (ticket.dispatchDate) {
-      return calculateDays(ticket.dispatchDate, new Date().getTime());
+    return ticket.dispatchDate;
+  };
+
+  const getCurrentTotalDays = (ticket: InventoryTicket) => {
+    const firstDate = getFirstStageDate(ticket);
+    if (firstDate && ticket.closeDate) {
+      return calculateDays(firstDate, ticket.closeDate);
+    }
+    if (firstDate) {
+      return calculateDays(firstDate, new Date().getTime());
     }
     return 0;
   };
