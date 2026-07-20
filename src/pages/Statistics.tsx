@@ -211,7 +211,7 @@ export default function Statistics() {
           {/* 日期區間卡片 */}
           <div className="doodle-border" style={{ 
             flex: 1, minWidth: '250px', backgroundColor: '#fff3e0', 
-            padding: '15px', transform: 'rotate(-1deg)' 
+            padding: '15px', transform: 'rotate(-1deg)', position: 'relative', zIndex: 10 
           }}>
             <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-orange)' }}>📌 依日期區間</h4>
             <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>

@@ -10,6 +10,7 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState<InventoryTask[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState('');
+  const [personnelTicketType, setPersonnelTicketType] = useState('');
   
   // Personnel Cards State
   const [activeTab, setActiveTab] = useState<Record<string, 'stats' | 'incomplete'>>({});
@@ -44,9 +45,15 @@ export default function Dashboard() {
   };
 
   const filteredTickets = useMemo(() => {
-    if (!selectedTaskId) return tickets;
-    return tickets.filter(t => t.taskId === selectedTaskId);
-  }, [tickets, selectedTaskId]);
+    let res = tickets;
+    if (selectedTaskId) {
+      res = res.filter(t => t.taskId === selectedTaskId);
+    }
+    if (personnelTicketType) {
+      res = res.filter(t => t.ticketType === personnelTicketType);
+    }
+    return res;
+  }, [tickets, selectedTaskId, personnelTicketType]);
 
   const getFirstStageDate = (t: InventoryTicket) => {
     if (t.stageDates && Object.keys(t.stageDates).length > 0) {
@@ -63,6 +70,11 @@ export default function Dashboard() {
       }
     }
     return null;
+  };
+
+  const getAssigneeName = (id: string) => {
+    const p = personnel.find(p => p.id === id);
+    return p ? p.name : '未知人員';
   };
 
   const stats = useMemo(() => {
@@ -290,14 +302,24 @@ export default function Dashboard() {
         <div className="doodle-border" style={{ padding: '20px', backgroundColor: '#e0f7fa' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px dashed var(--crayon-dark)', paddingBottom: '10px', flexWrap: 'wrap', gap: '15px' }}>
             <h3 style={{ margin: 0, fontSize: '1.8rem' }}>👥 備料員盤點情況</h3>
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <label style={{ fontWeight: 'bold' }}>查詢期間：</label>
-              <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}>
-                {yearOptions.map(y => <option key={y} value={y}>{y} 年</option>)}
-              </select>
-              <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={selectedMonthNum} onChange={e => setSelectedMonthNum(Number(e.target.value))}>
-                {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>{m} 月</option>)}
-              </select>
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <label style={{ fontWeight: 'bold' }}>盤點類型：</label>
+                <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={personnelTicketType} onChange={e => setPersonnelTicketType(e.target.value)}>
+                  <option value="">全部</option>
+                  <option value="夾鉗">夾鉗</option>
+                  <option value="TKW">TKW</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <label style={{ fontWeight: 'bold' }}>查詢期間：</label>
+                <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}>
+                  {yearOptions.map(y => <option key={y} value={y}>{y} 年</option>)}
+                </select>
+                <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={selectedMonthNum} onChange={e => setSelectedMonthNum(Number(e.target.value))}>
+                  {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>{m} 月</option>)}
+                </select>
+              </div>
             </div>
           </div>
           
@@ -435,10 +457,18 @@ export default function Dashboard() {
                                 {paginatedTickets.map((t: InventoryTicket, idx: number) => {
                                   const nextStage = getNextStage(t);
                                   let currentStageName = '未開始';
-                                  if (!nextStage) currentStageName = '等候結案';
-                                  else if (t.stageDates && Object.keys(t.stageDates).length > 0) {
-                                    currentStageName = nextStage.name;
+                                  let currentAssigneeName = '未知';
+                                  
+                                  if (!nextStage) {
+                                    currentStageName = '等候結案';
+                                    currentAssigneeName = '主管';
+                                  } else {
+                                    if (t.stageDates && Object.keys(t.stageDates).length > 0) {
+                                      currentStageName = nextStage.name;
+                                    }
+                                    currentAssigneeName = getAssigneeName(nextStage.assigneeId || '');
                                   }
+                                  
                                   return (
                                     <li key={t.id} style={{ 
                                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -455,7 +485,7 @@ export default function Dashboard() {
                                           </span>
                                         )}
                                         <span style={{ fontSize: '0.85rem', color: 'var(--crayon-orange)', backgroundColor: '#fff3e0', padding: '2px 6px', borderRadius: '4px', border: '1px dashed var(--crayon-orange)' }}>
-                                          {currentStageName}
+                                          {currentStageName} ({currentAssigneeName})
                                         </span>
                                       </span>
                                       <span style={{ 

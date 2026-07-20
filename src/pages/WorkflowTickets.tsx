@@ -27,6 +27,7 @@ export default function WorkflowTickets() {
   // Batch Advance State
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
   const [batchDate, setBatchDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isBatchConfirmOpen, setIsBatchConfirmOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -226,11 +227,14 @@ export default function WorkflowTickets() {
     setSelectedTickets(newSelected);
   };
 
-  const handleBatchAdvance = async () => {
+  const openBatchConfirm = () => {
     if (selectedTickets.size === 0) return alert('請先勾選要推進的單據！');
     if (!batchDate) return alert('請選擇統一設定日期！');
-    if (!confirm(`確定要將選取的 ${selectedTickets.size} 筆單據推進到下一關嗎？\n(注意：若下一關是最後一關(結案)，批次推進將無法自動結案，需手動逐筆核准結案)`)) return;
+    setIsBatchConfirmOpen(true);
+  };
 
+  const executeBatchAdvance = async () => {
+    setIsBatchConfirmOpen(false);
     const timestamp = new Date(batchDate).getTime();
 
     try {
@@ -276,7 +280,7 @@ export default function WorkflowTickets() {
           <div style={{ display: 'inline-block', width: '150px' }}>
             <CrayonDatePicker value={batchDate} onChange={setBatchDate} />
           </div>
-          <button className="doodle-button success" onClick={handleBatchAdvance}>批次推進至下一關</button>
+          <button className="doodle-button success" onClick={openBatchConfirm}>批次推進至下一關</button>
         </div>
       </div>
 
@@ -622,6 +626,25 @@ export default function WorkflowTickets() {
             <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '25px' }}>
               <button className="doodle-button danger" onClick={handleRevertToPreviousStage}>確認退回</button>
               <button className="doodle-button" onClick={() => { setRevertingTicket(null); setRevertStageId(''); }}>取消</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Batch Advance Confirm Modal */}
+      {isBatchConfirmOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '500px', backgroundColor: 'white', textAlign: 'center' }}>
+            <h3 style={{ color: 'var(--crayon-blue)', fontSize: '2rem', marginTop: 0 }}>⚡ 批次推進確認</h3>
+            <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>確定要將選取的 <strong>{selectedTickets.size}</strong> 筆單據推進到下一關嗎？</p>
+            <div style={{ padding: '15px', backgroundColor: '#fff3e0', border: '2px dashed var(--crayon-orange)', borderRadius: '10px', marginTop: '15px' }}>
+              <p style={{ fontSize: '1rem', color: 'var(--crayon-orange)', margin: 0, fontWeight: 'bold' }}>
+                ⚠️ 注意：若下一關是最後一關(結案)，批次推進將無法自動結案，需手動逐筆核准結案。
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '25px' }}>
+              <button className="doodle-button success" onClick={executeBatchAdvance}>確認批次推進</button>
+              <button className="doodle-button danger" onClick={() => setIsBatchConfirmOpen(false)}>取消</button>
             </div>
           </div>
         </div>
