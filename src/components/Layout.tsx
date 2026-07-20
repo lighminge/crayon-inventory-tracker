@@ -130,6 +130,9 @@ export default function Layout() {
             <NavLink to="/tickets" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
               📝 盤點單管理
             </NavLink>
+            <NavLink to="/workflow-tickets" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+              🔄 盤點單流程
+            </NavLink>
             <NavLink to="/tasks" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
               🎯 盤點任務
             </NavLink>

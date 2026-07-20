@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { InventoryTicket, Personnel, Workflow } from '../types';
 import { getTickets, updateTicket, deleteTicket, getPersonnel, getWorkflows, addTicket, getTasks } from '../services/api';
+import { calculateBusinessDays } from '../utils/dateUtils';
 
 export default function InventoryTicketsPage() {
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
@@ -163,7 +164,7 @@ export default function InventoryTicketsPage() {
     try {
       if (isLastStage) {
         const processingDays = updatingTicket.dispatchDate ? 
-          Math.max(1, Math.ceil((timestamp - updatingTicket.dispatchDate) / (1000 * 60 * 60 * 24))) : 1;
+          calculateBusinessDays(updatingTicket.dispatchDate, timestamp) : 1;
         await updateTicket(updatingTicket.id, { 
           stageDates: newStageDates,
           closeDate: timestamp,
@@ -193,7 +194,7 @@ export default function InventoryTicketsPage() {
     
     const timestamp = new Date(selectedDate).getTime();
     const processingDays = updatingTicket.dispatchDate ? 
-      Math.max(1, Math.ceil((timestamp - updatingTicket.dispatchDate) / (1000 * 60 * 60 * 24))) : 1;
+      calculateBusinessDays(updatingTicket.dispatchDate, timestamp) : 1;
 
     try {
       await updateTicket(updatingTicket.id, {
@@ -282,9 +283,7 @@ export default function InventoryTicketsPage() {
   };
 
   const calculateDays = (startMs: number, endMs: number) => {
-    const diff = endMs - startMs;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    return days <= 0 ? 1 : days;
+    return calculateBusinessDays(startMs, endMs);
   };
 
   const getCurrentTotalDays = (ticket: InventoryTicket) => {
@@ -730,9 +729,18 @@ export default function InventoryTicketsPage() {
             {(() => {
               const currentIndex = workflows.findIndex(w => w.id === selectedStageId);
               const nextFlow = workflows[currentIndex + 1];
-              return <p>即將推進至：<strong>{nextFlow ? nextFlow.name : '✅ 結案'}</strong></p>;
+              return (
+                <div style={{ marginBottom: '15px' }}>
+                  <p style={{ margin: '5px 0' }}>即將推進至：<strong>{nextFlow ? nextFlow.name : '✅ 結案'}</strong></p>
+                  {nextFlow && (
+                    <p style={{ margin: '5px 0', color: 'var(--crayon-blue)' }}>
+                      下一關負責人：<strong>{getAssigneeName(nextFlow.assigneeId || '')}</strong>
+                    </p>
+                  )}
+                </div>
+              );
             })()}
-            <form onSubmit={handleStageUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
+            <form onSubmit={handleStageUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '10px' }}>
               <div>
                 <label>完成日期：</label>
                 <input type="date" className="doodle-input" required value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
@@ -740,7 +748,12 @@ export default function InventoryTicketsPage() {
               {workflows.findIndex(w => w.id === selectedStageId) === workflows.length - 1 && (
                 <div>
                   <label>核准主管姓名：</label>
-                  <input className="doodle-input" required value={managerName} onChange={e => setManagerName(e.target.value)} />
+                  <select className="doodle-input" required value={managerName} onChange={e => setManagerName(e.target.value)}>
+                    <option value="">-- 請選擇主管 --</option>
+                    {personnel.filter(p => (p.roles || []).includes('主管')).map(p => (
+                      <option key={p.id} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
                 </div>
               )}
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
@@ -765,7 +778,12 @@ export default function InventoryTicketsPage() {
               </div>
               <div>
                 <label>核准主管姓名：</label>
-                <input className="doodle-input" required value={managerName} onChange={e => setManagerName(e.target.value)} />
+                <select className="doodle-input" required value={managerName} onChange={e => setManagerName(e.target.value)}>
+                  <option value="">-- 請選擇主管 --</option>
+                  {personnel.filter(p => (p.roles || []).includes('主管')).map(p => (
+                    <option key={p.id} value={p.name}>{p.name}</option>
+                  ))}
+                </select>
               </div>
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <button type="submit" className="doodle-button success" style={{ flex: 1 }}>確認結案</button>

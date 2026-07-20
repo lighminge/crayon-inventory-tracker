@@ -5,6 +5,7 @@ import Personnel from './pages/Personnel';
 import InventoryTickets from './pages/InventoryTickets';
 import DispatchTickets from './pages/DispatchTickets';
 import WorkflowManagement from './pages/WorkflowManagement';
+import WorkflowTickets from './pages/WorkflowTickets';
 import Statistics from './pages/Statistics';
 import Login from './pages/Login';
 import InventoryTasks from './pages/InventoryTasks';
@@ -19,6 +20,7 @@ function App() {
           <Route path="tasks" element={<InventoryTasks />} />
           <Route path="dispatch" element={<DispatchTickets />} />
           <Route path="tickets" element={<InventoryTickets />} />
+          <Route path="workflow-tickets" element={<WorkflowTickets />} />
           <Route path="workflow" element={<WorkflowManagement />} />
           <Route path="personnel" element={<Personnel />} />
           <Route path="statistics" element={<Statistics />} />

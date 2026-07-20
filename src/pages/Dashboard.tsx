@@ -361,11 +361,11 @@ export default function Dashboard() {
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                             <div style={{ backgroundColor: '#f5f5f5', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
                               <div style={{ fontSize: '0.85rem', color: '#666' }}>本月派送</div>
-                              <div style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>{p.monthDispatch}</div>
+                              <div style={{ fontSize: '2rem', fontWeight: '900' }}>{p.monthDispatch}</div>
                             </div>
                             <div style={{ backgroundColor: '#f5f5f5', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
                               <div style={{ fontSize: '0.85rem', color: '#666' }}>本月完成</div>
-                              <div style={{ fontSize: '1.4rem', fontWeight: 'bold' }}>{p.monthCompleted}</div>
+                              <div style={{ fontSize: '2rem', fontWeight: '900' }}>{p.monthCompleted}</div>
                             </div>
                           </div>
                           
@@ -380,9 +380,9 @@ export default function Dashboard() {
                           </div>
 
                           <div style={{ marginTop: '15px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', marginBottom: '5px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', marginBottom: '5px' }}>
                               <strong>完成率</strong>
-                              <span>{p.monthCompletionRate}%</span>
+                              <span style={{ fontSize: '1.5rem', fontWeight: '900' }}>{p.monthCompletionRate}%</span>
                             </div>
                             <div style={{ width: '100%', height: '10px', backgroundColor: '#eee', borderRadius: '5px', overflow: 'hidden', border: '1px solid #ccc' }}>
                               <div style={{ width: `${p.monthCompletionRate}%`, height: '100%', backgroundColor: p.monthCompletionRate === 100 ? 'var(--crayon-green)' : 'var(--crayon-blue)' }}></div>
@@ -422,6 +422,11 @@ export default function Dashboard() {
                                     <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>
                                       <span style={{ color: 'var(--crayon-blue)', marginRight: '5px' }}>{startIndex + idx + 1}.</span>
                                       {t.id}
+                                      {t.ticketType && (
+                                        <span style={{ marginLeft: '8px', fontSize: '0.8rem', color: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)', border: `1px solid ${t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)'}`, borderRadius: '4px', padding: '1px 6px' }}>
+                                          {t.ticketType}
+                                        </span>
+                                      )}
                                     </span>
                                     <span style={{ 
                                       backgroundColor: '#e1bee7', padding: '2px 8px', 

@@ -223,11 +223,24 @@ export default function DispatchTickets() {
               backgroundColor: 'white', padding: '10px', borderRadius: '5px', 
               border: '1px dashed #ccc', marginBottom: '20px', fontSize: '0.9rem' 
             }}>
-              <strong>目前設定：</strong><br/>
-              模式: {dispatchType === 'single' ? '單筆' : '多筆批次'} | 類型: {ticketType} | 日期: {dispatchDate}
+              <strong>目前派送模式：</strong> {dispatchType === 'single' ? '單筆派送' : '多筆批次派送'}
             </div>
 
             <form onSubmit={handleDispatch} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div style={{ display: 'flex', gap: '15px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontWeight: 'bold' }}>派送日期：</label>
+                  <input type="date" className="doodle-input" required value={dispatchDate} onChange={e => setDispatchDate(e.target.value)} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontWeight: 'bold' }}>盤點類型：</label>
+                  <select className="doodle-input" value={ticketType} onChange={e => setTicketType(e.target.value as '夾鉗' | 'TKW')}>
+                    <option value="夾鉗">夾鉗</option>
+                    <option value="TKW">TKW</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label style={{ fontWeight: 'bold', color: 'var(--crayon-dark)' }}>關聯盤點任務 (選填)：</label>
                 <select className="doodle-input" value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
