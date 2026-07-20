@@ -15,8 +15,12 @@ export default function InventoryTicketsPage() {
 
   // Filter State
   const [filterId, setFilterId] = useState('');
-  const [filterStartDate, setFilterStartDate] = useState('');
-  const [filterEndDate, setFilterEndDate] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().split('T')[0];
+  });
+  const [filterEndDate, setFilterEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [filterStatus, setFilterStatus] = useState<'all' | 'inProgress' | 'closed'>('all');
   const [filterPerson, setFilterPerson] = useState('');
   const [filterYear, setFilterYear] = useState('');
@@ -379,7 +383,12 @@ export default function InventoryTicketsPage() {
               </select>
             </div>
             <button className="doodle-button" style={{ height: '42px' }} onClick={() => {
-              setFilterId(''); setFilterStartDate(''); setFilterEndDate(''); setFilterStatus('all'); setFilterPerson(''); setFilterTaskId(''); setFilterYear(''); setFilterMonth(''); setSortMethod('id');
+              setFilterId(''); 
+              const d = new Date();
+              setFilterEndDate(d.toISOString().split('T')[0]);
+              d.setMonth(d.getMonth() - 1);
+              setFilterStartDate(d.toISOString().split('T')[0]);
+              setFilterStatus('all'); setFilterPerson(''); setFilterTaskId(''); setFilterYear(''); setFilterMonth(''); setSortMethod('id');
             }}>清除</button>
           </div>
         </div>
