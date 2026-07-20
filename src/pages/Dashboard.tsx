@@ -15,6 +15,7 @@ export default function Dashboard() {
   // Personnel Cards State
   const [activeTab, setActiveTab] = useState<Record<string, 'stats' | 'incomplete'>>({});
   const [incompletePage, setIncompletePage] = useState<Record<string, number>>({});
+  const [cardTicketType, setCardTicketType] = useState<Record<string, string>>({});
   
   // Dashboard Chart State
   const [chartType, setChartType] = useState<'bar' | 'line' | 'composed'>('bar');
@@ -356,9 +357,11 @@ export default function Dashboard() {
                 const currentTab = activeTab[p.id] || 'stats';
                 const currentPage = incompletePage[p.id] || 1;
                 const itemsPerPage = 5;
-                const totalPages = Math.ceil(p.incompleteCount / itemsPerPage);
+                const typeFilter = cardTicketType[p.id];
+                const filteredIncomplete = typeFilter ? p.incompleteTickets.filter(t => t.ticketType === typeFilter) : p.incompleteTickets;
+                const totalPages = Math.ceil(filteredIncomplete.length / itemsPerPage);
                 const startIndex = (currentPage - 1) * itemsPerPage;
-                const paginatedTickets = p.incompleteTickets.slice(startIndex, startIndex + itemsPerPage);
+                const paginatedTickets = filteredIncomplete.slice(startIndex, startIndex + itemsPerPage);
 
                 return (
                   <div key={p.id} className="doodle-border" style={{ padding: '15px', backgroundColor: 'white', position: 'relative', display: 'flex', flexDirection: 'column' }}>
@@ -446,7 +449,20 @@ export default function Dashboard() {
                           flexDirection: 'column'
                         }}>
                           <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>總計單據：{p.incompleteCount} 件 / 總計項目：{p.incompleteTickets.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0)} 項</span>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>總計：{filteredIncomplete.length} 件 / {filteredIncomplete.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0)} 項</span>
+                            <select 
+                              className="doodle-input" 
+                              style={{ width: 'auto', padding: '2px 5px', fontSize: '0.8rem', backgroundColor: 'white' }}
+                              value={cardTicketType[p.id] || ''}
+                              onChange={e => {
+                                setCardTicketType(prev => ({...prev, [p.id]: e.target.value}));
+                                setIncompletePage(prev => ({...prev, [p.id]: 1}));
+                              }}
+                            >
+                              <option value="">全部類型</option>
+                              <option value="夾鉗">夾鉗</option>
+                              <option value="TKW">TKW</option>
+                            </select>
                           </div>
                           
                           {p.incompleteCount === 0 ? (
