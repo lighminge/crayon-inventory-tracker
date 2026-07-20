@@ -287,7 +287,9 @@ export default function InventoryTicketsPage() {
   };
 
   const getCurrentTotalDays = (ticket: InventoryTicket) => {
-    if (ticket.totalProcessingDays !== undefined && ticket.totalProcessingDays !== null) return ticket.totalProcessingDays;
+    if (ticket.dispatchDate && ticket.closeDate) {
+      return calculateDays(ticket.dispatchDate, ticket.closeDate);
+    }
     if (ticket.dispatchDate) {
       return calculateDays(ticket.dispatchDate, new Date().getTime());
     }

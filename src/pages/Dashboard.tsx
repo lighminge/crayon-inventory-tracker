@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { InventoryTicket, Personnel, InventoryTask } from '../types';
 import { getTickets, getPersonnel, getTasks } from '../services/api';
+import { calculateBusinessDays } from '../utils/dateUtils';
 import { BarChart, Bar, LineChart, Line, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 
 export default function Dashboard() {
@@ -53,9 +54,9 @@ export default function Dashboard() {
     const inProgressItems = inProgressTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
     const completionRate = total === 0 ? 0 : Math.round((closed / total) * 100);
 
-    const closedWithDays = filteredTickets.filter(t => t.closeDate && t.totalProcessingDays);
+    const closedWithDays = filteredTickets.filter(t => t.closeDate && t.dispatchDate);
     const avgDays = closedWithDays.length === 0 ? 0 : 
-      Math.round(closedWithDays.reduce((sum, t) => sum + (t.totalProcessingDays || 0), 0) / closedWithDays.length);
+      Math.round(closedWithDays.reduce((sum, t) => sum + calculateBusinessDays(t.dispatchDate!, t.closeDate!), 0) / closedWithDays.length);
 
     // Chart data for last 6 months
     const chartData = [];
@@ -109,12 +110,12 @@ export default function Dashboard() {
       
       // 本月完成的平均日數
       const monthCompletedTickets = pTickets.filter(t => {
-        if (!t.closeDate) return false;
+        if (!t.closeDate || !t.dispatchDate) return false;
         const d = new Date(t.closeDate);
         return d.getFullYear() === tYear && d.getMonth() === tMonth;
       });
       const avgDays = monthCompletedTickets.length === 0 ? 0 :
-        Math.round(monthCompletedTickets.reduce((sum, t) => sum + (t.totalProcessingDays || 0), 0) / monthCompletedTickets.length);
+        Math.round(monthCompletedTickets.reduce((sum, t) => sum + calculateBusinessDays(t.dispatchDate!, t.closeDate!), 0) / monthCompletedTickets.length);
 
       // Completed Items calculation
       const completedTickets = pTickets.filter(t => t.closeDate);
