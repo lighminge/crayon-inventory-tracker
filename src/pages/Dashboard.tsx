@@ -500,7 +500,7 @@ export default function Dashboard() {
                                             {t.ticketType}
                                           </span>
                                         )}
-                                        <span style={{ fontSize: '0.85rem', color: 'var(--crayon-orange)', backgroundColor: '#fff3e0', padding: '2px 6px', borderRadius: '4px', border: '1px dashed var(--crayon-orange)' }}>
+                                        <span style={{ fontSize: '0.9rem', color: 'var(--crayon-paper)', backgroundColor: 'var(--crayon-dark)', padding: '2px 8px', borderRadius: '4px', border: '2px solid var(--crayon-dark)', fontWeight: 'bold' }}>
                                           {currentStageName} ({currentAssigneeName})
                                         </span>
                                       </span>
