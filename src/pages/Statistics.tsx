@@ -3,6 +3,7 @@ import type { InventoryTicket, Personnel, Workflow, InventoryTask } from '../typ
 import { getTickets, getPersonnel, getWorkflows, getTasks } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid } from 'recharts';
+import CrayonDatePicker from '../components/CrayonDatePicker';
 
 export default function Statistics() {
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
@@ -214,13 +215,13 @@ export default function Statistics() {
           }}>
             <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-orange)' }}>📌 依日期區間</h4>
             <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <div>
+              <div style={{ width: '150px' }}>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>起始日期：</label>
-                <input type="date" className="doodle-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                <CrayonDatePicker value={startDate} onChange={setStartDate} />
               </div>
-              <div>
+              <div style={{ width: '150px' }}>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>結束日期：</label>
-                <input type="date" className="doodle-input" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                <CrayonDatePicker value={endDate} onChange={setEndDate} />
               </div>
             </div>
           </div>

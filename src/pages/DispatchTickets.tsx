@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getPersonnel, addTicket, getWorkflows, getTickets, getTasks } from '../services/api';
 import type { Personnel, Workflow, InventoryTicket, InventoryTask } from '../types';
+import CrayonDatePicker from '../components/CrayonDatePicker';
 
 export default function DispatchTickets() {
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
@@ -64,6 +65,7 @@ export default function DispatchTickets() {
   const handleDispatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetPerson) return;
+    if (!dispatchDate) return alert('請選擇派送日期');
 
     const timestamp = new Date(dispatchDate).getTime();
     const idsToCreate: string[] = [];
@@ -142,7 +144,9 @@ export default function DispatchTickets() {
           </div>
           <div>
             <label style={{ fontWeight: 'bold', marginRight: '10px' }}>派送日期：</label>
-            <input type="date" className="doodle-input" style={{ width: 'auto' }} value={dispatchDate} onChange={e => setDispatchDate(e.target.value)} />
+            <div style={{ display: 'inline-block', width: '150px' }}>
+              <CrayonDatePicker value={dispatchDate} onChange={setDispatchDate} />
+            </div>
           </div>
           <div>
             <label style={{ fontWeight: 'bold', marginRight: '10px' }}>盤點類型：</label>
@@ -229,8 +233,8 @@ export default function DispatchTickets() {
             <form onSubmit={handleDispatch} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div style={{ display: 'flex', gap: '15px' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontWeight: 'bold' }}>派送日期：</label>
-                  <input type="date" className="doodle-input" required value={dispatchDate} onChange={e => setDispatchDate(e.target.value)} />
+                  <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>派送日期：</label>
+                  <CrayonDatePicker value={dispatchDate} onChange={setDispatchDate} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ fontWeight: 'bold' }}>盤點類型：</label>

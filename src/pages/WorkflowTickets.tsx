@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import type { InventoryTicket, Personnel, Workflow } from '../types';
 import { getTickets, updateTicket, getPersonnel, getWorkflows } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
+import CrayonDatePicker from '../components/CrayonDatePicker';
 
 export default function WorkflowTickets() {
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
@@ -103,6 +104,7 @@ export default function WorkflowTickets() {
   const handleStageUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!updatingTicket || !selectedStageId) return;
+    if (!selectedDate) return alert('請選擇完成日期');
 
     const timestamp = new Date(selectedDate).getTime();
     const newStageDates = { ...updatingTicket.stageDates, [selectedStageId]: timestamp };
@@ -140,6 +142,7 @@ export default function WorkflowTickets() {
   const handleApproveAndClose = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!updatingTicket) return;
+    if (!selectedDate) return alert('請選擇核准日期');
     
     const timestamp = new Date(selectedDate).getTime();
     const processingDays = updatingTicket.dispatchDate ? 
@@ -225,6 +228,7 @@ export default function WorkflowTickets() {
 
   const handleBatchAdvance = async () => {
     if (selectedTickets.size === 0) return alert('請先勾選要推進的單據！');
+    if (!batchDate) return alert('請選擇統一設定日期！');
     if (!confirm(`確定要將選取的 ${selectedTickets.size} 筆單據推進到下一關嗎？\n(注意：若下一關是最後一關(結案)，批次推進將無法自動結案，需手動逐筆核准結案)`)) return;
 
     const timestamp = new Date(batchDate).getTime();
@@ -269,7 +273,9 @@ export default function WorkflowTickets() {
         <span style={{ fontWeight: 'bold' }}>已勾選: <span style={{ color: 'var(--crayon-red)', fontSize: '1.2rem' }}>{selectedTickets.size}</span> 筆</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
           <label style={{ fontWeight: 'bold' }}>統一設定日期：</label>
-          <input type="date" className="doodle-input" style={{ width: 'auto' }} value={batchDate} onChange={e => setBatchDate(e.target.value)} />
+          <div style={{ display: 'inline-block', width: '150px' }}>
+            <CrayonDatePicker value={batchDate} onChange={setBatchDate} />
+          </div>
           <button className="doodle-button success" onClick={handleBatchAdvance}>批次推進至下一關</button>
         </div>
       </div>
@@ -552,8 +558,8 @@ export default function WorkflowTickets() {
             })()}
             <form onSubmit={handleStageUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '10px' }}>
               <div>
-                <label>完成日期：</label>
-                <input type="date" className="doodle-input" required value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+                <label style={{ display: 'block', marginBottom: '5px' }}>完成日期：</label>
+                <CrayonDatePicker value={selectedDate} onChange={setSelectedDate} />
               </div>
               {workflows.findIndex(w => w.id === selectedStageId) === workflows.length - 1 && (
                 <div>
@@ -583,8 +589,8 @@ export default function WorkflowTickets() {
             <p style={{ fontSize: '1.3rem', fontWeight: 'bold' }}>單號：{updatingTicket.id}</p>
             <form onSubmit={handleApproveAndClose} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
               <div>
-                <label>核准日期：</label>
-                <input type="date" className="doodle-input" required value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+                <label style={{ display: 'block', marginBottom: '5px' }}>核准日期：</label>
+                <CrayonDatePicker value={selectedDate} onChange={setSelectedDate} />
               </div>
               <div>
                 <label>核准主管姓名：</label>
