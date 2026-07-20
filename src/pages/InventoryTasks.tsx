@@ -9,6 +9,8 @@ export default function InventoryTasks() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<InventoryTask | null>(null);
   
+  const [filterStatus, setFilterStatus] = useState('all');
+  
   const today = new Date().toISOString().split('T')[0];
   const [formData, setFormData] = useState<Omit<InventoryTask, 'id'>>({
     name: '',
@@ -122,15 +124,36 @@ export default function InventoryTasks() {
     });
   }, [tasks, tickets]);
 
+  const filteredTasks = useMemo(() => {
+    return tasksWithStats.filter(t => {
+      if (filterStatus === 'active') return !t.isExpired;
+      if (filterStatus === 'expired') return t.isExpired;
+      return true;
+    });
+  }, [tasksWithStats, filterStatus]);
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>🎯 盤點任務管理</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+          <h2 style={{ margin: 0 }}>🎯 盤點任務管理</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: 'bold' }}>任務狀態：</label>
+            <select className="doodle-input" style={{ width: 'auto' }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+              <option value="all">全部</option>
+              <option value="active">未到期</option>
+              <option value="expired">已到期</option>
+            </select>
+          </div>
+          <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-blue)' }}>
+            總任務數量：{filteredTasks.length} 筆
+          </div>
+        </div>
         <button className="doodle-button" onClick={() => handleOpenForm()}>＋ 新增盤點任務</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-        {tasksWithStats.map((task) => (
+        {filteredTasks.map((task) => (
           <div key={task.id} className="doodle-border" style={{ 
             padding: '20px', 
             backgroundColor: task.isExpired ? '#f5f5f5' : 'white',
@@ -150,15 +173,15 @@ export default function InventoryTasks() {
             </h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
-              <div style={{ fontSize: '0.9rem' }}><strong>類型：</strong>{task.ticketType}</div>
-              <div style={{ fontSize: '0.9rem' }}>
-                <strong>總項目：</strong>{task.totalItemCount} 項
+              <div style={{ fontSize: '1.2rem' }}><strong>類型：</strong><span style={{ fontWeight: '900', fontSize: '1.4rem' }}>{task.ticketType}</span></div>
+              <div style={{ fontSize: '1.2rem' }}>
+                <strong>總項目：</strong><span style={{ fontWeight: '900', fontSize: '1.4rem' }}>{task.totalItemCount} 項</span>
               </div>
             </div>
 
-            <div style={{ fontSize: '0.85rem', color: '#666', marginBottom: '15px' }}>
+            <div style={{ fontSize: '1.2rem', color: '#333', marginBottom: '15px' }}>
               <strong>期間：</strong><br/>
-              {new Date(task.startDate).toLocaleDateString()} ~ {new Date(task.endDate).toLocaleDateString()}
+              <span style={{ fontWeight: '900', fontSize: '1.3rem' }}>{new Date(task.startDate).toLocaleDateString()} ~ {new Date(task.endDate).toLocaleDateString()}</span>
             </div>
 
             <div className="doodle-border" style={{ padding: '10px', backgroundColor: '#e3f2fd', marginBottom: '15px' }}>

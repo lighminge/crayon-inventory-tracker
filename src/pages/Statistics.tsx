@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { InventoryTicket, Personnel, Workflow, InventoryTask } from '../types';
 import { getTickets, getPersonnel, getWorkflows, getTasks } from '../services/api';
+import { calculateBusinessDays } from '../utils/dateUtils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid } from 'recharts';
 
 export default function Statistics() {
@@ -66,6 +67,13 @@ export default function Statistics() {
     });
   }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskId]);
 
+  const getFirstStageDate = (t: InventoryTicket) => {
+    if (t.stageDates && Object.keys(t.stageDates).length > 0) {
+      return Math.min(...Object.values(t.stageDates));
+    }
+    return t.dispatchDate;
+  };
+
   const statsByPerson = useMemo(() => {
     return personnel.map(p => {
       const pTickets = filteredTickets.filter(t => t.assigneeId === p.id);
@@ -73,9 +81,9 @@ export default function Statistics() {
       const closed = pTickets.filter(t => t.closeDate).length;
       const completionRate = total === 0 ? 0 : Math.round((closed / total) * 100);
       
-      const closedWithDays = pTickets.filter(t => t.closeDate && t.totalProcessingDays);
+      const closedWithDays = pTickets.filter(t => t.closeDate && getFirstStageDate(t));
       const avgDays = closedWithDays.length === 0 ? 0 : 
-        Math.round(closedWithDays.reduce((sum, t) => sum + (t.totalProcessingDays || 0), 0) / closedWithDays.length);
+        Math.round(closedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!), 0) / closedWithDays.length);
         
       return {
         ...p,
@@ -92,20 +100,17 @@ export default function Statistics() {
     const closed = statsByPerson.reduce((sum, p) => sum + p.closed, 0);
     const completionRate = total === 0 ? 0 : Math.round((closed / total) * 100);
     
-    const globalClosedWithDays = filteredTickets.filter(t => t.closeDate && t.totalProcessingDays);
+    const globalClosedWithDays = filteredTickets.filter(t => t.closeDate && getFirstStageDate(t));
     const avgDays = globalClosedWithDays.length === 0 ? 0 : 
-      Math.round(globalClosedWithDays.reduce((sum, t) => sum + (t.totalProcessingDays || 0), 0) / globalClosedWithDays.length);
+      Math.round(globalClosedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!), 0) / globalClosedWithDays.length);
       
     const totalItems = filteredTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
 
     return { total, closed, completionRate, avgDays, totalItems };
   }, [statsByPerson, filteredTickets]);
 
-  // Helper function to calculate days between two timestamps (min 1 day)
   const calculateDays = (startMs: number, endMs: number) => {
-    const diff = endMs - startMs;
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    return days <= 0 ? 1 : days;
+    return calculateBusinessDays(startMs, endMs);
   };
 
   // Workflow Stage Processing Days Stats

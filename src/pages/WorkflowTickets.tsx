@@ -12,8 +12,9 @@ export default function WorkflowTickets() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Search State
+  // Search & Filter State
   const [searchId, setSearchId] = useState('');
+  const [filterTicketType, setFilterTicketType] = useState('');
 
   // Modals State
   const [updatingTicket, setUpdatingTicket] = useState<InventoryTicket | null>(null);
@@ -48,10 +49,10 @@ export default function WorkflowTickets() {
     return p ? p.name : '未知人員';
   };
 
-  // Sort by id for consistency
+  // Sort and Filter active tickets
   const activeTickets = useMemo(() => {
-    return [...tickets].sort((a, b) => a.id.localeCompare(b.id));
-  }, [tickets]);
+    return [...tickets].filter(t => !filterTicketType || t.ticketType === filterTicketType).sort((a, b) => a.id.localeCompare(b.id));
+  }, [tickets, filterTicketType]);
 
   // Pagination Logic
   const totalPages = Math.ceil(activeTickets.length / itemsPerPage);
@@ -83,6 +84,13 @@ export default function WorkflowTickets() {
 
   const calculateDays = (startMs: number, endMs: number) => {
     return calculateBusinessDays(startMs, endMs);
+  };
+
+  const getFirstStageDate = (ticket: InventoryTicket) => {
+    if (ticket.stageDates && Object.keys(ticket.stageDates).length > 0) {
+      return Math.min(...Object.values(ticket.stageDates));
+    }
+    return ticket.dispatchDate;
   };
 
   const openStageUpdate = (ticket: InventoryTicket, stage: Workflow) => {
@@ -291,7 +299,15 @@ export default function WorkflowTickets() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px', gap: '30px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>🏷️ 盤點類型：</label>
+          <select className="doodle-input" style={{ fontSize: '1.2rem', width: '150px' }} value={filterTicketType} onChange={e => setFilterTicketType(e.target.value)}>
+            <option value="">全部</option>
+            <option value="夾鉗">夾鉗</option>
+            <option value="TKW">TKW</option>
+          </select>
+        </div>
         <form onSubmit={handleSearchAndOpen} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>🚀 快速處理：</label>
           <input className="doodle-input" style={{ width: '250px', textAlign: 'center', fontSize: '1.2rem' }} required value={searchId} onChange={e => setSearchId(e.target.value)} placeholder="輸入單號快速推進..." />
@@ -315,6 +331,7 @@ export default function WorkflowTickets() {
                   }}
                 />
               </th>
+              <th style={{ padding: '15px', width: '60px' }}>序號</th>
               <th style={{ padding: '15px' }}>單號</th>
               <th style={{ padding: '15px' }}>類型</th>
               <th style={{ padding: '15px' }}>盤點人員</th>
@@ -346,6 +363,7 @@ export default function WorkflowTickets() {
                         onChange={() => toggleSelectTicket(t.id)}
                       />
                     </td>
+                    <td style={{ padding: '15px', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-blue)' }}>{(currentPage - 1) * itemsPerPage + index + 1}</td>
                     <td style={{ padding: '15px', fontWeight: 'bold', fontSize: '1.5rem', color: 'var(--crayon-dark)' }}>{t.id}</td>
                     <td style={{ padding: '15px' }}>
                       <span style={{ backgroundColor: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)', color: 'white', padding: '4px 10px', borderRadius: '5px' }}>
@@ -377,9 +395,11 @@ export default function WorkflowTickets() {
                     </td>
                   </tr>
                   <tr style={{ borderBottom: '4px solid var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fafafa' : '#fff' }}>
-                    <td colSpan={6} style={{ padding: '0 15px 15px 15px' }}>
-                      {/* Progress Bar & Stages Details */}
-                      <div style={{ marginTop: '10px' }}>
+                    <td colSpan={7} style={{ padding: '0 15px 15px 15px' }}>
+                      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, minWidth: '300px' }}>
+                          {/* Progress Bar & Stages Details */}
+                          <div style={{ marginTop: '10px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '0.9rem' }}>
                           <span>進度：{progress.completedStages} / {progress.totalStages}</span>
                           <span>{progress.percentage}%</span>
@@ -461,9 +481,34 @@ export default function WorkflowTickets() {
                           })}
                         </div>
                       </div>
-                    </td>
-                  </tr>
-                </React.Fragment>
+                    </div>
+                    {/* Total Elapsed Days Block */}
+                    <div style={{ 
+                      minWidth: '150px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', 
+                      borderLeft: '4px dashed var(--crayon-dark)', paddingLeft: '20px', paddingTop: '20px' 
+                    }}>
+                      <div style={{ 
+                        fontSize: '1.2rem', fontWeight: 'bold', color: 'white', backgroundColor: 'var(--crayon-dark)', 
+                        padding: '5px 15px', borderRadius: '10px', marginBottom: '15px', transform: 'rotate(2deg)' 
+                      }}>
+                        目前已處理總天數
+                      </div>
+                      <div style={{ 
+                        width: '120px', height: '120px', borderRadius: '20px', backgroundColor: '#fff3e0', 
+                        border: '4px solid var(--crayon-orange)', display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                        flexDirection: 'column', color: 'var(--crayon-orange)', transform: 'rotate(-3deg)', 
+                        boxShadow: '5px 5px 0px rgba(0,0,0,0.2)' 
+                      }}>
+                        <span style={{ fontSize: '4rem', fontWeight: 'bold', lineHeight: '1', fontFamily: 'Caveat, cursive' }}>
+                          {calculateDays(getFirstStageDate(t) || new Date().getTime(), new Date().getTime())}
+                        </span>
+                        <span style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>天</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </React.Fragment>
               );
             })}
             {currentTickets.length === 0 && (
