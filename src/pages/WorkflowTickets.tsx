@@ -28,6 +28,7 @@ export default function WorkflowTickets() {
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
   const [batchDate, setBatchDate] = useState(new Date().toISOString().split('T')[0]);
   const [isBatchConfirmOpen, setIsBatchConfirmOpen] = useState(false);
+  const [systemAlert, setSystemAlert] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -228,8 +229,14 @@ export default function WorkflowTickets() {
   };
 
   const openBatchConfirm = () => {
-    if (selectedTickets.size === 0) return alert('請先勾選要推進的單據！');
-    if (!batchDate) return alert('請選擇統一設定日期！');
+    if (selectedTickets.size === 0) {
+      setSystemAlert('請先勾選要推進的單據！');
+      return;
+    }
+    if (!batchDate) {
+      setSystemAlert('請選擇統一設定日期！');
+      return;
+    }
     setIsBatchConfirmOpen(true);
   };
 
@@ -645,6 +652,18 @@ export default function WorkflowTickets() {
             <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '25px' }}>
               <button className="doodle-button success" onClick={executeBatchAdvance}>確認批次推進</button>
               <button className="doodle-button danger" onClick={() => setIsBatchConfirmOpen(false)}>取消</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* System Alert Modal */}
+      {systemAlert && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '400px', backgroundColor: 'white', textAlign: 'center' }}>
+            <h3 style={{ color: 'var(--crayon-red)', fontSize: '2rem', marginTop: 0 }}>⚠️ 提示</h3>
+            <p style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{systemAlert}</p>
+            <div style={{ marginTop: '25px' }}>
+              <button className="doodle-button" onClick={() => setSystemAlert(null)}>確定</button>
             </div>
           </div>
         </div>
