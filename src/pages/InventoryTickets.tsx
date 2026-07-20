@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { InventoryTicket, Personnel, Workflow } from '../types';
 import { getTickets, updateTicket, deleteTicket, getPersonnel, getWorkflows, addTicket, getTasks } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
+import CrayonDatePicker from '../components/CrayonDatePicker';
 
 export default function InventoryTicketsPage() {
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
@@ -66,15 +67,27 @@ export default function InventoryTicketsPage() {
     return p ? p.name : '未知人員';
   };
 
+  const calculateDays = (startMs: number, endMs: number) => {
+    return calculateBusinessDays(startMs, endMs);
+  };
+
+  const getFirstStageDate = (ticket: InventoryTicket) => {
+    if (ticket.stageDates && Object.keys(ticket.stageDates).length > 0) {
+      return Math.min(...Object.values(ticket.stageDates));
+    }
+    return ticket.dispatchDate;
+  };
+
   // Filter Logic
   const filteredTickets = useMemo(() => {
     return tickets.filter(t => {
       // 1. ID
       if (filterId && !t.id.includes(filterId)) return false;
-      // 2. Date Range (using dispatchDate)
+      // 2. Date Range
       if (filterStartDate || filterEndDate) {
-        if (!t.dispatchDate) return false;
-        const dDate = new Date(t.dispatchDate);
+        const dTime = getFirstStageDate(t);
+        if (!dTime) return false;
+        const dDate = new Date(dTime);
         if (filterStartDate) {
           const s = new Date(filterStartDate);
           s.setHours(0,0,0,0);
@@ -94,8 +107,10 @@ export default function InventoryTicketsPage() {
       // 5. Task
       if (filterTaskId && t.taskId !== filterTaskId) return false;
       // 6. Year / Month (based on dispatchDate)
-      if ((filterYear || filterMonth) && t.dispatchDate) {
-        const dDate = new Date(t.dispatchDate);
+      if ((filterYear || filterMonth)) {
+        const dTime = getFirstStageDate(t);
+        if (!dTime) return false;
+        const dDate = new Date(dTime);
         if (filterYear && dDate.getFullYear().toString() !== filterYear) return false;
         if (filterMonth && (dDate.getMonth() + 1).toString() !== filterMonth) return false;
       }
@@ -289,16 +304,7 @@ export default function InventoryTicketsPage() {
     }
   };
 
-  const calculateDays = (startMs: number, endMs: number) => {
-    return calculateBusinessDays(startMs, endMs);
-  };
 
-  const getFirstStageDate = (ticket: InventoryTicket) => {
-    if (ticket.stageDates && Object.keys(ticket.stageDates).length > 0) {
-      return Math.min(...Object.values(ticket.stageDates));
-    }
-    return ticket.dispatchDate;
-  };
 
   const getCurrentTotalDays = (ticket: InventoryTicket) => {
     const firstDate = getFirstStageDate(ticket);
@@ -325,13 +331,13 @@ export default function InventoryTicketsPage() {
             <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>盤點單號：</label>
             <input className="doodle-input" style={{ width: '120px' }} value={filterId} onChange={e => setFilterId(e.target.value)} placeholder="輸入單號" />
           </div>
-          <div>
+          <div style={{ width: '150px' }}>
             <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>派送日期起：</label>
-            <input type="date" className="doodle-input" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} />
+            <CrayonDatePicker value={filterStartDate} onChange={setFilterStartDate} />
           </div>
-          <div>
+          <div style={{ width: '150px' }}>
             <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>派送日期迄：</label>
-            <input type="date" className="doodle-input" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} />
+            <CrayonDatePicker value={filterEndDate} onChange={setFilterEndDate} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>狀態：</label>
