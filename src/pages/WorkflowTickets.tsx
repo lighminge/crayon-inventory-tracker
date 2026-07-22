@@ -443,8 +443,9 @@ export default function WorkflowTickets() {
                             }
 
                             return (
-                              <div key={w.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <div style={{ 
+                              <React.Fragment key={w.id}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                  <div style={{ 
                                   padding: '10px', borderRadius: '10px', fontSize: '0.95rem',
                                   backgroundColor: isDone ? '#e8f5e9' : (isCurrent ? '#fff3e0' : '#f5f5f5'),
                                   border: `3px solid ${isDone ? 'var(--crayon-green)' : (isCurrent ? 'var(--crayon-orange)' : '#ccc')}`,
@@ -481,22 +482,35 @@ export default function WorkflowTickets() {
                                   </div>
                                   <div style={{ marginTop: '5px' }}>{isDone ? new Date(t.stageDates[w.id]).toLocaleDateString() : '-'}</div>
                                 </div>
-                                {isDone && spentDaysText && (
-                                  <div style={{ 
-                                    marginTop: '8px', fontSize: '0.9rem', fontWeight: 'bold', 
-                                    color: 'var(--crayon-dark)',
-                                    backgroundColor: spentDaysText === '0天' ? '#c8e6c9' : '#ffcdd2', 
-                                    padding: '4px 10px', 
-                                    borderRadius: '4px', 
-                                    border: '2px solid var(--crayon-dark)',
-                                    transform: 'rotate(-2deg)',
-                                    boxShadow: '1px 1px 0px rgba(0,0,0,0.5)'
+                                  {isDone && spentDaysText && (
+                                    <div style={{ 
+                                      marginTop: '8px', fontSize: '0.9rem', fontWeight: 'bold', 
+                                      color: 'var(--crayon-dark)',
+                                      backgroundColor: spentDaysText === '0天' ? '#c8e6c9' : '#ffcdd2', 
+                                      padding: '4px 10px', 
+                                      borderRadius: '4px', 
+                                      border: '2px solid var(--crayon-dark)',
+                                      transform: 'rotate(-2deg)',
+                                      boxShadow: '1px 1px 0px rgba(0,0,0,0.5)'
+                                    }}>
+                                      耗時: {spentDaysText}
+                                    </div>
+                                  )}
+                                </div>
+                                {wIndex < workflows.length - 1 && (
+                                  <div style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: '2.5rem', 
+                                    color: isDone ? 'var(--crayon-green)' : (isCurrent ? 'var(--crayon-orange)' : '#ccc'),
+                                    padding: '0 5px', 
+                                    fontWeight: 'bold',
+                                    fontFamily: 'Caveat, cursive'
                                   }}>
-                                    耗時: {spentDaysText}
+                                    ➔
                                   </div>
                                 )}
-                              </div>
-                            )
+                              </React.Fragment>
+                            );
                           })}
                         </div>
                       </div>

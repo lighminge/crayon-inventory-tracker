@@ -84,7 +84,7 @@ export default function Statistics() {
       
       const closedWithDays = pTickets.filter(t => t.closeDate && getFirstStageDate(t));
       const avgDays = closedWithDays.length === 0 ? 0 : 
-        Math.round(closedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!), 0) / closedWithDays.length);
+        Number((closedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!), 0) / closedWithDays.length).toFixed(2));
         
       return {
         ...p,
@@ -103,7 +103,7 @@ export default function Statistics() {
     
     const globalClosedWithDays = filteredTickets.filter(t => t.closeDate && getFirstStageDate(t));
     const avgDays = globalClosedWithDays.length === 0 ? 0 : 
-      Math.round(globalClosedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!), 0) / globalClosedWithDays.length);
+      Number((globalClosedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!), 0) / globalClosedWithDays.length).toFixed(2));
       
     const totalItems = filteredTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
 
@@ -135,7 +135,7 @@ export default function Statistics() {
 
     return workflows.map(w => {
       const avg = stageStats[w.id].count === 0 ? 0 : 
-        Math.round(stageStats[w.id].totalDays / stageStats[w.id].count * 10) / 10; // 1 decimal place
+        Number((stageStats[w.id].totalDays / stageStats[w.id].count).toFixed(2));
       return {
         name: w.name,
         avgDays: avg,

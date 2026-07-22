@@ -548,8 +548,9 @@ export default function InventoryTicketsPage() {
                       }
 
                       return (
-                        <div key={w.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <div style={{ 
+                        <React.Fragment key={w.id}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <div style={{ 
                             padding: '10px', borderRadius: '10px', fontSize: '0.95rem',
                             backgroundColor: isDone ? '#e8f5e9' : (isCurrent ? '#fff3e0' : '#f5f5f5'),
                             border: `3px solid ${isDone ? 'var(--crayon-green)' : (isCurrent ? 'var(--crayon-orange)' : '#ccc')}`,
@@ -603,11 +604,24 @@ export default function InventoryTicketsPage() {
                             </div>
                           )}
                         </div>
-                      )
-                    })}
-                  </div>
+                        {wIndex < workflows.length - 1 && (
+                          <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '2.5rem', 
+                            color: isDone ? 'var(--crayon-green)' : (isCurrent ? 'var(--crayon-orange)' : '#ccc'),
+                            padding: '0 5px', 
+                            fontWeight: 'bold',
+                            fontFamily: 'Caveat, cursive'
+                          }}>
+                            ➔
+                          </div>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </div>
               </div>
+            </div>
 
               {/* Huge Total Processing Days Marker on the far right */}
               <div style={{ 

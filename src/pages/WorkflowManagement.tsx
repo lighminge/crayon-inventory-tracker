@@ -7,6 +7,7 @@ export default function WorkflowManagement() {
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingWorkflow, setEditingWorkflow] = useState<Workflow | null>(null);
+  const [insertAfterId, setInsertAfterId] = useState<string>('');
   const [formData, setFormData] = useState<Omit<Workflow, 'id'>>({
     name: '',
     order: 0,
@@ -34,7 +35,9 @@ export default function WorkflowManagement() {
       setFormData({ name: workflow.name, order: workflow.order, assigneeId: workflow.assigneeId || '' });
     } else {
       setEditingWorkflow(null);
-      setFormData({ name: '', order: workflows.length > 0 ? Math.max(...workflows.map(w => w.order)) + 1 : 1, assigneeId: '' });
+      const defaultInsertId = workflows.length > 1 ? workflows[workflows.length - 2].id : (workflows.length > 0 ? workflows[0].id : '');
+      setInsertAfterId(defaultInsertId);
+      setFormData({ name: '', order: 0, assigneeId: '' });
     }
     setIsFormOpen(true);
   };
@@ -45,7 +48,14 @@ export default function WorkflowManagement() {
       if (editingWorkflow) {
         await updateWorkflow(editingWorkflow.id, formData);
       } else {
-        await addWorkflow(formData);
+        const insertIndex = workflows.findIndex(w => w.id === insertAfterId);
+        const created = await addWorkflow(formData);
+        
+        const newWorkflows = [...workflows];
+        newWorkflows.splice(insertIndex + 1, 0, created);
+        
+        const promises = newWorkflows.map((w, idx) => updateWorkflow(w.id, { order: idx + 1 }));
+        await Promise.all(promises);
       }
       setIsFormOpen(false);
       loadData();
@@ -148,6 +158,16 @@ export default function WorkflowManagement() {
                 <label>流程名稱：</label>
                 <input className="doodle-input" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
               </div>
+              {!editingWorkflow && workflows.length > 0 && (
+                <div>
+                  <label>插入位置：</label>
+                  <select className="doodle-input" value={insertAfterId} onChange={e => setInsertAfterId(e.target.value)}>
+                    {workflows.slice(0, workflows.length - 1).map(w => (
+                      <option key={w.id} value={w.id}>插入在「{w.name}」之後</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label>預設負責人員：</label>
                 <select className="doodle-input" value={formData.assigneeId} onChange={e => setFormData({...formData, assigneeId: e.target.value})}>

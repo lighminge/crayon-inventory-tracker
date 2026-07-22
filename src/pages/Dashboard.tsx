@@ -88,7 +88,7 @@ export default function Dashboard() {
 
     const closedWithDays = filteredTickets.filter(t => t.closeDate && getFirstStageDate(t));
     const avgDays = closedWithDays.length === 0 ? 0 : 
-      Math.round(closedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!), 0) / closedWithDays.length);
+      Number((closedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!), 0) / closedWithDays.length).toFixed(2));
 
     // Chart data for last 6 months
     const chartData = [];
@@ -147,7 +147,7 @@ export default function Dashboard() {
         return d.getFullYear() === tYear && d.getMonth() === tMonth;
       });
       const avgDays = monthCompletedTickets.length === 0 ? 0 :
-        Math.round(monthCompletedTickets.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!), 0) / monthCompletedTickets.length);
+        Number((monthCompletedTickets.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!), 0) / monthCompletedTickets.length).toFixed(2));
 
       // Completed Items calculation
       const completedTickets = pTickets.filter(t => t.closeDate);
