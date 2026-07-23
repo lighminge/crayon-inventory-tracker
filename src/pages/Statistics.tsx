@@ -272,7 +272,7 @@ export default function Statistics() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={statsByWorkflow} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="5 5" stroke="#ccc" />
-                <XAxis dataKey="name" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} />
+                <XAxis dataKey="name" stroke="var(--crayon-dark)" interval={0} tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} />
                 <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} />
                 <Tooltip 
                   contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#fff9c4', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}}

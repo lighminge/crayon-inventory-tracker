@@ -416,7 +416,7 @@ export default function WorkflowTickets() {
                   <tr style={{ borderBottom: '4px solid var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fafafa' : '#fff' }}>
                     <td colSpan={7} style={{ padding: '0 15px 15px 15px' }}>
                       <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                        <div style={{ flex: 1, minWidth: '300px' }}>
+                        <div style={{ flex: 1, minWidth: '600px' }}>
                           {/* Progress Bar & Stages Details */}
                           <div style={{ marginTop: '10px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '0.9rem' }}>
