@@ -230,7 +230,7 @@ export default function Dashboard() {
           <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#fff9c4', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
           <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
           {showTicket && <Line type="monotone" dataKey="count" name="盤點數量" stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />}
-          {showItem && <Line type="monotone" dataKey="itemCount" name="盤點項目數量" stroke="var(--crayon-orange)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />}
+          {showItem && <Line type="monotone" dataKey="itemCount" name="盤點項目數量" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />}
         </LineChart>
       );
     }
@@ -240,7 +240,7 @@ export default function Dashboard() {
           <CartesianGrid strokeDasharray="5 5" stroke="#ccc" />
           <XAxis dataKey="month" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} />
           <YAxis yAxisId="left" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />
-          {showTicket && showItem && <YAxis yAxisId="right" orientation="right" stroke="var(--crayon-orange)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />}
+          {showTicket && showItem && <YAxis yAxisId="right" orientation="right" stroke="var(--crayon-red)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />}
           <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#fff9c4', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
           <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
           {showTicket && <Bar yAxisId="left" dataKey="count" name="長條圖(盤點數量)" fill="var(--crayon-green)" radius={[5, 5, 0, 0]} barSize={40} />}
@@ -257,7 +257,7 @@ export default function Dashboard() {
         <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#fff9c4', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
         <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
         {showTicket && <Bar dataKey="count" name="盤點數量" fill="var(--crayon-purple)" radius={[5, 5, 0, 0]} barSize={40} />}
-        {showItem && <Bar dataKey="itemCount" name="盤點項目數量" fill="var(--crayon-orange)" radius={[5, 5, 0, 0]} barSize={40} />}
+        {showItem && <Bar dataKey="itemCount" name="盤點項目數量" fill="var(--crayon-blue)" radius={[5, 5, 0, 0]} barSize={40} />}
       </BarChart>
     );
   };
@@ -729,10 +729,10 @@ export default function Dashboard() {
                                 )}
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <span style={{ fontSize: '0.9rem', backgroundColor: '#e1bee7', padding: '2px 8px', borderRadius: '6px', fontWeight: 'bold' }}>
+                                <span style={{ fontSize: '0.9rem', backgroundColor: '#e1bee7', padding: '2px 8px', borderRadius: '6px', fontWeight: 'bold', border: '2px dashed var(--crayon-dark)' }}>
                                   關卡：{stageName}
                                 </span>
-                                <span style={{ fontSize: '0.9rem', backgroundColor: daysSpent > 3 ? '#ffcdd2' : '#c8e6c9', padding: '2px 8px', borderRadius: '6px', fontWeight: 'bold' }}>
+                                <span style={{ fontSize: '0.9rem', backgroundColor: daysSpent > 3 ? '#ffcdd2' : '#c8e6c9', padding: '2px 8px', borderRadius: '6px', fontWeight: 'bold', border: '2px dashed var(--crayon-dark)' }}>
                                   耗時：{daysSpent}天
                                 </span>
                               </div>
