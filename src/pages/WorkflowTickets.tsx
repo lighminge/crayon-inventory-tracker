@@ -508,18 +508,7 @@ export default function WorkflowTickets() {
                                     </div>
                                   )}
                                 </div>
-                                {wIndex < workflows.length - 1 && (
-                                  <div style={{
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    color: isDone ? 'var(--crayon-green)' : (isCurrent ? 'var(--crayon-orange)' : '#ccc'),
-                                    padding: '0 5px'
-                                  }}>
-                                    <svg width="40" height="40" viewBox="0 0 100 100" style={{ transform: 'rotate(5deg)' }}>
-                                      <path d="M 10 50 Q 40 30 75 50" fill="none" stroke="currentColor" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
-                                      <path d="M 55 25 L 85 50 L 60 75" fill="none" stroke="currentColor" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                  </div>
-                                )}
+
                               </React.Fragment>
                             );
                           })}
