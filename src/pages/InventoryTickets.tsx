@@ -133,7 +133,7 @@ export default function InventoryTicketsPage() {
       }
       return 0;
     });
-  }, [filteredTickets, sortMethod, personnel]);
+  }, [filteredTickets, sortMethod]);
 
   // Pagination Logic
   const totalPages = Math.ceil(sortedTickets.length / itemsPerPage);

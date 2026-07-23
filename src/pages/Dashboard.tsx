@@ -169,7 +169,7 @@ export default function Dashboard() {
         totalCompletedItems
       };
     }).sort((a, b) => b.incompleteCount - a.incompleteCount);
-  }, [filteredTickets, personnel, selectedYear, selectedMonthNum, selectedTaskId]);
+  }, [filteredTickets]);
 
   const personnelTotals = useMemo(() => {
     return personnelStats.reduce((acc, curr) => ({
@@ -198,7 +198,7 @@ export default function Dashboard() {
       groups[assigneeName].push(t);
     });
     return groups;
-  }, [globalUnclosedTickets, personnel]);
+  }, [globalUnclosedTickets]);
 
   const unclosedChartData = useMemo(() => {
     return Object.keys(unclosedTicketsGrouped)
