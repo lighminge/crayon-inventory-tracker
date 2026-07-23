@@ -175,6 +175,12 @@ export default function Dashboard() {
     }), { incompleteCount: 0, monthDispatch: 0, monthCompleted: 0, totalCompletedItems: 0 });
   }, [personnelStats]);
 
+  const globalUnclosedTickets = useMemo(() => {
+    return filteredTickets.filter(t => !t.closeDate).sort((a, b) => {
+      return (b.dispatchDate || 0) - (a.dispatchDate || 0);
+    });
+  }, [filteredTickets]);
+
   const renderChart = () => {
     const commonProps = {
       data: stats.chartData,
@@ -544,6 +550,78 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* 所有未結案盤點單狀態 */}
+        <div className="doodle-border" style={{ 
+          padding: '20px', backgroundColor: '#e3f2fd', marginBottom: '30px',
+          transform: 'rotate(0.5deg)', boxShadow: '5px 5px 0px rgba(0,0,0,0.15)'
+        }}>
+          <h3 style={{ margin: '0 0 15px 0', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>
+            ⏳ 未結案盤點單狀態
+          </h3>
+          {globalUnclosedTickets.length === 0 ? (
+            <div style={{ padding: '20px', color: '#888', textAlign: 'center' }}>目前沒有未結案的盤點單 🎉</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '15px' }}>
+              {globalUnclosedTickets.map(t => {
+                const nextStage = getNextStage(t);
+                let currentStageName = '未開始';
+                let currentAssigneeName = '未知';
+                
+                if (!nextStage) {
+                  currentStageName = '等候結案';
+                  currentAssigneeName = '主管';
+                } else {
+                  if (t.stageDates && Object.keys(t.stageDates).length > 0) {
+                    currentStageName = nextStage.name;
+                  }
+                  currentAssigneeName = getAssigneeName(nextStage.assigneeId || '');
+                }
+
+                const startMs = getFirstStageDate(t);
+                let daysSpent = 0;
+                if (startMs) {
+                  daysSpent = calculateBusinessDays(startMs, new Date().getTime());
+                }
+
+                return (
+                  <div key={t.id} className="doodle-border" style={{ 
+                    backgroundColor: 'white', padding: '12px 15px', 
+                    display: 'flex', flexDirection: 'column', gap: '10px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-dark)' }}>
+                        單號：{t.id}
+                        {t.ticketType && (
+                          <span style={{ fontSize: '0.9rem', marginLeft: '10px', color: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)', border: `1px solid ${t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)'}`, borderRadius: '4px', padding: '2px 8px' }}>
+                            {t.ticketType}
+                          </span>
+                        )}
+                      </span>
+                      <span style={{ 
+                        backgroundColor: daysSpent > 3 ? '#ffcdd2' : '#c8e6c9', 
+                        padding: '4px 10px', borderRadius: '15px', 
+                        fontSize: '1rem', fontWeight: 'bold', border: '2px solid var(--crayon-dark)',
+                        color: 'var(--crayon-dark)'
+                      }}>
+                        已耗時: {daysSpent} 天
+                      </span>
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '1rem', color: 'var(--crayon-paper)', backgroundColor: 'var(--crayon-dark)', padding: '4px 12px', borderRadius: '6px', border: '2px solid var(--crayon-dark)', fontWeight: 'bold' }}>
+                        目前流程：{currentStageName}
+                      </span>
+                      <span style={{ fontSize: '1rem', color: 'var(--crayon-dark)', backgroundColor: 'var(--crayon-yellow)', padding: '4px 12px', borderRadius: '6px', border: '2px dashed var(--crayon-dark)', fontWeight: 'bold' }}>
+                        負責人：{currentAssigneeName}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* 近半年盤點數量趨勢 (Recharts) */}

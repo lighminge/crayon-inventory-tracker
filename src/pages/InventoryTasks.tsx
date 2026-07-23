@@ -2,6 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import type { InventoryTask, InventoryTicket } from '../types';
 import { getTasks, addTask, updateTask, deleteTask, getTickets } from '../services/api';
 
+const formatDateLocal = (timestamp: number) => {
+  const d = new Date(timestamp);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 export default function InventoryTasks() {
   const [tasks, setTasks] = useState<InventoryTask[]>([]);
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
@@ -11,7 +16,7 @@ export default function InventoryTasks() {
   
   const [filterStatus, setFilterStatus] = useState('all');
   
-  const today = new Date().toISOString().split('T')[0];
+  const today = formatDateLocal(new Date().getTime());
   const [formData, setFormData] = useState<Omit<InventoryTask, 'id'>>({
     name: '',
     startDate: new Date(today).getTime(),
@@ -48,8 +53,8 @@ export default function InventoryTasks() {
         ticketType: task.ticketType,
         totalItemCount: task.totalItemCount
       });
-      setStartDateStr(new Date(task.startDate).toISOString().split('T')[0]);
-      setEndDateStr(new Date(task.endDate).toISOString().split('T')[0]);
+      setStartDateStr(formatDateLocal(task.startDate));
+      setEndDateStr(formatDateLocal(task.endDate));
     } else {
       setEditingTask(null);
       setFormData({
@@ -72,8 +77,8 @@ export default function InventoryTasks() {
     }
     const finalData = {
       ...formData,
-      startDate: new Date(startDateStr).getTime(),
-      endDate: new Date(endDateStr).getTime() + (24 * 60 * 60 * 1000) - 1 // End of day
+      startDate: new Date(startDateStr + 'T00:00:00').getTime(),
+      endDate: new Date(endDateStr + 'T23:59:59').getTime()
     };
     
     if (finalData.startDate > finalData.endDate) {
