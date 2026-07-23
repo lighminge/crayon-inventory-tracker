@@ -42,8 +42,7 @@ export default function Dashboard() {
       setPersonnel(pData);
       setWorkflows(wData.sort((a, b) => a.order - b.order));
       
-      const now = new Date().getTime();
-      setTasks(tasksData.filter(t => t.endDate >= now - (24 * 60 * 60 * 1000)));
+      setTasks(tasksData);
     } catch (e) {
       console.error(e);
       alert('讀取資料失敗');
