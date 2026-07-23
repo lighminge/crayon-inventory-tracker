@@ -243,7 +243,7 @@ export default function Dashboard() {
           {showTicket && showItem && <YAxis yAxisId="right" orientation="right" stroke="var(--crayon-orange)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />}
           <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#fff9c4', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
           <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
-          {showTicket && <Bar yAxisId="left" dataKey="count" name="長條圖(盤點數量)" fill="var(--crayon-yellow)" radius={[5, 5, 0, 0]} barSize={40} />}
+          {showTicket && <Bar yAxisId="left" dataKey="count" name="長條圖(盤點數量)" fill="var(--crayon-green)" radius={[5, 5, 0, 0]} barSize={40} />}
           {showItem && <Line yAxisId={showTicket ? "right" : "left"} type="monotone" dataKey="itemCount" name="折線圖(盤點項目數)" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />}
         </ComposedChart>
       );
@@ -718,7 +718,12 @@ export default function Dashboard() {
                                 </span>
                                 <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{t.id}</span>
                                 {t.ticketType && (
-                                  <span style={{ fontSize: '0.8rem', color: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)', border: `1px solid ${t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)'}`, borderRadius: '4px', padding: '1px 6px' }}>
+                                  <span style={{ 
+                                    fontSize: '0.85rem', fontWeight: 'bold', color: 'white',
+                                    backgroundColor: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)',
+                                    border: '2px dashed var(--crayon-dark)',
+                                    borderRadius: '8px', padding: '2px 8px'
+                                  }}>
                                     {t.ticketType}
                                   </span>
                                 )}
