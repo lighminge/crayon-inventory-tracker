@@ -168,7 +168,7 @@ export default function Dashboard() {
         totalCompletedItems
       };
     }).sort((a, b) => b.incompleteCount - a.incompleteCount);
-  }, [filteredTickets]);
+  }, [filteredTickets, personnel, selectedYear, selectedMonthNum]);
 
   const personnelTotals = useMemo(() => {
     return personnelStats.reduce((acc, curr) => ({

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { InventoryTicket, Personnel, Workflow, InventoryTask } from '../types';
 import { getTickets, getPersonnel, getWorkflows, getTasks } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid, LineChart, Line } from 'recharts';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 
 export default function Statistics() {
@@ -29,6 +29,11 @@ export default function Statistics() {
   // Chart configuration state
   const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
   const [chartMetric, setChartMetric] = useState<'total' | 'completionRate' | 'avgDays'>('total');
+  
+  // Person Chart Tab state
+  const [personChartTab, setPersonChartTab] = useState<Record<string, 'stats' | 'chart'>>({});
+  const [personChartType, setPersonChartType] = useState<Record<string, 'bar' | 'line'>>({});
+  const [personTicketType, setPersonTicketType] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadData();
@@ -85,13 +90,16 @@ export default function Statistics() {
       const closedWithDays = pTickets.filter(t => t.closeDate && getFirstStageDate(t));
       const avgDays = closedWithDays.length === 0 ? 0 : 
         Number((closedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!), 0) / closedWithDays.length).toFixed(2));
+      const totalItems = pTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
         
       return {
         ...p,
         total,
         closed,
         completionRate,
-        avgDays
+        avgDays,
+        totalItems,
+        pTickets
       };
     }).sort((a, b) => b.total - a.total);
   }, [filteredTickets, personnel]);
@@ -343,39 +351,143 @@ export default function Statistics() {
       {/* 個人詳細數據列表 */}
       <h3 style={{ marginTop: '40px', marginBottom: '20px' }}>👥 個人詳細數據</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-        {statsByPerson.map(stat => (
-          <div key={stat.id} className="doodle-border" style={{ padding: '20px', backgroundColor: 'var(--crayon-paper)' }}>
-            <h3 style={{ borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px', margin: '0 0 15px 0' }}>
-              {stat.name} <span style={{ fontSize: '0.9rem', color: '#666' }}>({stat.title})</span>
-            </h3>
+        {statsByPerson.map(stat => {
+          const tab = personChartTab[stat.id] || 'stats';
+          const type = personChartType[stat.id] || 'bar';
+          const tType = personTicketType[stat.id] || '';
+          
+          let chartData: any[] = [];
+          if (tab === 'chart') {
+            const filteredForChart = tType ? stat.pTickets.filter(t => t.ticketType === tType) : stat.pTickets;
+            const stageStats: Record<string, { totalDays: number; count: number }> = {};
+            workflows.forEach(w => stageStats[w.id] = { totalDays: 0, count: 0 });
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-              <div style={{ textAlign: 'center', backgroundColor: '#f0f8ff', padding: '10px', borderRadius: '10px', border: '1px solid #ccc' }}>
-                <div style={{ fontSize: '0.9rem', color: '#555' }}>盤點數</div>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{stat.total}</div>
-              </div>
-              
-              <div style={{ textAlign: 'center', backgroundColor: '#fff0f5', padding: '10px', borderRadius: '10px', border: '1px solid #ccc' }}>
-                <div style={{ fontSize: '0.9rem', color: '#555' }}>平均天數</div>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>{stat.avgDays}</div>
-              </div>
-            </div>
+            filteredForChart.forEach(t => {
+              if (!t.dispatchDate) return;
+              workflows.forEach((w, index) => {
+                if (t.stageDates && t.stageDates[w.id]) {
+                  const previousDate = index === 0 ? t.dispatchDate : t.stageDates[workflows[index - 1].id];
+                  if (previousDate) {
+                    const days = calculateDays(previousDate, t.stageDates[w.id]);
+                    stageStats[w.id].totalDays += days;
+                    stageStats[w.id].count += 1;
+                  }
+                }
+              });
+            });
+            
+            chartData = workflows.map(w => ({
+              name: w.name,
+              avgDays: stageStats[w.id].count === 0 ? 0 : Number((stageStats[w.id].totalDays / stageStats[w.id].count).toFixed(2))
+            }));
+          }
 
-            <div style={{ marginTop: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                <span style={{ fontSize: '0.9rem' }}>完成率 ({stat.closed}/{stat.total})</span>
-                <span style={{ fontWeight: 'bold' }}>{stat.completionRate}%</span>
-              </div>
-              <div style={{ width: '100%', height: '12px', backgroundColor: '#eee', borderRadius: '6px', overflow: 'hidden', border: '1px solid #ccc' }}>
-                <div style={{ 
-                  width: `${stat.completionRate}%`, 
-                  height: '100%', 
-                  backgroundColor: stat.completionRate === 100 ? 'var(--crayon-green)' : 'var(--crayon-blue)' 
-                }}></div>
+          return (
+          <div key={stat.id} className="doodle-border" style={{ padding: '20px', backgroundColor: 'var(--crayon-paper)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px', marginBottom: '15px' }}>
+              <h3 style={{ margin: 0 }}>
+                {stat.name} <span style={{ fontSize: '0.9rem', color: '#666' }}>({stat.title})</span>
+              </h3>
+              <div style={{ display: 'flex', gap: '5px' }}>
+                <button 
+                  style={{ 
+                    padding: '5px 10px', borderRadius: '5px', border: '2px solid var(--crayon-dark)', 
+                    backgroundColor: tab === 'stats' ? 'var(--crayon-blue)' : '#fff',
+                    color: tab === 'stats' ? '#fff' : '#333',
+                    cursor: 'pointer', fontWeight: 'bold'
+                  }}
+                  onClick={() => setPersonChartTab(prev => ({...prev, [stat.id]: 'stats'}))}
+                >數據</button>
+                <button 
+                  style={{ 
+                    padding: '5px 10px', borderRadius: '5px', border: '2px solid var(--crayon-dark)', 
+                    backgroundColor: tab === 'chart' ? 'var(--crayon-blue)' : '#fff',
+                    color: tab === 'chart' ? '#fff' : '#333',
+                    cursor: 'pointer', fontWeight: 'bold'
+                  }}
+                  onClick={() => setPersonChartTab(prev => ({...prev, [stat.id]: 'chart'}))}
+                >圖表</button>
               </div>
             </div>
+            
+            {tab === 'stats' ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
+                  <div style={{ textAlign: 'center', backgroundColor: '#f0f8ff', padding: '10px', borderRadius: '10px', border: '1px solid #ccc' }}>
+                    <div style={{ fontSize: '0.8rem', color: '#555' }}>盤點單數</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{stat.total}</div>
+                  </div>
+                  
+                  <div style={{ textAlign: 'center', backgroundColor: '#fff9c4', padding: '10px', borderRadius: '10px', border: '1px solid #ccc' }}>
+                    <div style={{ fontSize: '0.8rem', color: '#555' }}>項目數量</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-orange)' }}>{stat.totalItems}</div>
+                  </div>
+                  
+                  <div style={{ textAlign: 'center', backgroundColor: '#fff0f5', padding: '10px', borderRadius: '10px', border: '1px solid #ccc' }}>
+                    <div style={{ fontSize: '0.8rem', color: '#555' }}>平均天數</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>{stat.avgDays}</div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                    <span style={{ fontSize: '0.9rem' }}>完成率 ({stat.closed}/{stat.total})</span>
+                    <span style={{ fontWeight: 'bold' }}>{stat.completionRate}%</span>
+                  </div>
+                  <div style={{ width: '100%', height: '12px', backgroundColor: '#eee', borderRadius: '6px', overflow: 'hidden', border: '1px solid #ccc' }}>
+                    <div style={{ 
+                      width: `${stat.completionRate}%`, 
+                      height: '100%', 
+                      backgroundColor: stat.completionRate === 100 ? 'var(--crayon-green)' : 'var(--crayon-blue)' 
+                    }}></div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <select 
+                    style={{ padding: '2px 5px', borderRadius: '5px', border: '2px solid var(--crayon-dark)', outline: 'none' }}
+                    value={type} onChange={e => setPersonChartType(prev => ({...prev, [stat.id]: e.target.value as any}))}
+                  >
+                    <option value="bar">長條圖</option>
+                    <option value="line">折線圖</option>
+                  </select>
+                  <select 
+                    style={{ padding: '2px 5px', borderRadius: '5px', border: '2px solid var(--crayon-dark)', outline: 'none' }}
+                    value={tType} onChange={e => setPersonTicketType(prev => ({...prev, [stat.id]: e.target.value}))}
+                  >
+                    <option value="">全部類型</option>
+                    <option value="夾鉗">夾鉗</option>
+                    <option value="TKW">TKW</option>
+                  </select>
+                </div>
+                <div style={{ height: '180px', width: '100%' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    {type === 'bar' ? (
+                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                        <XAxis dataKey="name" tick={{fontSize: 10}} />
+                        <YAxis tick={{fontSize: 10}} />
+                        <Tooltip />
+                        <Bar dataKey="avgDays" name="平均天數" fill="var(--crayon-orange)" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    ) : (
+                      <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                        <XAxis dataKey="name" tick={{fontSize: 10}} />
+                        <YAxis tick={{fontSize: 10}} />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="avgDays" name="平均天數" stroke="var(--crayon-orange)" strokeWidth={3} dot={{r: 4}} />
+                      </LineChart>
+                    )}
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
         {statsByPerson.length === 0 && <p>查無人員資料。</p>}
       </div>
     </div>

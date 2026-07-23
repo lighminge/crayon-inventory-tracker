@@ -12,7 +12,7 @@ export const calculateBusinessDays = (startMs: number, endMs: number): number =>
   let curMs = start.getTime();
   const endTime = end.getTime();
   
-  while (curMs < endTime) {
+  while (curMs <= endTime) {
     const d = new Date(curMs);
     const dayOfWeek = d.getDay();
     // 0 = Sunday, 6 = Saturday

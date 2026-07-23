@@ -437,7 +437,7 @@ export default function InventoryTicketsPage() {
           const currentTotalDays = getCurrentTotalDays(t);
 
           return (
-            <div key={t.id} className="doodle-border" style={{ padding: '20px', position: 'relative', display: 'flex', flexWrap: 'nowrap', gap: '20px' }}>
+            <div key={t.id} className="doodle-border" style={{ padding: '15px', position: 'relative', display: 'flex', flexWrap: 'nowrap', gap: '15px' }}>
               <div style={{ flex: 1, minWidth: '685px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
@@ -625,14 +625,14 @@ export default function InventoryTicketsPage() {
 
               {/* Huge Total Processing Days Marker on the far right */}
               <div style={{ 
-                marginLeft: '30px',
-                paddingLeft: '30px',
+                marginLeft: '15px',
                 borderLeft: '4px dashed var(--crayon-dark)',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'center',
                 alignItems: 'center',
-                minWidth: '110px'
+                minWidth: '85px',
+                paddingLeft: '10px'
               }}>
                 <div style={{ 
                   fontSize: '1.2rem', 

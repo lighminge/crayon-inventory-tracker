@@ -209,6 +209,20 @@ export default function InventoryTasks() {
                 已完成：{task.completedItems} / {task.totalItemCount} 項
               </div>
             </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '15px' }}>
+              <div className="doodle-border" style={{ padding: '10px', backgroundColor: '#fff9c4', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.9rem', color: '#555', fontWeight: 'bold' }}>剩餘天數</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>
+                  {task.isExpired ? 0 : Math.max(0, Math.ceil((task.endDate - Date.now()) / (1000 * 60 * 60 * 24)))} <span style={{fontSize: '1rem'}}>天</span>
+                </div>
+              </div>
+              <div className="doodle-border" style={{ padding: '10px', backgroundColor: '#e8f5e9', textAlign: 'center' }}>
+                <div style={{ fontSize: '0.9rem', color: '#555', fontWeight: 'bold' }}>剩餘項目數</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-orange)' }}>
+                  {Math.max(0, task.totalItemCount - task.completedItems)} <span style={{fontSize: '1rem'}}>項</span>
+                </div>
+              </div>
+            </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
               <button className="doodle-button success" style={{ flex: 1 }} onClick={() => handleOpenForm(task)}>編輯</button>
