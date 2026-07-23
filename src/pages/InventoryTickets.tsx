@@ -564,9 +564,9 @@ export default function InventoryTicketsPage() {
                           }}>
                             {isCurrent && (
                               <div style={{ 
-                                position: 'absolute', top: '-35px', right: '-10px', 
-                                fontSize: '1rem', fontWeight: 'bold', color: 'var(--crayon-orange)',
-                                backgroundColor: 'white', padding: '2px 8px', borderRadius: '10px', border: '2px dashed var(--crayon-orange)',
+                                position: 'absolute', top: '-15px', right: '-10px', 
+                                fontSize: '0.85rem', fontWeight: 'bold', color: 'white',
+                                backgroundColor: 'var(--crayon-orange)', padding: '2px 10px', borderRadius: '15px', border: '2px dashed var(--crayon-dark)',
                                 whiteSpace: 'nowrap', animation: 'bounce 1s infinite', zIndex: 10,
                                 transform: 'rotate(5deg)'
                               }}>
@@ -762,13 +762,15 @@ export default function InventoryTicketsPage() {
                 {workflows.map(w => (
                   <div key={w.id} style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <label style={{ fontSize: '0.9rem', width: '100px' }}>{w.name}：</label>
-                    <input type="date" className="doodle-input" style={{ flex: 1 }} 
-                      value={editFormData.stageDatesStr[w.id] || ''} 
-                      onChange={e => setEditFormData({
-                        ...editFormData, 
-                        stageDatesStr: { ...editFormData.stageDatesStr, [w.id]: e.target.value }
-                      })} 
-                    />
+                    <div style={{ flex: 1 }}>
+                      <CrayonDatePicker
+                        value={editFormData.stageDatesStr[w.id] || ''} 
+                        onChange={val => setEditFormData({
+                          ...editFormData, 
+                          stageDatesStr: { ...editFormData.stageDatesStr, [w.id]: val }
+                        })} 
+                      />
+                    </div>
                     <button type="button" className="doodle-button danger" style={{ padding: '5px 10px', fontSize: '0.8rem' }} onClick={() => setEditFormData({
                       ...editFormData, 
                       stageDatesStr: { ...editFormData.stageDatesStr, [w.id]: '' }

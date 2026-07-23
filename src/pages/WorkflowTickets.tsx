@@ -459,9 +459,9 @@ export default function WorkflowTickets() {
                                 }}>
                                   {isCurrent && (
                                     <div style={{ 
-                                      position: 'absolute', top: '-35px', right: '-10px', 
-                                      fontSize: '1rem', fontWeight: 'bold', color: 'var(--crayon-orange)',
-                                      backgroundColor: 'white', padding: '2px 8px', borderRadius: '10px', border: '2px dashed var(--crayon-orange)',
+                                      position: 'absolute', top: '-15px', right: '-10px', 
+                                      fontSize: '0.85rem', fontWeight: 'bold', color: 'white',
+                                      backgroundColor: 'var(--crayon-orange)', padding: '2px 10px', borderRadius: '15px', border: '2px dashed var(--crayon-dark)',
                                       whiteSpace: 'nowrap', animation: 'bounce 1s infinite', zIndex: 10,
                                       transform: 'rotate(5deg)'
                                     }}>
