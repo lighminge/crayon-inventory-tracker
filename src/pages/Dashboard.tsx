@@ -24,6 +24,7 @@ export default function Dashboard() {
   // Dashboard Unclosed State
   const [unclosedAssigneeFilter, setUnclosedAssigneeFilter] = useState<string>('all');
   const [unclosedChartType, setUnclosedChartType] = useState<'bar' | 'pie'>('bar');
+  const [unclosedViewMode, setUnclosedViewMode] = useState<'list' | 'chart'>('list');
   
   // Dashboard Personnel Status State
   const d = new Date();
@@ -588,39 +589,58 @@ export default function Dashboard() {
           transform: 'rotate(0.5deg)', boxShadow: '5px 5px 0px rgba(0,0,0,0.15)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
-            <h3 style={{ margin: 0 }}>
-              ⏳ 未結案盤點單狀態
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+              <h3 style={{ margin: 0 }}>
+                ⏳ 未結案盤點單狀態
+              </h3>
+              <div style={{ display: 'flex', backgroundColor: '#fff', padding: '3px', borderRadius: '8px', border: '2px solid var(--crayon-dark)' }}>
+                <button 
+                  style={{ border: 'none', backgroundColor: unclosedViewMode === 'list' ? 'var(--crayon-yellow)' : 'transparent', fontWeight: 'bold', padding: '5px 15px', borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '1rem' }}
+                  onClick={() => setUnclosedViewMode('list')}
+                >清單視圖</button>
+                <button 
+                  style={{ border: 'none', backgroundColor: unclosedViewMode === 'chart' ? 'var(--crayon-yellow)' : 'transparent', fontWeight: 'bold', padding: '5px 15px', borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '1rem' }}
+                  onClick={() => setUnclosedViewMode('chart')}
+                >圖表視圖</button>
+              </div>
+            </div>
+            
             <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--crayon-dark)' }}>
                 全部總計：{globalUnclosedTickets.length} 件 / {globalUnclosedTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0)} 項
               </div>
-              <div>
-                <label style={{ fontWeight: 'bold', marginRight: '5px' }}>篩選人員：</label>
-                <select className="doodle-input" style={{ width: 'auto' }} value={unclosedAssigneeFilter} onChange={e => setUnclosedAssigneeFilter(e.target.value)}>
-                  <option value="all">全部人員</option>
-                  {Object.keys(unclosedTicketsGrouped).map(name => (
-                    <option key={name} value={name}>{name} ({unclosedTicketsGrouped[name].length}件)</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={{ fontWeight: 'bold', marginRight: '5px' }}>圖表：</label>
-                <div style={{ display: 'inline-flex', gap: '5px', backgroundColor: '#fff', padding: '3px', borderRadius: '8px', border: '2px solid var(--crayon-dark)', verticalAlign: 'middle' }}>
-                  <button 
-                    style={{ border: 'none', backgroundColor: unclosedChartType === 'bar' ? 'var(--crayon-yellow)' : 'transparent', fontWeight: 'bold', padding: '4px 10px', borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit' }}
-                    onClick={() => setUnclosedChartType('bar')}
-                  >長條圖</button>
-                  <button 
-                    style={{ border: 'none', backgroundColor: unclosedChartType === 'pie' ? 'var(--crayon-yellow)' : 'transparent', fontWeight: 'bold', padding: '4px 10px', borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit' }}
-                    onClick={() => setUnclosedChartType('pie')}
-                  >圓餅圖</button>
+              
+              {unclosedViewMode === 'list' && (
+                <div>
+                  <label style={{ fontWeight: 'bold', marginRight: '5px' }}>篩選人員：</label>
+                  <select className="doodle-input" style={{ width: 'auto' }} value={unclosedAssigneeFilter} onChange={e => setUnclosedAssigneeFilter(e.target.value)}>
+                    <option value="all">全部人員</option>
+                    {Object.keys(unclosedTicketsGrouped).map(name => (
+                      <option key={name} value={name}>{name} ({unclosedTicketsGrouped[name].length}件)</option>
+                    ))}
+                  </select>
                 </div>
-              </div>
+              )}
+              
+              {unclosedViewMode === 'chart' && (
+                <div>
+                  <label style={{ fontWeight: 'bold', marginRight: '5px' }}>圖表類型：</label>
+                  <div style={{ display: 'inline-flex', gap: '5px', backgroundColor: '#fff', padding: '3px', borderRadius: '8px', border: '2px solid var(--crayon-dark)', verticalAlign: 'middle' }}>
+                    <button 
+                      style={{ border: 'none', backgroundColor: unclosedChartType === 'bar' ? 'var(--crayon-yellow)' : 'transparent', fontWeight: 'bold', padding: '4px 10px', borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit' }}
+                      onClick={() => setUnclosedChartType('bar')}
+                    >長條圖</button>
+                    <button 
+                      style={{ border: 'none', backgroundColor: unclosedChartType === 'pie' ? 'var(--crayon-yellow)' : 'transparent', fontWeight: 'bold', padding: '4px 10px', borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit' }}
+                      onClick={() => setUnclosedChartType('pie')}
+                    >圓餅圖</button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           
-          {globalUnclosedTickets.length > 0 && (
+          {unclosedViewMode === 'chart' && globalUnclosedTickets.length > 0 && (
             <div style={{ height: '250px', backgroundColor: 'white', borderRadius: '10px', border: '2px solid var(--crayon-dark)', padding: '10px', marginBottom: '20px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 {unclosedChartType === 'bar' ? (
@@ -647,9 +667,10 @@ export default function Dashboard() {
             </div>
           )}
 
-          {globalUnclosedTickets.length === 0 ? (
-            <div style={{ padding: '20px', color: '#888', textAlign: 'center' }}>目前沒有未結案的盤點單 🎉</div>
-          ) : (
+          {unclosedViewMode === 'list' && (
+            globalUnclosedTickets.length === 0 ? (
+              <div style={{ padding: '20px', color: '#888', textAlign: 'center' }}>目前沒有未結案的盤點單 🎉</div>
+            ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '20px' }}>
               {Object.keys(unclosedTicketsGrouped)
                 .filter(name => unclosedAssigneeFilter === 'all' || name === unclosedAssigneeFilter)
@@ -718,6 +739,7 @@ export default function Dashboard() {
                   );
               })}
             </div>
+            )
           )}
         </div>
 
