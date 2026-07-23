@@ -312,7 +312,7 @@ export default function Statistics() {
           </div>
           <div className="doodle-border" style={{ backgroundColor: 'white', padding: '15px', transform: 'rotate(1deg)' }}>
             <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold' }}>平均處理天數</div>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>{globalStats.avgDays} <span style={{fontSize:'1rem'}}>天</span></div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>{globalStats.avgDays.toFixed(2)} <span style={{fontSize:'1rem'}}>天</span></div>
           </div>
         </div>
       </div>
@@ -425,7 +425,7 @@ export default function Statistics() {
                   
                   <div style={{ textAlign: 'center', backgroundColor: '#fff0f5', padding: '10px', borderRadius: '10px', border: '1px solid #ccc' }}>
                     <div style={{ fontSize: '0.8rem', color: '#555' }}>平均天數</div>
-                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>{stat.avgDays}</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>{stat.avgDays.toFixed(2)}</div>
                   </div>
                 </div>
 
@@ -465,17 +465,17 @@ export default function Statistics() {
                 <div style={{ height: '180px', width: '100%' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     {type === 'bar' ? (
-                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                        <XAxis dataKey="name" tick={{fontSize: 10}} />
+                        <XAxis dataKey="name" tick={{fontSize: 10}} height={40} angle={-35} textAnchor="end" />
                         <YAxis tick={{fontSize: 10}} />
                         <Tooltip />
                         <Bar dataKey="avgDays" name="平均天數" fill="var(--crayon-orange)" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     ) : (
-                      <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                        <XAxis dataKey="name" tick={{fontSize: 10}} />
+                        <XAxis dataKey="name" tick={{fontSize: 10}} height={40} angle={-35} textAnchor="end" />
                         <YAxis tick={{fontSize: 10}} />
                         <Tooltip />
                         <Line type="monotone" dataKey="avgDays" name="平均天數" stroke="var(--crayon-orange)" strokeWidth={3} dot={{r: 4}} />

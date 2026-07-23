@@ -351,7 +351,7 @@ export default function Dashboard() {
         
         <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#f3e5f5' }}>
           <h3>平均處理天數</h3>
-          <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--crayon-purple)' }}>{stats.avgDays} <span style={{fontSize:'1rem'}}>天</span></div>
+          <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--crayon-purple)' }}>{stats.avgDays.toFixed(2)} <span style={{fontSize:'1rem'}}>天</span></div>
         </div>
       </div>
 
@@ -493,7 +493,7 @@ export default function Dashboard() {
                           </div>
                           
                           <div style={{ marginTop: '10px', textAlign: 'right', fontSize: '0.9rem' }}>
-                            <strong>平均耗時：</strong> <span style={{ color: p.avgDays > 0 ? 'var(--crayon-red)' : '#888', fontWeight: 'bold', fontSize: '1.1rem' }}>{p.avgDays > 0 ? `${p.avgDays} 天` : '-'}</span>
+                            <strong>平均：</strong> <span style={{ color: p.avgDays > 0 ? 'var(--crayon-red)' : '#888', fontWeight: 'bold', fontSize: '1.1rem' }}>{p.avgDays > 0 ? `${p.avgDays.toFixed(2)} 天` : '-'}</span>
                           </div>
                         </>
                       ) : (
