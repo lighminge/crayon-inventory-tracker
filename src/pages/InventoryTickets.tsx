@@ -437,7 +437,7 @@ export default function InventoryTicketsPage() {
           const currentTotalDays = getCurrentTotalDays(t);
 
           return (
-            <div key={t.id} className="doodle-border" style={{ padding: '20px', position: 'relative', display: 'flex', flexWrap: 'wrap' }}>
+            <div key={t.id} className="doodle-border" style={{ padding: '20px', position: 'relative', display: 'flex', flexWrap: 'nowrap', gap: '20px' }}>
               <div style={{ flex: 1, minWidth: '685px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
