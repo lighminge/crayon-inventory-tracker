@@ -278,7 +278,12 @@ export default function Dashboard() {
           <label style={{ fontWeight: 'bold' }}>切換盤點任務：</label>
           <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e3f2fd' }} value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
             <option value="">-- 全域資料 (不指定任務) --</option>
-            {tasks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            {tasks.filter(t => {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const todayTime = today.getTime();
+              return todayTime >= t.startDate && todayTime <= t.endDate;
+            }).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { InventoryTask, InventoryTicket } from '../types';
+import CrayonDatePicker from '../components/CrayonDatePicker';
 import { getTasks, addTask, updateTask, deleteTask, getTickets } from '../services/api';
 
 const formatDateLocal = (timestamp: number) => {
@@ -134,7 +135,7 @@ export default function InventoryTasks() {
       if (filterStatus === 'active') return !t.isExpired;
       if (filterStatus === 'expired') return t.isExpired;
       return true;
-    });
+    }).sort((a, b) => a.startDate - b.startDate);
   }, [tasksWithStats, filterStatus]);
 
   return (
@@ -158,7 +159,7 @@ export default function InventoryTasks() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-        {filteredTasks.map((task) => (
+        {filteredTasks.map((task, index) => (
           <div key={task.id} className="doodle-border" style={{ 
             padding: '20px', 
             backgroundColor: task.isExpired ? '#f5f5f5' : 'white',
@@ -173,7 +174,8 @@ export default function InventoryTasks() {
               }}>已截止</div>
             )}
             
-            <h3 style={{ margin: '0 0 10px 0', borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '5px' }}>
+            <h3 style={{ margin: '0 0 10px 0', borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ backgroundColor: 'var(--crayon-dark)', color: 'white', padding: '2px 10px', borderRadius: '15px', fontSize: '1rem' }}>#{index + 1}</span>
               📝 {task.name}
             </h3>
             
@@ -230,14 +232,14 @@ export default function InventoryTasks() {
                 <input className="doodle-input" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                <div>
+              <div style={{ display: 'flex', gap: '15px' }}>
+                <div style={{ flex: 1 }}>
                   <label style={{ fontWeight: 'bold' }}>開始日期：</label>
-                  <input type="date" className="doodle-input" required value={startDateStr} onChange={e => setStartDateStr(e.target.value)} />
+                  <CrayonDatePicker value={startDateStr} onChange={setStartDateStr} />
                 </div>
-                <div>
+                <div style={{ flex: 1 }}>
                   <label style={{ fontWeight: 'bold' }}>結束日期：</label>
-                  <input type="date" className="doodle-input" required value={endDateStr} onChange={e => setEndDateStr(e.target.value)} />
+                  <CrayonDatePicker value={endDateStr} onChange={setEndDateStr} />
                 </div>
               </div>
 
