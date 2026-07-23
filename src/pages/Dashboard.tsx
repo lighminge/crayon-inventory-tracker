@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { InventoryTicket, Personnel, InventoryTask, Workflow } from '../types';
 import { getTickets, getPersonnel, getTasks, getWorkflows } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
-import { BarChart, Bar, LineChart, Line, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
+import { BarChart, Bar, LineChart, Line, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, PieChart, Pie, Cell } from 'recharts';
 
 export default function Dashboard() {
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
@@ -20,6 +20,10 @@ export default function Dashboard() {
   // Dashboard Chart State
   const [chartType, setChartType] = useState<'bar' | 'line' | 'composed'>('bar');
   const [chartMetric, setChartMetric] = useState<'ticketCount' | 'itemCount' | 'all'>('ticketCount');
+  
+  // Dashboard Unclosed State
+  const [unclosedAssigneeFilter, setUnclosedAssigneeFilter] = useState<string>('all');
+  const [unclosedChartType, setUnclosedChartType] = useState<'bar' | 'pie'>('bar');
   
   // Dashboard Personnel Status State
   const d = new Date();
@@ -180,6 +184,30 @@ export default function Dashboard() {
       return (b.dispatchDate || 0) - (a.dispatchDate || 0);
     });
   }, [filteredTickets]);
+
+
+  const unclosedTicketsGrouped = useMemo(() => {
+    const groups: Record<string, InventoryTicket[]> = {};
+    globalUnclosedTickets.forEach(t => {
+      const nextStage = getNextStage(t);
+      const assigneeName = nextStage ? getAssigneeName(nextStage.assigneeId || '') : '主管 (等候結案)';
+      if (!groups[assigneeName]) {
+        groups[assigneeName] = [];
+      }
+      groups[assigneeName].push(t);
+    });
+    return groups;
+  }, [globalUnclosedTickets, personnel]);
+
+  const unclosedChartData = useMemo(() => {
+    return Object.keys(unclosedTicketsGrouped).map(name => ({
+      name,
+      ticketCount: unclosedTicketsGrouped[name].length,
+      itemCount: unclosedTicketsGrouped[name].reduce((sum, t) => sum + (t.itemCount || 0), 0)
+    })).sort((a, b) => b.ticketCount - a.ticketCount);
+  }, [unclosedTicketsGrouped]);
+
+  const UNCLOSED_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB'];
 
   const renderChart = () => {
     const commonProps = {
@@ -557,68 +585,129 @@ export default function Dashboard() {
           padding: '20px', backgroundColor: '#e3f2fd', marginBottom: '30px',
           transform: 'rotate(0.5deg)', boxShadow: '5px 5px 0px rgba(0,0,0,0.15)'
         }}>
-          <h3 style={{ margin: '0 0 15px 0', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>
-            ⏳ 未結案盤點單狀態
-          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
+            <h3 style={{ margin: 0 }}>
+              ⏳ 未結案盤點單狀態
+            </h3>
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--crayon-dark)' }}>
+                全部總計：{globalUnclosedTickets.length} 件 / {globalUnclosedTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0)} 項
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold', marginRight: '5px' }}>篩選人員：</label>
+                <select className="doodle-input" style={{ width: 'auto' }} value={unclosedAssigneeFilter} onChange={e => setUnclosedAssigneeFilter(e.target.value)}>
+                  <option value="all">全部人員</option>
+                  {Object.keys(unclosedTicketsGrouped).map(name => (
+                    <option key={name} value={name}>{name} ({unclosedTicketsGrouped[name].length}件)</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ fontWeight: 'bold', marginRight: '5px' }}>圖表：</label>
+                <select className="doodle-input" style={{ width: 'auto' }} value={unclosedChartType} onChange={e => setUnclosedChartType(e.target.value as any)}>
+                  <option value="bar">長條圖</option>
+                  <option value="pie">圓餅圖</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
+          {globalUnclosedTickets.length > 0 && (
+            <div style={{ height: '250px', backgroundColor: 'white', borderRadius: '10px', border: '2px solid var(--crayon-dark)', padding: '10px', marginBottom: '20px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                {unclosedChartType === 'bar' ? (
+                  <BarChart data={unclosedChartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '10px', border: '2px solid var(--crayon-dark)' }} />
+                    <Legend />
+                    <Bar dataKey="ticketCount" name="單據數量 (件)" fill="var(--crayon-blue)" radius={[10, 10, 0, 0]} barSize={40} />
+                  </BarChart>
+                ) : (
+                  <PieChart>
+                    <Pie data={unclosedChartData} dataKey="ticketCount" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                      {unclosedChartData.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={UNCLOSED_COLORS[index % UNCLOSED_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ borderRadius: '10px', border: '2px solid var(--crayon-dark)' }} />
+                    <Legend />
+                  </PieChart>
+                )}
+              </ResponsiveContainer>
+            </div>
+          )}
+
           {globalUnclosedTickets.length === 0 ? (
             <div style={{ padding: '20px', color: '#888', textAlign: 'center' }}>目前沒有未結案的盤點單 🎉</div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '15px' }}>
-              {globalUnclosedTickets.map(t => {
-                const nextStage = getNextStage(t);
-                let currentStageName = '未開始';
-                let currentAssigneeName = '未知';
-                
-                if (!nextStage) {
-                  currentStageName = '等候結案';
-                  currentAssigneeName = '主管';
-                } else {
-                  if (t.stageDates && Object.keys(t.stageDates).length > 0) {
-                    currentStageName = nextStage.name;
-                  }
-                  currentAssigneeName = getAssigneeName(nextStage.assigneeId || '');
-                }
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '20px' }}>
+              {Object.keys(unclosedTicketsGrouped)
+                .filter(name => unclosedAssigneeFilter === 'all' || name === unclosedAssigneeFilter)
+                .map(assigneeName => {
+                  const assigneeTickets = unclosedTicketsGrouped[assigneeName];
+                  const assigneeTotalItems = assigneeTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+                  
+                  return (
+                    <div key={assigneeName} className="doodle-border" style={{ 
+                      backgroundColor: 'white', padding: '15px', 
+                      display: 'flex', flexDirection: 'column', gap: '15px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '10px' }}>
+                        <span style={{ fontWeight: 'bold', fontSize: '1.4rem', color: 'var(--crayon-dark)' }}>
+                          👤 {assigneeName}
+                        </span>
+                        <span style={{ 
+                          backgroundColor: 'var(--crayon-yellow)', padding: '5px 12px', borderRadius: '15px', 
+                          fontSize: '1.1rem', fontWeight: 'bold', border: '2px dashed var(--crayon-dark)',
+                          color: 'var(--crayon-dark)'
+                        }}>
+                          {assigneeTickets.length} 件 / {assigneeTotalItems} 項
+                        </span>
+                      </div>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {assigneeTickets.map((t, index) => {
+                          const startMs = getFirstStageDate(t);
+                          let daysSpent = 0;
+                          if (startMs) {
+                            daysSpent = calculateBusinessDays(startMs, new Date().getTime());
+                          }
+                          const nextStage = getNextStage(t);
+                          const stageName = nextStage ? nextStage.name : '等候結案';
 
-                const startMs = getFirstStageDate(t);
-                let daysSpent = 0;
-                if (startMs) {
-                  daysSpent = calculateBusinessDays(startMs, new Date().getTime());
-                }
-
-                return (
-                  <div key={t.id} className="doodle-border" style={{ 
-                    backgroundColor: 'white', padding: '12px 15px', 
-                    display: 'flex', flexDirection: 'column', gap: '10px'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-dark)' }}>
-                        單號：{t.id}
-                        {t.ticketType && (
-                          <span style={{ fontSize: '0.9rem', marginLeft: '10px', color: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)', border: `1px solid ${t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)'}`, borderRadius: '4px', padding: '2px 8px' }}>
-                            {t.ticketType}
-                          </span>
-                        )}
-                      </span>
-                      <span style={{ 
-                        backgroundColor: daysSpent > 3 ? '#ffcdd2' : '#c8e6c9', 
-                        padding: '4px 10px', borderRadius: '15px', 
-                        fontSize: '1rem', fontWeight: 'bold', border: '2px solid var(--crayon-dark)',
-                        color: 'var(--crayon-dark)'
-                      }}>
-                        已耗時: {daysSpent} 天
-                      </span>
+                          return (
+                            <div key={t.id} style={{
+                              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                              backgroundColor: '#f9f9f9', padding: '8px 12px', borderRadius: '8px',
+                              border: '1px solid #ddd'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <span style={{ backgroundColor: 'var(--crayon-dark)', color: 'white', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                                  {index + 1}
+                                </span>
+                                <span style={{ fontWeight: 'bold', fontSize: '1.1rem' }}>{t.id}</span>
+                                {t.ticketType && (
+                                  <span style={{ fontSize: '0.8rem', color: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)', border: `1px solid ${t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)'}`, borderRadius: '4px', padding: '1px 6px' }}>
+                                    {t.ticketType}
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <span style={{ fontSize: '0.9rem', backgroundColor: '#e1bee7', padding: '2px 8px', borderRadius: '6px', fontWeight: 'bold' }}>
+                                  關卡：{stageName}
+                                </span>
+                                <span style={{ fontSize: '0.9rem', backgroundColor: daysSpent > 3 ? '#ffcdd2' : '#c8e6c9', padding: '2px 8px', borderRadius: '6px', fontWeight: 'bold' }}>
+                                  耗時：{daysSpent}天
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                    
-                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '1rem', color: 'var(--crayon-paper)', backgroundColor: 'var(--crayon-dark)', padding: '4px 12px', borderRadius: '6px', border: '2px solid var(--crayon-dark)', fontWeight: 'bold' }}>
-                        目前流程：{currentStageName}
-                      </span>
-                      <span style={{ fontSize: '1rem', color: 'var(--crayon-dark)', backgroundColor: 'var(--crayon-yellow)', padding: '4px 12px', borderRadius: '6px', border: '2px dashed var(--crayon-dark)', fontWeight: 'bold' }}>
-                        負責人：{currentAssigneeName}
-                      </span>
-                    </div>
-                  </div>
-                );
+                  );
               })}
             </div>
           )}

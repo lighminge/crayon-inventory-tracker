@@ -467,6 +467,17 @@ export default function WorkflowTickets() {
                                       📍 處理中
                                     </div>
                                   )}
+                                  <div style={{ 
+                                    backgroundColor: 'var(--crayon-red)', color: 'white', 
+                                    padding: '2px 10px', borderRadius: '15px', 
+                                    fontSize: '0.85rem', fontWeight: 'bold',
+                                    border: '2px dashed var(--crayon-dark)',
+                                    marginBottom: '5px',
+                                    display: 'inline-block',
+                                    transform: 'rotate(-3deg)'
+                                  }}>
+                                    關卡 {wIndex + 1}
+                                  </div>
                                   <div style={{ fontWeight: 'bold' }}>{w.name}</div>
                                   <div style={{ 
                                     fontSize: '0.8rem', 
