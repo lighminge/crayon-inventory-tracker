@@ -556,7 +556,7 @@ export default function InventoryTicketsPage() {
                             border: `3px solid ${isDone ? 'var(--crayon-green)' : (isCurrent ? 'var(--crayon-orange)' : '#ccc')}`,
                             color: isDone ? '#000' : '#888',
                             position: 'relative',
-                            minWidth: '140px',
+                            minWidth: '180px',
                             textAlign: 'center',
                             boxShadow: isCurrent ? '2px 2px 0px rgba(255, 152, 0, 0.3)' : 'none',
                             transform: isCurrent ? 'scale(1.05)' : 'none',
