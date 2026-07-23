@@ -210,7 +210,11 @@ export default function Dashboard() {
       })).sort((a, b) => b.ticketCount - a.ticketCount);
   }, [unclosedTicketsGrouped, unclosedAssigneeFilter]);
 
-  const UNCLOSED_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB'];
+  const UNCLOSED_COLORS = [
+    '#FF5252', '#448AFF', '#69F0AE', '#E040FB', 
+    '#FFAB40', '#18FFFF', '#FF4081', '#BCAAA4', 
+    '#C6FF00', '#536DFE', '#00E676', '#FF6E40'
+  ];
 
   const renderChart = () => {
     const commonProps = {
@@ -641,7 +645,7 @@ export default function Dashboard() {
           </div>
           
           {unclosedViewMode === 'chart' && globalUnclosedTickets.length > 0 && (
-            <div style={{ height: '250px', backgroundColor: 'white', borderRadius: '10px', border: '2px solid var(--crayon-dark)', padding: '10px', marginBottom: '20px' }}>
+            <div style={{ height: '350px', backgroundColor: 'white', borderRadius: '10px', border: '2px solid var(--crayon-dark)', padding: '10px', marginBottom: '20px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 {unclosedChartType === 'bar' ? (
                   <BarChart data={unclosedChartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
@@ -653,8 +657,8 @@ export default function Dashboard() {
                     <Bar dataKey="ticketCount" name="單據數量 (件)" fill="var(--crayon-blue)" radius={[10, 10, 0, 0]} barSize={40} />
                   </BarChart>
                 ) : (
-                  <PieChart>
-                    <Pie data={unclosedChartData} dataKey="ticketCount" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                  <PieChart margin={{ top: 30, right: 30, bottom: 30, left: 30 }}>
+                    <Pie data={unclosedChartData} dataKey="ticketCount" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
                       {unclosedChartData.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={UNCLOSED_COLORS[index % UNCLOSED_COLORS.length]} />
                       ))}
