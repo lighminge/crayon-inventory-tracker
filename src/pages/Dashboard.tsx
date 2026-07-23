@@ -279,10 +279,14 @@ export default function Dashboard() {
           <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e3f2fd' }} value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
             <option value="">-- 全域資料 (不指定任務) --</option>
             {tasks.filter(t => {
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              const todayTime = today.getTime();
-              return todayTime >= t.startDate && todayTime <= t.endDate;
+              const formatDateLocal = (timestamp: number) => {
+                const d = new Date(timestamp);
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              };
+              const todayStr = formatDateLocal(new Date().getTime());
+              const startStr = formatDateLocal(t.startDate);
+              const endStr = formatDateLocal(t.endDate);
+              return todayStr >= startStr && todayStr <= endStr;
             }).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
