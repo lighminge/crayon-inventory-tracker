@@ -573,13 +573,12 @@ export default function InventoryTicketsPage() {
                               </div>
                             )}
                             <div style={{ 
+                              position: 'absolute', top: '-15px', left: '-10px', zIndex: 5,
                               backgroundColor: 'var(--crayon-red)', color: 'white', 
                               padding: '2px 10px', borderRadius: '15px', 
                               fontSize: '0.85rem', fontWeight: 'bold',
                               border: '2px dashed var(--crayon-dark)',
-                              marginBottom: '5px',
-                              display: 'inline-block',
-                              transform: 'rotate(-3deg)'
+                              transform: 'rotate(-5deg)'
                             }}>
                               關卡 {wIndex + 1}
                             </div>

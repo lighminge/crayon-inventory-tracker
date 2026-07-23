@@ -200,12 +200,14 @@ export default function Dashboard() {
   }, [globalUnclosedTickets, personnel]);
 
   const unclosedChartData = useMemo(() => {
-    return Object.keys(unclosedTicketsGrouped).map(name => ({
-      name,
-      ticketCount: unclosedTicketsGrouped[name].length,
-      itemCount: unclosedTicketsGrouped[name].reduce((sum, t) => sum + (t.itemCount || 0), 0)
-    })).sort((a, b) => b.ticketCount - a.ticketCount);
-  }, [unclosedTicketsGrouped]);
+    return Object.keys(unclosedTicketsGrouped)
+      .filter(name => unclosedAssigneeFilter === 'all' || name === unclosedAssigneeFilter)
+      .map(name => ({
+        name,
+        ticketCount: unclosedTicketsGrouped[name].length,
+        itemCount: unclosedTicketsGrouped[name].reduce((sum, t) => sum + (t.itemCount || 0), 0)
+      })).sort((a, b) => b.ticketCount - a.ticketCount);
+  }, [unclosedTicketsGrouped, unclosedAssigneeFilter]);
 
   const UNCLOSED_COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB'];
 
@@ -604,10 +606,16 @@ export default function Dashboard() {
               </div>
               <div>
                 <label style={{ fontWeight: 'bold', marginRight: '5px' }}>圖表：</label>
-                <select className="doodle-input" style={{ width: 'auto' }} value={unclosedChartType} onChange={e => setUnclosedChartType(e.target.value as any)}>
-                  <option value="bar">長條圖</option>
-                  <option value="pie">圓餅圖</option>
-                </select>
+                <div style={{ display: 'inline-flex', gap: '5px', backgroundColor: '#fff', padding: '3px', borderRadius: '8px', border: '2px solid var(--crayon-dark)', verticalAlign: 'middle' }}>
+                  <button 
+                    style={{ border: 'none', backgroundColor: unclosedChartType === 'bar' ? 'var(--crayon-yellow)' : 'transparent', fontWeight: 'bold', padding: '4px 10px', borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit' }}
+                    onClick={() => setUnclosedChartType('bar')}
+                  >長條圖</button>
+                  <button 
+                    style={{ border: 'none', backgroundColor: unclosedChartType === 'pie' ? 'var(--crayon-yellow)' : 'transparent', fontWeight: 'bold', padding: '4px 10px', borderRadius: '5px', cursor: 'pointer', fontFamily: 'inherit' }}
+                    onClick={() => setUnclosedChartType('pie')}
+                  >圓餅圖</button>
+                </div>
               </div>
             </div>
           </div>
