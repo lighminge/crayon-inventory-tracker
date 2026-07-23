@@ -416,7 +416,7 @@ export default function WorkflowTickets() {
                   <tr style={{ borderBottom: '4px solid var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fafafa' : '#fff' }}>
                     <td colSpan={7} style={{ padding: '0 15px 15px 15px' }}>
                       <div style={{ display: 'flex', gap: '20px', flexWrap: 'nowrap' }}>
-                        <div style={{ flex: 1, minWidth: '750px' }}>
+                        <div style={{ flex: 1, minWidth: '685px' }}>
                           {/* Progress Bar & Stages Details */}
                           <div style={{ marginTop: '10px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '0.9rem' }}>
@@ -517,7 +517,7 @@ export default function WorkflowTickets() {
                     </div>
                     {/* Total Elapsed Days Block */}
                     <div style={{ 
-                      minWidth: '150px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', 
+                      minWidth: '110px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', 
                       borderLeft: '4px dashed var(--crayon-dark)', paddingLeft: '20px', paddingTop: '20px' 
                     }}>
                       <div style={{ 

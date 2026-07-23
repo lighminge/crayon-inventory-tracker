@@ -632,7 +632,7 @@ export default function InventoryTicketsPage() {
                 flexDirection: 'column',
                 justifyContent: 'center',
                 alignItems: 'center',
-                minWidth: '150px'
+                minWidth: '110px'
               }}>
                 <div style={{ 
                   fontSize: '1.2rem', 
