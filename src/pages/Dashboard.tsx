@@ -275,17 +275,20 @@ export default function Dashboard() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
         <h2 style={{ margin: 0 }}>📊 儀表板</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <label style={{ fontWeight: 'bold' }}>切換盤點任務：</label>
+          <label style={{ fontWeight: 'bold' }}>切換盤點任務 (進行中)：</label>
           <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e3f2fd' }} value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
             <option value="">-- 全域資料 (不指定任務) --</option>
             {tasks.filter(t => {
-              const formatDateLocal = (timestamp: number) => {
-                const d = new Date(timestamp);
+              if (!t.startDate || !t.endDate) return true; // Show tasks without dates just in case
+              const formatDateLocal = (val: number | string) => {
+                const d = new Date(val);
+                if (isNaN(d.getTime())) return null;
                 return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
               };
               const todayStr = formatDateLocal(new Date().getTime());
               const startStr = formatDateLocal(t.startDate);
               const endStr = formatDateLocal(t.endDate);
+              if (!todayStr || !startStr || !endStr) return true; // Show if invalid dates
               return todayStr >= startStr && todayStr <= endStr;
             }).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
