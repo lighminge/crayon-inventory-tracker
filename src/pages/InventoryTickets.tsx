@@ -564,7 +564,7 @@ export default function InventoryTicketsPage() {
                           }}>
                             {isCurrent && (
                               <div style={{ 
-                                position: 'absolute', top: '-15px', right: '-15px', 
+                                position: 'absolute', top: '-35px', right: '-10px', 
                                 fontSize: '1rem', fontWeight: 'bold', color: 'var(--crayon-orange)',
                                 backgroundColor: 'white', padding: '2px 8px', borderRadius: '10px', border: '2px dashed var(--crayon-orange)',
                                 whiteSpace: 'nowrap', animation: 'bounce 1s infinite', zIndex: 10,
@@ -595,7 +595,7 @@ export default function InventoryTicketsPage() {
                               marginTop: '5px',
                               marginBottom: '5px'
                             }}>
-                              負責: {getAssigneeName(w.assigneeId || '')}
+                              負責: {getAssigneeName(w.assigneeId === 'DYNAMIC_ASSIGNEE' ? t.assigneeId : (w.assigneeId || ''))}
                             </div>
                             <div style={{ marginTop: '5px' }}>{isDone ? new Date(t.stageDates[w.id]).toLocaleDateString() : '-'}</div>
                           </div>
@@ -800,7 +800,7 @@ export default function InventoryTicketsPage() {
                   <p style={{ margin: '5px 0' }}>即將推進至：<strong>{nextFlow ? nextFlow.name : '✅ 結案'}</strong></p>
                   {nextFlow && (
                     <p style={{ margin: '5px 0', color: 'var(--crayon-blue)' }}>
-                      下一關負責人：<strong>{getAssigneeName(nextFlow.assigneeId || '')}</strong>
+                      下一關負責人：<strong>{getAssigneeName(nextFlow.assigneeId === 'DYNAMIC_ASSIGNEE' ? updatingTicket.assigneeId : (nextFlow.assigneeId || ''))}</strong>
                     </p>
                   )}
                 </div>

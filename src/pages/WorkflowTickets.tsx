@@ -459,7 +459,7 @@ export default function WorkflowTickets() {
                                 }}>
                                   {isCurrent && (
                                     <div style={{ 
-                                      position: 'absolute', top: '-15px', right: '-15px', 
+                                      position: 'absolute', top: '-35px', right: '-10px', 
                                       fontSize: '1rem', fontWeight: 'bold', color: 'var(--crayon-orange)',
                                       backgroundColor: 'white', padding: '2px 8px', borderRadius: '10px', border: '2px dashed var(--crayon-orange)',
                                       whiteSpace: 'nowrap', animation: 'bounce 1s infinite', zIndex: 10,
@@ -489,7 +489,7 @@ export default function WorkflowTickets() {
                                     marginTop: '5px',
                                     marginBottom: '5px'
                                   }}>
-                                    負責: {getAssigneeName(w.assigneeId || '')}
+                                    負責: {getAssigneeName(w.assigneeId === 'DYNAMIC_ASSIGNEE' ? t.assigneeId : (w.assigneeId || ''))}
                                   </div>
                                   <div style={{ marginTop: '5px' }}>{isDone ? new Date(t.stageDates[w.id]).toLocaleDateString() : '-'}</div>
                                 </div>
@@ -586,7 +586,7 @@ export default function WorkflowTickets() {
                   <p style={{ margin: '5px 0', fontSize: '1.2rem', fontWeight: 'bold' }}>即將推進至：<strong style={{ fontSize: '1.6rem', color: 'var(--crayon-orange)' }}>{nextFlow ? nextFlow.name : '✅ 結案'}</strong></p>
                   {nextFlow && (
                     <p style={{ margin: '5px 0', fontSize: '1.1rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
-                      下一關負責人：<strong>{getAssigneeName(nextFlow.assigneeId || '')}</strong>
+                      下一關負責人：<strong>{getAssigneeName(nextFlow.assigneeId === 'DYNAMIC_ASSIGNEE' ? updatingTicket.assigneeId : (nextFlow.assigneeId || ''))}</strong>
                     </p>
                   )}
                 </div>

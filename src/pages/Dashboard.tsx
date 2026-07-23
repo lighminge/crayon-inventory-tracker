@@ -191,7 +191,7 @@ export default function Dashboard() {
     const groups: Record<string, InventoryTicket[]> = {};
     globalUnclosedTickets.forEach(t => {
       const nextStage = getNextStage(t);
-      const assigneeName = nextStage ? getAssigneeName(nextStage.assigneeId || '') : '主管 (等候結案)';
+      const assigneeName = nextStage ? getAssigneeName(nextStage.assigneeId === 'DYNAMIC_ASSIGNEE' ? t.assigneeId : (nextStage.assigneeId || '')) : '主管 (等候結案)';
       if (!groups[assigneeName]) {
         groups[assigneeName] = [];
       }
@@ -519,7 +519,7 @@ export default function Dashboard() {
                                     if (t.stageDates && Object.keys(t.stageDates).length > 0) {
                                       currentStageName = nextStage.name;
                                     }
-                                    currentAssigneeName = getAssigneeName(nextStage.assigneeId || '');
+                                    currentAssigneeName = getAssigneeName(nextStage.assigneeId === 'DYNAMIC_ASSIGNEE' ? t.assigneeId : (nextStage.assigneeId || ''));
                                   }
                                   
                                   return (

@@ -96,6 +96,7 @@ export default function WorkflowManagement() {
 
   const getPersonnelName = (id?: string) => {
     if (!id) return '未指定';
+    if (id === 'DYNAMIC_ASSIGNEE') return '動態帶入單據負責人員';
     const p = personnel.find(x => x.id === id);
     return p ? p.name : '未知';
   };
@@ -172,6 +173,7 @@ export default function WorkflowManagement() {
                 <label>預設負責人員：</label>
                 <select className="doodle-input" value={formData.assigneeId} onChange={e => setFormData({...formData, assigneeId: e.target.value})}>
                   <option value="">-- 不指定 --</option>
+                  <option value="DYNAMIC_ASSIGNEE">-- 動態帶入單據負責人員 --</option>
                   {personnel.map(p => <option key={p.id} value={p.id}>{p.name} ({p.title})</option>)}
                 </select>
               </div>
