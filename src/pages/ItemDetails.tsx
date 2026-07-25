@@ -92,10 +92,12 @@ export default function ItemDetails() {
               <thead>
                 <tr style={{ backgroundColor: 'var(--crayon-dark)', color: 'white' }}>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>序號</th>
+                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>日期</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>物料總重量</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>容器類型</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>容器數量</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>容器單重</th>
+                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>淨重</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>物料單重</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>物料總數</th>
                 </tr>
@@ -104,10 +106,12 @@ export default function ItemDetails() {
                 {currentDetails.map((d, index) => (
                   <tr key={d.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
                     <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>{d.itemSeq}</td>
+                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.date || '無'}</td>
                     <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.grossWeight} 公斤</td>
-                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.containerType === 'T' ? '台車' : d.containerType === 'P' ? '棧板' : d.containerType === 'B' ? '籃子' : d.containerType}</td>
+                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.containerType === 'T' ? '鐵桶' : d.containerType === 'P' ? '塑膠箱' : d.containerType === 'B' ? '紙箱' : d.containerType}</td>
                     <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.containerCount}</td>
                     <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.containerUnitWeight} 公斤</td>
+                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.netWeight !== undefined ? `${d.netWeight} 公斤` : '無'}</td>
                     <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.materialUnitWeight} 公克</td>
                     <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold', color: 'var(--crayon-red)' }}>{d.totalItemCount} 項</td>
                   </tr>
@@ -210,6 +214,9 @@ export default function ItemDetails() {
             {currentTickets.map((t, index) => {
               const seqNum = (currentPage - 1) * itemsPerPage + index + 1;
               const itemsImported = details.filter(d => d.ticketId === t.id).length;
+              const totalItems = t.itemCount || 0;
+              const isComplete = totalItems > 0 && itemsImported >= totalItems;
+              
               return (
                 <tr key={t.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
                   <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
@@ -222,8 +229,8 @@ export default function ItemDetails() {
                   <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>{t.id}</td>
                   <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{t.ticketType || '無'}</td>
                   <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
-                    <span style={{ color: itemsImported > 0 ? 'var(--crayon-blue)' : '#999', fontWeight: 'bold' }}>
-                      {itemsImported} 筆
+                    <span style={{ color: isComplete ? 'var(--crayon-green)' : itemsImported > 0 ? 'var(--crayon-blue)' : '#999', fontWeight: 'bold' }}>
+                      {itemsImported} / {totalItems} 筆
                     </span>
                   </td>
                 </tr>

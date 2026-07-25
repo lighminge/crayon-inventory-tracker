@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import CrayonDatePicker from './CrayonDatePicker';
 import { getPersonnel, checkItemDetailExists, saveItemDetail, getTickets } from '../services/api';
 import type { Personnel, InventoryItemDetail, InventoryTicket } from '../types';
@@ -6,6 +7,7 @@ import type { Personnel, InventoryItemDetail, InventoryTicket } from '../types';
 export default function FloatingCalculator() {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   
   // State for calculation
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -21,6 +23,7 @@ export default function FloatingCalculator() {
   const [importItemSeq, setImportItemSeq] = useState('001');
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
   const [existingDetailId, setExistingDetailId] = useState<string | undefined>(undefined);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
   
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
@@ -78,11 +81,11 @@ export default function FloatingCalculator() {
 
   const handleImport = async () => {
     if (!importTicketId.trim() || !importItemSeq.trim()) {
-      alert('請輸入盤點單號與項目編號！');
+      setAlertMessage('請輸入盤點單號與項目編號！');
       return;
     }
     if (grossWeight === '' || containerCount === '' || containerUnitWeight === '' || materialUnitWeight === '') {
-      alert('請先填寫完整的計算機欄位！');
+      setAlertMessage('請先填寫完整的計算機欄位！');
       return;
     }
 
@@ -96,7 +99,7 @@ export default function FloatingCalculator() {
       }
     } catch (e) {
       console.error(e);
-      alert('檢查重複資料時發生錯誤');
+      setAlertMessage('檢查重複資料時發生錯誤');
     }
   };
 
@@ -110,11 +113,13 @@ export default function FloatingCalculator() {
         containerCount: Number(containerCount),
         containerUnitWeight: Number(containerUnitWeight),
         materialUnitWeight: Number(materialUnitWeight),
+        netWeight: Number(netWeight.toFixed(2)),
+        date: date,
         totalItemCount: totalItemCount,
         createdAt: new Date().getTime(),
       };
       await saveItemDetail(detail, overwriteId);
-      alert('✅ 匯入成功！');
+      setAlertMessage('✅ 匯入成功！');
       setShowOverwriteModal(false);
       setExistingDetailId(undefined);
       // Auto-increment sequence for next entry
@@ -124,7 +129,7 @@ export default function FloatingCalculator() {
       }
     } catch (e) {
       console.error(e);
-      alert('匯入失敗');
+      setAlertMessage('匯入失敗');
     }
   };
 
@@ -332,6 +337,17 @@ export default function FloatingCalculator() {
             >
               🔄 清空重設
             </button>
+            
+            <button 
+              className="doodle-button" 
+              style={{ width: '100%', marginTop: '15px', backgroundColor: 'var(--crayon-dark)', color: 'white' }}
+              onClick={() => {
+                setIsOpen(false);
+                navigate('/item-details');
+              }}
+            >
+              📑 前往項目明細畫面
+            </button>
           </div>
         </div>
       )}
@@ -355,6 +371,25 @@ export default function FloatingCalculator() {
               <button className="doodle-button" onClick={() => setShowOverwriteModal(false)}>取消</button>
               <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-red)', color: 'white' }} onClick={() => executeImport(existingDetailId)}>確定覆蓋</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Generic Alert Modal */}
+      {alertMessage && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 10001
+        }}>
+          <div className="doodle-border" style={{ backgroundColor: 'white', padding: '30px', maxWidth: '350px', textAlign: 'center' }}>
+            <h3 style={{ color: 'var(--crayon-purple)', marginTop: 0 }}>提示</h3>
+            <p style={{ fontSize: '1.1rem', marginBottom: '20px' }}>{alertMessage}</p>
+            <button className="doodle-button" style={{ width: '100%' }} onClick={() => setAlertMessage(null)}>確定</button>
           </div>
         </div>
       )}

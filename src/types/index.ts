@@ -46,6 +46,8 @@ export interface InventoryItemDetail {
   containerCount: number; // 容器數量
   containerUnitWeight: number; // 容器單重
   materialUnitWeight: number; // 物料單重
+  netWeight?: number; // 淨重 (Added)
+  date?: string; // 日期 (Added)
   totalItemCount: number; // 物料總數
   createdAt?: number; // 建立時間
 }
