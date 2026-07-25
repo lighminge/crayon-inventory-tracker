@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getTickets, getAllItemDetails, deleteItemDetail } from '../services/api';
+import { getTickets, getAllItemDetails, deleteItemDetail, saveItemDetail } from '../services/api';
 import type { InventoryTicket, InventoryItemDetail } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 
@@ -24,6 +24,10 @@ export default function ItemDetails() {
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  
+  // Edit State
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editData, setEditData] = useState<Partial<InventoryItemDetail>>({});
 
   // Pagination & Sort state
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -104,6 +108,42 @@ export default function ItemDetails() {
     }
   };
 
+  const startEdit = (d: InventoryItemDetail) => {
+    setEditingId(d.id);
+    setEditData({ ...d });
+  };
+
+  const handleEditChange = (field: keyof InventoryItemDetail, value: any) => {
+    setEditData(prev => {
+      const newData = { ...prev, [field]: value };
+      if (['grossWeight', 'containerCount', 'containerUnitWeight', 'materialUnitWeight'].includes(field as string)) {
+        const gW = Number(newData.grossWeight || 0);
+        const cC = Number(newData.containerCount || 0);
+        const cUW = Number(newData.containerUnitWeight || 0);
+        const mUW = Number(newData.materialUnitWeight || 0);
+        newData.netWeight = Number((gW - (cC * cUW)).toFixed(2));
+        if (mUW > 0) {
+          newData.totalItemCount = Math.floor((newData.netWeight * 1000) / mUW);
+        } else {
+          newData.totalItemCount = 0;
+        }
+      }
+      return newData;
+    });
+  };
+
+  const saveEdit = async () => {
+    if (editingId && editData) {
+      try {
+        await saveItemDetail(editData as any, editingId);
+        setEditingId(null);
+        loadData();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
   const mapContainerType = (type: string) => type === 'T' ? '鐵桶' : type === 'P' ? '塑膠箱' : type === 'B' ? '紙箱' : type;
 
   // Group by itemSeq for subtotals
@@ -132,7 +172,7 @@ export default function ItemDetails() {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
               <thead>
                 <tr style={{ backgroundColor: 'var(--crayon-dark)', color: 'white' }}>
-                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)', width: '60px' }}>功能</th>
+                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)', width: '120px', textAlign: 'center' }}>功能</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>序號</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>日期</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>物料總重量</th>
@@ -149,32 +189,81 @@ export default function ItemDetails() {
                   const group = groupedDetails[itemSeq];
                   const totalGross = group.reduce((sum, d) => sum + d.grossWeight, 0);
                   const totalItemCount = group.reduce((sum, d) => sum + d.totalItemCount, 0);
+                  const totalMaterialUnitWeight = group.reduce((sum, d) => sum + d.materialUnitWeight, 0);
                   
                   // Subtotal by container type
                   const byType: { [type: string]: { count: number, netWeight: number, unitWeight: number, grossWeight: number } } = {};
                   group.forEach(d => {
                     const t = mapContainerType(d.containerType);
-                    if (!byType[t]) byType[t] = { count: 0, netWeight: 0, unitWeight: d.containerUnitWeight, grossWeight: 0 };
+                    if (!byType[t]) byType[t] = { count: 0, netWeight: 0, unitWeight: 0, grossWeight: 0 };
                     byType[t].count += d.containerCount;
                     byType[t].netWeight += (d.netWeight || 0);
                     byType[t].grossWeight += d.grossWeight;
+                    byType[t].unitWeight += d.containerUnitWeight; // sum up unit weights as requested
                   });
                   const types = Object.keys(byType);
                   const typeStr = types.join(', ');
                   const grossWtStr = types.map(t => `${t}: ${byType[t].grossWeight.toFixed(2)}`).join(' | ');
                   const countStr = types.map(t => `${t}: ${byType[t].count}`).join(' | ');
                   const netWtStr = types.map(t => `${t}: ${byType[t].netWeight.toFixed(2)}`).join(' | ');
-                  const unitWtStr = types.map(t => `${t}: ${byType[t].unitWeight}`).join(' | ');
+                  const unitWtStr = types.map(t => `${t}: ${byType[t].unitWeight.toFixed(2)}`).join(' | ');
 
                   return (
                     <React.Fragment key={itemSeq}>
-                      {group.map((d, index) => (
-                        <tr key={d.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
-                          <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
-                            <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', backgroundColor: 'var(--crayon-red)', color: 'white', minHeight: 'auto' }} onClick={() => setDeleteConfirmId(d.id)}>
-                              刪除
-                            </button>
-                          </td>
+                      {group.map((d, index) => {
+                        if (editingId === d.id) {
+                          return (
+                            <tr key={d.id} style={{ backgroundColor: '#fffbe6', borderBottom: '2px solid var(--crayon-blue)' }}>
+                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
+                                <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                                  <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', minHeight: 'auto', backgroundColor: 'var(--crayon-green)', color: 'white' }} onClick={saveEdit}>儲存</button>
+                                  <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', minHeight: 'auto' }} onClick={() => setEditingId(null)}>取消</button>
+                                </div>
+                              </td>
+                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>
+                                {d.itemSeq} {d.subItemSeq ? `- ${d.subItemSeq}` : ''}
+                              </td>
+                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                                <input type="date" className="doodle-input" style={{ width: '100px', padding: '2px' }} value={editData.date || ''} onChange={e => handleEditChange('date', e.target.value)} />
+                              </td>
+                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                                <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={editData.grossWeight || ''} onChange={e => handleEditChange('grossWeight', Number(e.target.value))} />
+                              </td>
+                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                                <select className="doodle-input" style={{ width: '80px', padding: '2px' }} value={editData.containerType || 'T'} onChange={e => handleEditChange('containerType', e.target.value)}>
+                                  <option value="T">鐵桶</option>
+                                  <option value="P">塑膠箱</option>
+                                  <option value="B">紙箱</option>
+                                  <option value={editData.containerType || ''}>{editData.containerType}</option>
+                                </select>
+                              </td>
+                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                                <input type="number" className="doodle-input" style={{ width: '50px', padding: '2px' }} value={editData.containerCount || ''} onChange={e => handleEditChange('containerCount', Number(e.target.value))} />
+                              </td>
+                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                                <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={editData.containerUnitWeight || ''} onChange={e => handleEditChange('containerUnitWeight', Number(e.target.value))} />
+                              </td>
+                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                                <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={editData.netWeight || ''} onChange={e => handleEditChange('netWeight', Number(e.target.value))} />
+                              </td>
+                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                                <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={editData.materialUnitWeight || ''} onChange={e => handleEditChange('materialUnitWeight', Number(e.target.value))} />
+                              </td>
+                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                                <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={editData.totalItemCount || ''} onChange={e => handleEditChange('totalItemCount', Number(e.target.value))} />
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return (
+                          <tr key={d.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
+                            <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                                <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', backgroundColor: 'var(--crayon-purple)', color: 'white', minHeight: 'auto' }} onClick={() => startEdit(d)}>修改</button>
+                                <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', backgroundColor: 'var(--crayon-red)', color: 'white', minHeight: 'auto' }} onClick={() => setDeleteConfirmId(d.id)}>刪除</button>
+                              </div>
+                            </td>
                           <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>
                             {d.itemSeq} {d.subItemSeq ? `- ${d.subItemSeq}` : ''}
                           </td>
@@ -187,23 +276,26 @@ export default function ItemDetails() {
                           <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.materialUnitWeight} 公克</td>
                           <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold', color: 'var(--crayon-red)' }}>{d.totalItemCount} 項</td>
                         </tr>
-                      ))}
+                        );
+                      })}
                       {/* Subtotal row */}
                       {group.length > 1 && (
-                        <tr style={{ backgroundColor: '#e3f2fd', borderBottom: '2px solid var(--crayon-dark)' }}>
-                          <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)' }}></td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>小計 ({itemSeq})</td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}></td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontSize: '0.85rem' }}>
-                            <div style={{ fontWeight: 'bold', marginBottom: '3px' }}>總計: {totalGross.toFixed(2)} 公斤</div>
+                        <tr style={{ backgroundColor: '#fff0f5', border: '3px solid var(--crayon-purple)', boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)' }}>
+                          <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)' }}></td>
+                          <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.2rem', fontWeight: '900', color: 'var(--crayon-purple)' }}>小計 ({itemSeq})</td>
+                          <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)' }}></td>
+                          <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.0rem', fontWeight: 'bold' }}>
+                            <div style={{ color: 'var(--crayon-red)', marginBottom: '5px' }}>總計: {totalGross.toFixed(2)} 公斤</div>
                             {grossWtStr}
                           </td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontSize: '0.85rem' }}>{typeStr}</td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontSize: '0.85rem' }}>{countStr}</td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontSize: '0.85rem' }}>{unitWtStr}</td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontSize: '0.85rem' }}>{netWtStr}</td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{group[0].materialUnitWeight} 公克</td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold', color: 'var(--crayon-red)' }}>{totalItemCount} 項</td>
+                          <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.0rem', fontWeight: 'bold' }}>{typeStr}</td>
+                          <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.0rem', fontWeight: 'bold' }}>{countStr}</td>
+                          <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.0rem', fontWeight: 'bold' }}>{unitWtStr}</td>
+                          <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.0rem', fontWeight: 'bold' }}>{netWtStr}</td>
+                          <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.0rem', fontWeight: 'bold' }}>
+                            <div style={{ color: 'var(--crayon-red)' }}>總計: {totalMaterialUnitWeight.toFixed(2)} 公克</div>
+                          </td>
+                          <td style={{ padding: '15px 10px', fontSize: '1.2rem', fontWeight: '900', color: 'var(--crayon-red)' }}>{totalItemCount} 項</td>
                         </tr>
                       )}
                     </React.Fragment>
