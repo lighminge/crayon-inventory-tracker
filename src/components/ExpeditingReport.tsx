@@ -23,11 +23,14 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
   const [selectedTaskId, setSelectedTaskId] = useState('');
   const [selectedAssigneeId, setSelectedAssigneeId] = useState('');
   const [selectedDays, setSelectedDays] = useState('1'); // "1" ~ "7"
+  const [ticketStatus, setTicketStatus] = useState('all'); // 'all', 'closed', 'unclosed'
+  
   const [sortBy, setSortBy] = useState('id'); // 'id', 'stage', 'assignee', 'processingDays'
+  const [sortOrder, setSortOrder] = useState('asc'); // 'asc', 'desc'
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   // Ref for image export
   const reportRef = useRef<HTMLDivElement>(null);
@@ -68,9 +71,11 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
       // Find current stage
       let currentStage = '未開始';
       let currentStageAssigneeId = t.assigneeId;
+      let currentStageOrder = 0;
       
       if (t.closeDate) {
         currentStage = '✅ 結案';
+        currentStageOrder = 9999;
       } else {
         // Find highest index stage that is completed
         let highestCompletedIdx = -1;
@@ -81,13 +86,16 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
         }
         if (highestCompletedIdx === workflows.length - 1) {
           currentStage = '等待結案核准';
+          currentStageOrder = 9998;
         } else if (highestCompletedIdx >= 0 && highestCompletedIdx < workflows.length - 1) {
           const nextW = workflows[highestCompletedIdx + 1];
           currentStage = `進行中: ${nextW.name}`;
+          currentStageOrder = nextW.order;
           currentStageAssigneeId = nextW.assigneeId === 'DYNAMIC_ASSIGNEE' ? t.assigneeId : (nextW.assigneeId || t.assigneeId);
         } else if (highestCompletedIdx === -1 && workflows.length > 0) {
           const firstW = workflows[0];
           currentStage = `準備進行: ${firstW.name}`;
+          currentStageOrder = firstW.order - 0.5;
           currentStageAssigneeId = firstW.assigneeId === 'DYNAMIC_ASSIGNEE' ? t.assigneeId : (firstW.assigneeId || t.assigneeId);
         }
       }
@@ -96,9 +104,14 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
         ...t,
         processingDays,
         currentStage,
+        currentStageOrder,
         currentStageAssigneeId
       };
     }).filter(t => {
+      // Status filter
+      if (ticketStatus === 'closed' && !t.closeDate) return false;
+      if (ticketStatus === 'unclosed' && t.closeDate) return false;
+
       // Days filter
       if (daysThreshold === 7) {
         return t.processingDays >= 7;
@@ -109,26 +122,27 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
     
     // Sorting
     return filtered.sort((a, b) => {
+      const factor = sortOrder === 'asc' ? 1 : -1;
       if (sortBy === 'id') {
-        return a.id.localeCompare(b.id);
+        return factor * a.id.localeCompare(b.id);
       } else if (sortBy === 'stage') {
-        return a.currentStage.localeCompare(b.currentStage);
+        return factor * (a.currentStageOrder - b.currentStageOrder);
       } else if (sortBy === 'assignee') {
         const nameA = getAssigneeName(a.currentStageAssigneeId);
         const nameB = getAssigneeName(b.currentStageAssigneeId);
-        return nameA.localeCompare(nameB);
+        return factor * nameA.localeCompare(nameB);
       } else { // processingDays
-        return b.processingDays - a.processingDays;
+        return factor * (a.processingDays - b.processingDays);
       }
     });
-  }, [tickets, startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays, workflows, sortBy]);
+  }, [tickets, startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays, ticketStatus, workflows, sortBy, sortOrder]);
 
   // Pagination logic
   const totalPages = Math.ceil(processedTickets.length / itemsPerPage);
   const currentData = processedTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   // When filters change, reset page
-  useMemo(() => setCurrentPage(1), [startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays]);
+  useMemo(() => setCurrentPage(1), [startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays, ticketStatus, itemsPerPage]);
 
   const getRowColor = (days: number) => {
     if (days >= 7) return '#e1bee7'; // Purple
@@ -189,14 +203,20 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
   };
 
   const exportToImage = async () => {
-    if (!fullReportRef.current) return;
+    const pages = document.querySelectorAll('.export-page-node');
+    if (pages.length === 0) return;
     try {
-      const canvas = await html2canvas(fullReportRef.current, { scale: 2 });
-      const url = canvas.toDataURL('image/png');
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `稽催報表_${new Date().toISOString().split('T')[0]}.png`;
-      a.click();
+      for (let i = 0; i < pages.length; i++) {
+        const pageNode = pages[i] as HTMLElement;
+        // Make sure it's visible to html2canvas but still off-screen by removing position absolute locally or leaving it
+        const canvas = await html2canvas(pageNode, { scale: 2 });
+        const url = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `稽催報表_${new Date().toISOString().split('T')[0]}_第${i + 1}頁.png`;
+        a.click();
+        await new Promise(resolve => setTimeout(resolve, 500)); // slightly delay multiple downloads
+      }
     } catch (e) {
       console.error(e);
       alert('匯出圖片失敗');
@@ -235,6 +255,14 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
             </select>
           </div>
           <div>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點單狀態</label>
+            <select className="doodle-input" value={ticketStatus} onChange={e => setTicketStatus(e.target.value)}>
+              <option value="all">全部</option>
+              <option value="closed">已結案</option>
+              <option value="unclosed">未結案</option>
+            </select>
+          </div>
+          <div>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點單處理天數</label>
             <select className="doodle-input" value={selectedDays} onChange={e => setSelectedDays(e.target.value)}>
               <option value="1">1天 (含) 以上</option>
@@ -259,7 +287,11 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
                 <option value="id">單號</option>
                 <option value="stage">目前狀態</option>
                 <option value="assignee">負責人</option>
-                <option value="processingDays">處理天數 (大至小)</option>
+                <option value="processingDays">處理天數</option>
+              </select>
+              <select className="doodle-input" value={sortOrder} onChange={e => setSortOrder(e.target.value)} style={{ padding: '5px' }}>
+                <option value="asc">由小到大</option>
+                <option value="desc">由大到小</option>
               </select>
             </div>
             <button className="doodle-button success" onClick={exportToImage}>🖼️ 匯出圖檔</button>
@@ -279,25 +311,37 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
         </div>
 
         {/* Pagination (Top) */}
-        {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
-            <button 
-              className="doodle-button" 
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            >
-              上一頁
-            </button>
-            <span style={{ fontWeight: 'bold' }}>{currentPage} / {totalPages}</span>
-            <button 
-              className="doodle-button" 
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-            >
-              下一頁
-            </button>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', borderRight: '2px solid #ccc', paddingRight: '15px' }}>
+            <label style={{ fontWeight: 'bold' }}>每頁顯示:</label>
+            <select className="doodle-input" value={itemsPerPage} onChange={e => setItemsPerPage(Number(e.target.value))} style={{ padding: '5px', width: 'auto' }}>
+              <option value="5">5 筆</option>
+              <option value="10">10 筆</option>
+              <option value="15">15 筆</option>
+              <option value="20">20 筆</option>
+              <option value="50">50 筆</option>
+            </select>
           </div>
-        )}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+              <button 
+                className="doodle-button" 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              >
+                上一頁
+              </button>
+              <span style={{ fontWeight: 'bold' }}>{currentPage} / {totalPages}</span>
+              <button 
+                className="doodle-button" 
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              >
+                下一頁
+              </button>
+            </div>
+          )}
+        </div>
 
         <div ref={reportRef} style={{ padding: '10px', backgroundColor: 'white' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -344,81 +388,103 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
           </div>
         </div>
         
-        {/* Pagination (Not exported in image) */}
-        {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginTop: '20px' }}>
-            <button 
-              className="doodle-button" 
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            >
-              上一頁
-            </button>
-            <span style={{ fontWeight: 'bold' }}>{currentPage} / {totalPages}</span>
-            <button 
-              className="doodle-button" 
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-            >
-              下一頁
-            </button>
+        {/* Pagination (Bottom) */}
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginTop: '20px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', borderRight: '2px solid #ccc', paddingRight: '15px' }}>
+            <label style={{ fontWeight: 'bold' }}>每頁顯示:</label>
+            <select className="doodle-input" value={itemsPerPage} onChange={e => setItemsPerPage(Number(e.target.value))} style={{ padding: '5px', width: 'auto' }}>
+              <option value="5">5 筆</option>
+              <option value="10">10 筆</option>
+              <option value="15">15 筆</option>
+              <option value="20">20 筆</option>
+              <option value="50">50 筆</option>
+            </select>
           </div>
-        )}
-
-        {/* Off-screen Full Report for Export */}
-        <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
-          <div ref={fullReportRef} style={{ padding: '20px', backgroundColor: 'white', width: '1200px' }}>
-            <h2 style={{ color: 'var(--crayon-red)', marginBottom: '20px', textAlign: 'center' }}>
-              稽催報表 ({new Date().toISOString().split('T')[0]})
-            </h2>
-            <div style={{ marginBottom: '20px', display: 'flex', gap: '15px', fontSize: '1rem', flexWrap: 'wrap', backgroundColor: '#f0f0f0', padding: '10px', borderRadius: '5px', border: '2px dashed var(--crayon-dark)' }}>
-              <strong style={{ marginRight: '10px' }}>顏色說明 (處理天數):</strong>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(3), border: '1px solid #ccc', borderRadius: '4px' }}></span> 3天</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(4), border: '1px solid #ccc', borderRadius: '4px' }}></span> 4天</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(5), border: '1px solid #ccc', borderRadius: '4px' }}></span> 5天</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(6), border: '1px solid #ccc', borderRadius: '4px' }}></span> 6天</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(7), border: '1px solid #ccc', borderRadius: '4px' }}></span> 7天以上</div>
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+              <button 
+                className="doodle-button" 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              >
+                上一頁
+              </button>
+              <span style={{ fontWeight: 'bold' }}>{currentPage} / {totalPages}</span>
+              <button 
+                className="doodle-button" 
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              >
+                下一頁
+              </button>
             </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 1.5fr 2fr 1fr 1fr', gap: '10px', padding: '10px', borderBottom: '3px solid var(--crayon-dark)', fontWeight: 'bold', fontSize: '1.2rem', backgroundColor: '#e0f7fa', borderRadius: '5px' }}>
-                <div style={{ textAlign: 'center' }}>序號</div>
-                <div>單號</div>
-                <div>盤點任務</div>
-                <div>目前狀態</div>
-                <div>負責人</div>
-                <div style={{ textAlign: 'center' }}>處理天數</div>
-              </div>
-              
-              {processedTickets.length > 0 ? processedTickets.map((t, idx) => (
-                <div 
-                  key={t.id} 
-                  style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: '50px 1fr 1.5fr 2fr 1fr 1fr', 
-                    gap: '10px', 
-                    padding: '10px', 
-                    backgroundColor: getRowColor(t.processingDays),
-                    border: '2px solid var(--crayon-dark)',
-                    alignItems: 'center',
-                    borderRadius: '10px'
-                  }}
-                >
-                  <div style={{ textAlign: 'center', fontWeight: 'bold', backgroundColor: 'white', padding: '5px', borderRadius: '5px', border: '1px solid #ccc', fontSize: '1.1rem' }}>
-                    {idx + 1}
-                  </div>
-                  <div style={{ fontWeight: 'bold', color: 'var(--crayon-dark)', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{t.id}</div>
-                  <div style={{ color: 'var(--crayon-green)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{getTaskName(t.taskId)}</div>
-                  <div style={{ color: 'var(--crayon-blue)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{t.currentStage}</div>
-                  <div style={{ color: 'var(--crayon-purple)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{getAssigneeName(t.currentStageAssigneeId)}</div>
-                  <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '1.3rem', color: t.processingDays >= 3 ? 'white' : 'var(--crayon-dark)', backgroundColor: t.processingDays >= 3 ? 'var(--crayon-red)' : 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '2px solid var(--crayon-dark)' }}>
-                    {t.processingDays} 天
+          )}
+        </div>
+
+        {/* Off-screen Full Report for Export (Multiple Pages) */}
+        <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
+          <div ref={fullReportRef} style={{ display: 'flex', flexDirection: 'column', gap: '50px' }}>
+            {Array.from({ length: totalPages || 1 }).map((_, pageIndex) => {
+              const pageData = processedTickets.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
+              return (
+                <div key={pageIndex} className="export-page-node" style={{ padding: '20px', backgroundColor: 'white', width: '1200px' }}>
+                  <h2 style={{ color: 'var(--crayon-red)', marginBottom: '20px', textAlign: 'center' }}>
+                    稽催報表 ({new Date().toISOString().split('T')[0]}) - 第 {pageIndex + 1} 頁
+                  </h2>
+                  
+                  {pageIndex === 0 && (
+                    <div style={{ marginBottom: '20px', display: 'flex', gap: '15px', fontSize: '1rem', flexWrap: 'wrap', backgroundColor: '#f0f0f0', padding: '10px', borderRadius: '5px', border: '2px dashed var(--crayon-dark)' }}>
+                      <strong style={{ marginRight: '10px' }}>顏色說明 (處理天數):</strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(3), border: '1px solid #ccc', borderRadius: '4px' }}></span> 3天</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(4), border: '1px solid #ccc', borderRadius: '4px' }}></span> 4天</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(5), border: '1px solid #ccc', borderRadius: '4px' }}></span> 5天</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(6), border: '1px solid #ccc', borderRadius: '4px' }}></span> 6天</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(7), border: '1px solid #ccc', borderRadius: '4px' }}></span> 7天以上</div>
+                    </div>
+                  )}
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 1.5fr 2fr 1fr 1fr', gap: '10px', padding: '10px', borderBottom: '3px solid var(--crayon-dark)', fontWeight: 'bold', fontSize: '1.2rem', backgroundColor: '#e0f7fa', borderRadius: '5px' }}>
+                      <div style={{ textAlign: 'center' }}>序號</div>
+                      <div>單號</div>
+                      <div>盤點任務</div>
+                      <div>目前狀態</div>
+                      <div>負責人</div>
+                      <div style={{ textAlign: 'center' }}>處理天數</div>
+                    </div>
+                    
+                    {pageData.length > 0 ? pageData.map((t, localIdx) => (
+                      <div 
+                        key={t.id} 
+                        style={{ 
+                          display: 'grid', 
+                          gridTemplateColumns: '50px 1fr 1.5fr 2fr 1fr 1fr', 
+                          gap: '10px', 
+                          padding: '10px', 
+                          backgroundColor: getRowColor(t.processingDays),
+                          border: '2px solid var(--crayon-dark)',
+                          alignItems: 'center',
+                          borderRadius: '10px'
+                        }}
+                      >
+                        <div style={{ textAlign: 'center', fontWeight: 'bold', backgroundColor: 'white', padding: '5px', borderRadius: '5px', border: '1px solid #ccc', fontSize: '1.1rem' }}>
+                          {pageIndex * itemsPerPage + localIdx + 1}
+                        </div>
+                        <div style={{ fontWeight: 'bold', color: 'var(--crayon-dark)', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{t.id}</div>
+                        <div style={{ color: 'var(--crayon-green)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{getTaskName(t.taskId)}</div>
+                        <div style={{ color: 'var(--crayon-blue)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{t.currentStage}</div>
+                        <div style={{ color: 'var(--crayon-purple)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{getAssigneeName(t.currentStageAssigneeId)}</div>
+                        <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '1.3rem', color: t.processingDays >= 3 ? 'white' : 'var(--crayon-dark)', backgroundColor: t.processingDays >= 3 ? 'var(--crayon-red)' : 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '2px solid var(--crayon-dark)' }}>
+                          {t.processingDays} 天
+                        </div>
+                      </div>
+                    )) : (
+                      <div style={{ padding: '20px', textAlign: 'center', color: '#888', fontSize: '1.2rem' }}>沒有符合條件的資料</div>
+                    )}
                   </div>
                 </div>
-              )) : (
-                <div style={{ padding: '20px', textAlign: 'center', color: '#888', fontSize: '1.2rem' }}>沒有符合條件的資料</div>
-              )}
-            </div>
+              );
+            })}
           </div>
         </div>
 
