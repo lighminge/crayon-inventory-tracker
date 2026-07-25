@@ -44,9 +44,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
   };
 
   const getAssigneeName = (id: string) => {
-    if (id === 'DYNAMIC_ASSIGNEE') return '動態負責人';
-    const p = personnel.find(p => p.id === id);
-    return p ? p.name : (id || '未指定');
+    return personnel.find(p => p.id === id)?.name || id || '未知';
   };
 
   const getTaskName = (id?: string) => {
@@ -163,13 +161,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
     return 'transparent';
   };
   
-  const getAssigneeName = (id: string) => {
-    return personnel.find(p => p.id === id)?.name || id || '未知';
-  };
 
-  const getTaskName = (id?: string) => {
-    return tasks.find(t => t.id === id)?.name || '-';
-  };
 
   // Export Functions
   const exportToExcel = () => {
