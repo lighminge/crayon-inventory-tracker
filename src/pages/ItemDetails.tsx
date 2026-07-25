@@ -57,6 +57,13 @@ export default function ItemDetails() {
     }
   }, [location, navigate]);
 
+  // Listen for inventory updates from the FloatingCalculator
+  useEffect(() => {
+    const handleUpdate = () => loadData();
+    window.addEventListener('inventory_updated', handleUpdate);
+    return () => window.removeEventListener('inventory_updated', handleUpdate);
+  }, []);
+
   const filteredTickets = tickets.filter(t => {
     if (filterTicketId && !t.id.includes(filterTicketId)) return false;
     if (filterTicketType !== 'all' && t.ticketType !== filterTicketType) return false;

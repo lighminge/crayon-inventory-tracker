@@ -132,6 +132,7 @@ export default function FloatingCalculator() {
         createdAt: new Date().getTime(),
       };
       await saveItemDetail(detail, overwriteId);
+      window.dispatchEvent(new Event('inventory_updated'));
       setAlertMessage('✅ 匯入成功！');
       setShowOverwriteModal(false);
       setExistingDetailId(undefined);
@@ -243,8 +244,17 @@ export default function FloatingCalculator() {
                 </div>
               </div>
               {existingSubItems.length > 0 && (
-                <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '5px' }}>
-                  已建立子項：<span style={{ color: 'var(--crayon-purple)', fontWeight: 'bold' }}>{existingSubItems.join(', ')}</span>
+                <div className="doodle-border" style={{
+                  fontSize: '0.95rem',
+                  color: 'white',
+                  backgroundColor: 'var(--crayon-purple)',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  marginTop: '10px',
+                  border: '2px dashed white',
+                  boxShadow: '2px 2px 0px rgba(0,0,0,0.2)'
+                }}>
+                  ✨ 已建立子項：<strong style={{ fontSize: '1.2rem', marginLeft: '5px' }}>{existingSubItems.join(', ')}</strong>
                 </div>
               )}
             </div>
