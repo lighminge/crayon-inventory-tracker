@@ -422,8 +422,14 @@ export default function ItemDetails() {
               const totalItems = t.itemCount || 0;
               const isComplete = totalItems > 0 && uniqueItemsImported >= totalItems;
               
+              const rowBgColor = isComplete 
+                ? '#e8f5e9' 
+                : uniqueItemsImported > 0 
+                  ? '#fff9c4' 
+                  : (index % 2 === 0 ? '#fff' : '#f9f9f9');
+              
               return (
-                <tr key={t.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
+                <tr key={t.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: rowBgColor }}>
                   <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
                     <button className="doodle-button" style={{ padding: '5px 10px', minHeight: 'auto', fontSize: '0.85rem' }} onClick={() => {
                       setSelectedTicketId(t.id);
