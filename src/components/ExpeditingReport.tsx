@@ -43,6 +43,16 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
     return Math.min(...timestamps);
   };
 
+  const getAssigneeName = (id: string) => {
+    if (id === 'DYNAMIC_ASSIGNEE') return '動態負責人';
+    const p = personnel.find(p => p.id === id);
+    return p ? p.name : (id || '未指定');
+  };
+
+  const getTaskName = (id?: string) => {
+    return tasks.find(t => t.id === id)?.name || '-';
+  };
+
   // Process and filter data
   const processedTickets = useMemo(() => {
     const startMs = startDate ? new Date(startDate).getTime() : 0;
@@ -344,6 +354,21 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
         </div>
 
         <div ref={reportRef} style={{ padding: '10px', backgroundColor: 'white' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '15px', backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '8px', border: '2px dashed var(--crayon-dark)' }}>
+            <strong style={{ width: '100%' }}>處理天數統計：</strong>
+            {[1, 2, 3, 4, 5, 6, 7].map(d => {
+              const count = processedTickets.filter(t => d === 7 ? t.processingDays >= 7 : t.processingDays === d).length;
+              if (count === 0) return null;
+              return (
+                <div key={d} style={{ display: 'flex', alignItems: 'center', gap: '5px', backgroundColor: 'white', padding: '5px 10px', borderRadius: '5px', border: '1px solid #ccc' }}>
+                  <span style={{ display: 'inline-block', width: '15px', height: '15px', backgroundColor: getRowColor(d), border: '1px solid #999', borderRadius: '3px' }}></span>
+                  <span style={{ fontWeight: 'bold' }}>{d === 7 ? '7天以上' : `${d}天`}:</span> {count} 筆
+                </div>
+              );
+            })}
+            {processedTickets.length === 0 && <span style={{ color: '#888' }}>無資料</span>}
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {/* Table Header */}
             <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 1.5fr 2fr 1fr 1fr', gap: '10px', padding: '10px', borderBottom: '3px solid var(--crayon-dark)', fontWeight: 'bold', fontSize: '1.1rem', backgroundColor: '#e0f7fa', borderRadius: '5px' }}>
