@@ -189,7 +189,6 @@ export default function ItemDetails() {
                   const group = groupedDetails[itemSeq];
                   const totalGross = group.reduce((sum, d) => sum + d.grossWeight, 0);
                   const totalItemCount = group.reduce((sum, d) => sum + d.totalItemCount, 0);
-                  const totalMaterialUnitWeight = group.reduce((sum, d) => sum + d.materialUnitWeight, 0);
                   
                   // Subtotal by container type
                   const byType: { [type: string]: { count: number, netWeight: number, unitWeight: number, grossWeight: number } } = {};
@@ -293,7 +292,7 @@ export default function ItemDetails() {
                           <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.0rem', fontWeight: 'bold' }}>{unitWtStr}</td>
                           <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.0rem', fontWeight: 'bold' }}>{netWtStr}</td>
                           <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.0rem', fontWeight: 'bold' }}>
-                            <div style={{ color: 'var(--crayon-red)' }}>總計: {totalMaterialUnitWeight.toFixed(2)} 公克</div>
+                            <div style={{ color: 'var(--crayon-red)' }}>單重: {Array.from(new Set(group.map(d => d.materialUnitWeight))).filter(w => w > 0).sort((a,b)=>a-b).join(', ')} 公克</div>
                           </td>
                           <td style={{ padding: '15px 10px', fontSize: '1.2rem', fontWeight: '900', color: 'var(--crayon-red)' }}>{totalItemCount} 項</td>
                         </tr>

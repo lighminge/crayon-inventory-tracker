@@ -22,7 +22,7 @@ export default function FloatingCalculator() {
   const [importTicketId, setImportTicketId] = useState('');
   const [importItemSeq, setImportItemSeq] = useState('001');
   const [importSubItemSeq, setImportSubItemSeq] = useState('1');
-  const [existingSubItems, setExistingSubItems] = useState<string[]>([]);
+  const [existingSubItems, setExistingSubItems] = useState<InventoryItemDetail[]>([]);
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
   const [existingDetailId, setExistingDetailId] = useState<string | undefined>(undefined);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
@@ -47,7 +47,16 @@ export default function FloatingCalculator() {
   useEffect(() => {
     if (importTicketId.trim() && importItemSeq.trim()) {
       getExistingSubItems(importTicketId.trim(), importItemSeq.trim())
-        .then(setExistingSubItems)
+        .then(items => {
+          setExistingSubItems(items);
+          if (items.length > 0) {
+            const sorted = [...items].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            const latestWithMw = sorted.find(i => i.materialUnitWeight > 0);
+            if (latestWithMw) {
+              setMaterialUnitWeight(latestWithMw.materialUnitWeight);
+            }
+          }
+        })
         .catch(console.error);
     } else {
       setExistingSubItems([]);
@@ -254,7 +263,7 @@ export default function FloatingCalculator() {
                   border: '2px dashed white',
                   boxShadow: '2px 2px 0px rgba(0,0,0,0.2)'
                 }}>
-                  ✨ 已建立子項：<strong style={{ fontSize: '1.2rem', marginLeft: '5px' }}>{existingSubItems.join(', ')}</strong>
+                  ✨ 已建立子項：<strong style={{ fontSize: '1.2rem', marginLeft: '5px' }}>{existingSubItems.map(i => i.subItemSeq).join(', ')}</strong>
                 </div>
               )}
             </div>
