@@ -220,7 +220,11 @@ export default function ItemDetails() {
                                 </div>
                               </td>
                               <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>
-                                {d.itemSeq} {d.subItemSeq ? `- ${d.subItemSeq}` : ''}
+                                <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+                                  <input type="text" className="doodle-input" style={{ width: '40px', padding: '2px', textAlign: 'center' }} value={editData.itemSeq || ''} onChange={e => handleEditChange('itemSeq', e.target.value)} />
+                                  -
+                                  <input type="text" className="doodle-input" style={{ width: '30px', padding: '2px', textAlign: 'center' }} value={editData.subItemSeq || ''} onChange={e => handleEditChange('subItemSeq', e.target.value)} />
+                                </div>
                               </td>
                               <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
                                 <input type="date" className="doodle-input" style={{ width: '100px', padding: '2px' }} value={editData.date || ''} onChange={e => handleEditChange('date', e.target.value)} />
@@ -278,7 +282,6 @@ export default function ItemDetails() {
                         );
                       })}
                       {/* Subtotal row */}
-                      {group.length > 1 && (
                         <tr style={{ backgroundColor: '#fff0f5', border: '3px solid var(--crayon-purple)', boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)' }}>
                           <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)' }}></td>
                           <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.2rem', fontWeight: '900', color: 'var(--crayon-purple)' }}>小計 ({itemSeq})</td>
@@ -296,7 +299,6 @@ export default function ItemDetails() {
                           </td>
                           <td style={{ padding: '15px 10px', fontSize: '1.2rem', fontWeight: '900', color: 'var(--crayon-red)' }}>{totalItemCount} 項</td>
                         </tr>
-                      )}
                     </React.Fragment>
                   );
                 })}
