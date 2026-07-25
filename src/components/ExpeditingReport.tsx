@@ -24,6 +24,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
   const [selectedAssigneeId, setSelectedAssigneeId] = useState('');
   const [selectedDays, setSelectedDays] = useState('1'); // "1" ~ "7"
   const [ticketStatus, setTicketStatus] = useState('all'); // 'all', 'closed', 'unclosed'
+  const [exactDayFilter, setExactDayFilter] = useState<number | null>(null);
   
   const [sortBy, setSortBy] = useState('id'); // 'id', 'stage', 'assignee', 'processingDays'
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc', 'desc'
@@ -52,7 +53,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
   };
 
   // Process and filter data
-  const processedTickets = useMemo(() => {
+  const baseProcessedTickets = useMemo(() => {
     const startMs = startDate ? new Date(startDate).getTime() : 0;
     const endMs = endDate ? new Date(endDate).getTime() + 24 * 60 * 60 * 1000 - 1 : Infinity;
     const daysThreshold = parseInt(selectedDays, 10);
@@ -149,12 +150,17 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
     });
   }, [tickets, startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays, ticketStatus, workflows, sortBy, sortOrder]);
 
+  const displayedTickets = useMemo(() => {
+    if (exactDayFilter === null) return baseProcessedTickets;
+    return baseProcessedTickets.filter(t => exactDayFilter === 7 ? t.processingDays >= 7 : t.processingDays === exactDayFilter);
+  }, [baseProcessedTickets, exactDayFilter]);
+
   // Pagination logic
-  const totalPages = Math.ceil(processedTickets.length / itemsPerPage);
-  const currentData = processedTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(displayedTickets.length / itemsPerPage) || 1;
+  const currentData = displayedTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   // When filters change, reset page
-  useMemo(() => setCurrentPage(1), [startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays, ticketStatus, itemsPerPage]);
+  useMemo(() => setCurrentPage(1), [startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays, ticketStatus, itemsPerPage, exactDayFilter]);
 
   const getRowColor = (days: number) => {
     if (days >= 7) return '#e1bee7'; // Purple
@@ -169,7 +175,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
 
   // Export Functions
   const exportToExcel = () => {
-    const exportData = processedTickets.map(t => ({
+    const exportData = displayedTickets.map(t => ({
       '單號': t.id,
       '標題/備註': t.title,
       '盤點任務': getTaskName(t.taskId),
@@ -187,11 +193,11 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
 
   const exportToText = () => {
     let content = `稽催報表 (${new Date().toISOString().split('T')[0]})\n`;
-    content += `總筆數: ${processedTickets.length}\n`;
+    content += `總筆數: ${displayedTickets.length}\n`;
     content += `篩選條件: ${startDate} ~ ${endDate} | 天數 >= ${selectedDays}天\n`;
     content += `----------------------------------------------------------\n\n`;
     
-    processedTickets.forEach(t => {
+    displayedTickets.forEach(t => {
       content += `單號: ${t.id}\n`;
       content += `任務: ${getTaskName(t.taskId)}\n`;
       content += `盤點人員: ${getAssigneeName(t.assigneeId)}\n`;
@@ -287,7 +293,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
 
       <div className="doodle-border" style={{ backgroundColor: 'white', padding: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
-          <h2 style={{ margin: 0, color: 'var(--crayon-red)' }}>📄 符合條件清單 (共 {processedTickets.length} 筆)</h2>
+          <h2 style={{ margin: 0, color: 'var(--crayon-red)' }}>📄 符合條件清單 (共 {displayedTickets.length} 筆)</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <label style={{ fontWeight: 'bold' }}>分類排序:</label>
@@ -323,16 +329,39 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
             <strong style={{ marginRight: '5px' }}>處理天數統計：</strong>
             {[1, 2, 3, 4, 5, 6, 7].map(d => {
-              const count = processedTickets.filter(t => d === 7 ? t.processingDays >= 7 : t.processingDays === d).length;
+              const count = baseProcessedTickets.filter(t => d === 7 ? t.processingDays >= 7 : t.processingDays === d).length;
               if (count === 0) return null;
+              const isSelected = exactDayFilter === d;
               return (
-                <div key={d} style={{ display: 'flex', alignItems: 'center', gap: '5px', backgroundColor: 'white', padding: '3px 8px', borderRadius: '5px', border: '1px solid #ccc', fontSize: '0.9rem' }}>
+                <button 
+                  key={d} 
+                  onClick={() => setExactDayFilter(isSelected ? null : d)}
+                  style={{ 
+                    display: 'flex', alignItems: 'center', gap: '5px', 
+                    backgroundColor: isSelected ? '#ffeb3b' : 'white', 
+                    padding: '3px 8px', borderRadius: '5px', 
+                    border: isSelected ? '2px solid #f57f17' : '1px solid #ccc', 
+                    fontSize: '0.9rem', cursor: 'pointer',
+                    boxShadow: isSelected ? '0 0 5px rgba(255,193,7,0.5)' : 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseOver={e => (e.currentTarget.style.backgroundColor = isSelected ? '#ffeb3b' : '#f0f0f0')}
+                  onMouseOut={e => (e.currentTarget.style.backgroundColor = isSelected ? '#ffeb3b' : 'white')}
+                >
                   <span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: getRowColor(d), border: '1px solid #999', borderRadius: '3px' }}></span>
                   <span style={{ fontWeight: 'bold' }}>{d === 7 ? '7天以上' : `${d}天`}:</span> {count} 筆
-                </div>
+                </button>
               );
             })}
-            {processedTickets.length === 0 && <span style={{ color: '#888', fontSize: '0.9rem' }}>無資料</span>}
+            {baseProcessedTickets.length === 0 && <span style={{ color: '#888', fontSize: '0.9rem' }}>無資料</span>}
+            {exactDayFilter !== null && (
+              <button 
+                onClick={() => setExactDayFilter(null)}
+                style={{ padding: '3px 8px', borderRadius: '5px', border: '1px solid #ccc', backgroundColor: '#e0e0e0', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                ✖ 清除天數篩選
+              </button>
+            )}
           </div>
         </div>
 
@@ -404,7 +433,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
                 </div>
                 <div style={{ fontWeight: 'bold', color: 'var(--crayon-dark)', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999' }}>{t.id}</div>
                 <div style={{ color: 'var(--crayon-green)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999' }}>{getTaskName(t.taskId)}</div>
-                <div style={{ color: 'var(--crayon-orange)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999' }}>{getAssigneeName(t.assigneeId)}</div>
+                <div style={{ color: '#d84315', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999' }}>{getAssigneeName(t.assigneeId)}</div>
                 <div style={{ color: 'var(--crayon-blue)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999' }}>{t.currentStage}</div>
                 <div style={{ color: 'var(--crayon-purple)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999' }}>{getAssigneeName(t.currentStageAssigneeId)}</div>
                 <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '1.2rem', color: t.processingDays >= 3 ? 'white' : 'var(--crayon-dark)', backgroundColor: t.processingDays >= 3 ? 'var(--crayon-red)' : 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '2px solid var(--crayon-dark)' }}>
@@ -454,7 +483,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
         <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
           <div ref={fullReportRef} style={{ display: 'flex', flexDirection: 'column', gap: '50px' }}>
             {Array.from({ length: totalPages || 1 }).map((_, pageIndex) => {
-              const pageData = processedTickets.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
+              const pageData = displayedTickets.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage);
               return (
                 <div key={pageIndex} className="export-page-node" style={{ padding: '20px', backgroundColor: 'white', width: '1200px' }}>
                   <h2 style={{ color: 'var(--crayon-red)', marginBottom: '20px', textAlign: 'center' }}>
@@ -502,7 +531,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
                         </div>
                         <div style={{ fontWeight: 'bold', color: 'var(--crayon-dark)', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{t.id}</div>
                         <div style={{ color: 'var(--crayon-green)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{getTaskName(t.taskId)}</div>
-                        <div style={{ color: 'var(--crayon-orange)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{getAssigneeName(t.assigneeId)}</div>
+                        <div style={{ color: '#d84315', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{getAssigneeName(t.assigneeId)}</div>
                         <div style={{ color: 'var(--crayon-blue)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{t.currentStage}</div>
                         <div style={{ color: 'var(--crayon-purple)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{getAssigneeName(t.currentStageAssigneeId)}</div>
                         <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '1.3rem', color: t.processingDays >= 3 ? 'white' : 'var(--crayon-dark)', backgroundColor: t.processingDays >= 3 ? 'var(--crayon-red)' : 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '2px solid var(--crayon-dark)' }}>
