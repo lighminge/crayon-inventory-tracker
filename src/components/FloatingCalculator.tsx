@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import CrayonDatePicker from './CrayonDatePicker';
-import { getPersonnel, checkItemDetailExists, saveItemDetail } from '../services/api';
-import type { Personnel, InventoryItemDetail } from '../types';
+import { getPersonnel, checkItemDetailExists, saveItemDetail, getTickets } from '../services/api';
+import type { Personnel, InventoryItemDetail, InventoryTicket } from '../types';
 
 export default function FloatingCalculator() {
   const [isOpen, setIsOpen] = useState(false);
@@ -23,10 +23,21 @@ export default function FloatingCalculator() {
   const [existingDetailId, setExistingDetailId] = useState<string | undefined>(undefined);
   
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
+  const [tickets, setTickets] = useState<InventoryTicket[]>([]);
   
   useEffect(() => {
     getPersonnel().then(setPersonnel).catch(console.error);
+    getTickets().then(setTickets).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    if (importTicketId.trim()) {
+      const ticket = tickets.find(t => t.id === importTicketId.trim());
+      if (ticket && ticket.assigneeId) {
+        setPreparerId(ticket.assigneeId);
+      }
+    }
+  }, [importTicketId, tickets]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -168,6 +179,36 @@ export default function FloatingCalculator() {
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            
+            {/* Import Section (Moved to top) */}
+            <div style={{ backgroundColor: '#f0f8ff', padding: '15px', borderRadius: '8px', border: '2px dashed var(--crayon-blue)' }}>
+              <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-blue)' }}>📥 匯入設定</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.85rem' }}>盤點單號</label>
+                  <input 
+                    type="text" 
+                    className="doodle-input" 
+                    style={{ padding: '8px' }}
+                    value={importTicketId} 
+                    onChange={e => setImportTicketId(e.target.value)}
+                    placeholder="輸入單號"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.85rem' }}>項目編號</label>
+                  <input 
+                    type="text" 
+                    className="doodle-input" 
+                    style={{ padding: '8px' }}
+                    value={importItemSeq} 
+                    onChange={e => setImportItemSeq(e.target.value)}
+                    placeholder="001"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.9rem' }}>📅 日期</label>
               <CrayonDatePicker value={date} onChange={setDate} />
@@ -273,6 +314,14 @@ export default function FloatingCalculator() {
             
             <button 
               className="doodle-button" 
+              style={{ width: '100%', backgroundColor: 'var(--crayon-blue)', color: 'white', marginTop: '10px', padding: '12px', fontSize: '1.1rem' }}
+              onClick={handleImport}
+            >
+              📥 匯入至此明細
+            </button>
+            
+            <button 
+              className="doodle-button" 
               style={{ width: '100%', marginTop: '5px' }}
               onClick={() => {
                 setGrossWeight('');
@@ -283,42 +332,6 @@ export default function FloatingCalculator() {
             >
               🔄 清空重設
             </button>
-            
-            {/* Import Section */}
-            <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '2px dashed var(--crayon-dark)' }}>
-              <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-dark)' }}>📥 匯入盤點項目明細</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.85rem' }}>盤點單號</label>
-                  <input 
-                    type="text" 
-                    className="doodle-input" 
-                    style={{ padding: '8px' }}
-                    value={importTicketId} 
-                    onChange={e => setImportTicketId(e.target.value)}
-                    placeholder="輸入單號"
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.85rem' }}>項目編號 (如: 001)</label>
-                  <input 
-                    type="text" 
-                    className="doodle-input" 
-                    style={{ padding: '8px' }}
-                    value={importItemSeq} 
-                    onChange={e => setImportItemSeq(e.target.value)}
-                    placeholder="001"
-                  />
-                </div>
-              </div>
-              <button 
-                className="doodle-button" 
-                style={{ width: '100%', backgroundColor: 'var(--crayon-blue)', color: 'white' }}
-                onClick={handleImport}
-              >
-                📥 匯入資料
-              </button>
-            </div>
           </div>
         </div>
       )}

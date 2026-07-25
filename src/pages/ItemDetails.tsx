@@ -21,6 +21,16 @@ export default function ItemDetails() {
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
+  // Pagination & Sort state
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortMethod, setSortMethod] = useState<'id' | 'date'>('id');
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStartDate, filterEndDate, filterTicketId, filterTicketType, sortMethod, itemsPerPage]);
+
   const loadData = async () => {
     try {
       const t = await getTickets();
@@ -49,6 +59,16 @@ export default function ItemDetails() {
     
     return true;
   });
+
+  const sortedTickets = [...filteredTickets].sort((a, b) => {
+    if (sortMethod === 'date') {
+      return (b.dispatchDate || 0) - (a.dispatchDate || 0);
+    }
+    return a.id.localeCompare(b.id);
+  });
+
+  const totalPages = Math.ceil(sortedTickets.length / itemsPerPage);
+  const currentTickets = sortedTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const currentDetails = details.filter(d => d.ticketId === selectedTicketId).sort((a, b) => a.itemSeq.localeCompare(b.itemSeq));
 
@@ -142,6 +162,39 @@ export default function ItemDetails() {
         </div>
       </div>
 
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
+        <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-blue)' }}>
+          👉 目前符合條件共 {sortedTickets.length} 筆資料
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+          <div>
+            <label style={{ fontWeight: 'bold' }}>排序：</label>
+            <select className="doodle-input" style={{ width: 'auto', padding: '5px' }} value={sortMethod} onChange={e => setSortMethod(e.target.value as any)}>
+              <option value="id">單號排序</option>
+              <option value="date">日期排序</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontWeight: 'bold' }}>每頁筆數：</label>
+            <select className="doodle-input" style={{ width: 'auto', padding: '5px' }} value={itemsPerPage} onChange={e => setItemsPerPage(Number(e.target.value))}>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={30}>30</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+          
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button className="doodle-button" style={{ padding: '5px 15px', minHeight: 'auto' }} disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>上一頁</button>
+              <div style={{ padding: '5px 15px', fontWeight: 'bold' }}>{currentPage} / {totalPages}</div>
+              <button className="doodle-button" style={{ padding: '5px 15px', minHeight: 'auto' }} disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>下一頁</button>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
           <thead>
@@ -154,7 +207,8 @@ export default function ItemDetails() {
             </tr>
           </thead>
           <tbody>
-            {filteredTickets.map((t, index) => {
+            {currentTickets.map((t, index) => {
+              const seqNum = (currentPage - 1) * itemsPerPage + index + 1;
               const itemsImported = details.filter(d => d.ticketId === t.id).length;
               return (
                 <tr key={t.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
@@ -164,7 +218,7 @@ export default function ItemDetails() {
                       setViewMode('detail');
                     }}>項目明細</button>
                   </td>
-                  <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{index + 1}</td>
+                  <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{seqNum}</td>
                   <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>{t.id}</td>
                   <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{t.ticketType || '無'}</td>
                   <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
@@ -177,7 +231,7 @@ export default function ItemDetails() {
             })}
           </tbody>
         </table>
-        {filteredTickets.length === 0 && (
+        {currentTickets.length === 0 && (
           <div className="doodle-border" style={{ padding: '40px', textAlign: 'center', color: '#666', borderTop: 'none' }}>
             沒有符合條件的盤點單。
           </div>
