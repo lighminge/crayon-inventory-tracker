@@ -139,6 +139,10 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
         const nameA = getAssigneeName(a.currentStageAssigneeId);
         const nameB = getAssigneeName(b.currentStageAssigneeId);
         return factor * nameA.localeCompare(nameB);
+      } else if (sortBy === 'ticketAssignee') {
+        const nameA = getAssigneeName(a.assigneeId);
+        const nameB = getAssigneeName(b.assigneeId);
+        return factor * nameA.localeCompare(nameB);
       } else { // processingDays
         return factor * (a.processingDays - b.processingDays);
       }
@@ -169,6 +173,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
       '單號': t.id,
       '標題/備註': t.title,
       '盤點任務': getTaskName(t.taskId),
+      '盤點人員': getAssigneeName(t.assigneeId),
       '目前狀態': t.currentStage,
       '負責人員': getAssigneeName(t.currentStageAssigneeId),
       '總處理天數': t.processingDays
@@ -189,6 +194,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
     processedTickets.forEach(t => {
       content += `單號: ${t.id}\n`;
       content += `任務: ${getTaskName(t.taskId)}\n`;
+      content += `盤點人員: ${getAssigneeName(t.assigneeId)}\n`;
       content += `狀態: ${t.currentStage}\n`;
       content += `負責人員: ${getAssigneeName(t.currentStageAssigneeId)}\n`;
       content += `處理天數: ${t.processingDays} 天\n`;
@@ -287,6 +293,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
               <label style={{ fontWeight: 'bold' }}>分類排序:</label>
               <select className="doodle-input" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ padding: '5px' }}>
                 <option value="id">單號</option>
+                <option value="ticketAssignee">盤點人員</option>
                 <option value="stage">目前狀態</option>
                 <option value="assignee">負責人</option>
                 <option value="processingDays">處理天數</option>
@@ -366,10 +373,11 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {/* Table Header */}
-            <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 1.5fr 2fr 1fr 1fr', gap: '10px', padding: '10px', borderBottom: '3px solid var(--crayon-dark)', fontWeight: 'bold', fontSize: '1.1rem', backgroundColor: '#e0f7fa', borderRadius: '5px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 1.5fr 1fr 1.5fr 1fr 1fr', gap: '10px', padding: '10px', borderBottom: '3px solid var(--crayon-dark)', fontWeight: 'bold', fontSize: '1.1rem', backgroundColor: '#e0f7fa', borderRadius: '5px' }}>
               <div style={{ textAlign: 'center' }}>序號</div>
               <div>單號</div>
               <div>盤點任務</div>
+              <div>盤點人員</div>
               <div>目前狀態</div>
               <div>負責人</div>
               <div style={{ textAlign: 'center' }}>處理天數</div>
@@ -381,7 +389,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
                 key={t.id} 
                 style={{ 
                   display: 'grid', 
-                  gridTemplateColumns: '50px 1fr 1.5fr 2fr 1fr 1fr', 
+                  gridTemplateColumns: '50px 1fr 1.5fr 1fr 1.5fr 1fr 1fr', 
                   gap: '10px', 
                   padding: '10px', 
                   backgroundColor: getRowColor(t.processingDays),
@@ -396,6 +404,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
                 </div>
                 <div style={{ fontWeight: 'bold', color: 'var(--crayon-dark)', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999' }}>{t.id}</div>
                 <div style={{ color: 'var(--crayon-green)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999' }}>{getTaskName(t.taskId)}</div>
+                <div style={{ color: 'var(--crayon-orange)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999' }}>{getAssigneeName(t.assigneeId)}</div>
                 <div style={{ color: 'var(--crayon-blue)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999' }}>{t.currentStage}</div>
                 <div style={{ color: 'var(--crayon-purple)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999' }}>{getAssigneeName(t.currentStageAssigneeId)}</div>
                 <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '1.2rem', color: t.processingDays >= 3 ? 'white' : 'var(--crayon-dark)', backgroundColor: t.processingDays >= 3 ? 'var(--crayon-red)' : 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '2px solid var(--crayon-dark)' }}>
@@ -464,10 +473,11 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
                   )}
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 1.5fr 2fr 1fr 1fr', gap: '10px', padding: '10px', borderBottom: '3px solid var(--crayon-dark)', fontWeight: 'bold', fontSize: '1.2rem', backgroundColor: '#e0f7fa', borderRadius: '5px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 1.5fr 1fr 1.5fr 1fr 1fr', gap: '10px', padding: '10px', borderBottom: '3px solid var(--crayon-dark)', fontWeight: 'bold', fontSize: '1.2rem', backgroundColor: '#e0f7fa', borderRadius: '5px' }}>
                       <div style={{ textAlign: 'center' }}>序號</div>
                       <div>單號</div>
                       <div>盤點任務</div>
+                      <div>盤點人員</div>
                       <div>目前狀態</div>
                       <div>負責人</div>
                       <div style={{ textAlign: 'center' }}>處理天數</div>
@@ -478,7 +488,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
                         key={t.id} 
                         style={{ 
                           display: 'grid', 
-                          gridTemplateColumns: '50px 1fr 1.5fr 2fr 1fr 1fr', 
+                          gridTemplateColumns: '50px 1fr 1.5fr 1fr 1.5fr 1fr 1fr', 
                           gap: '10px', 
                           padding: '10px', 
                           backgroundColor: getRowColor(t.processingDays),
@@ -492,6 +502,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
                         </div>
                         <div style={{ fontWeight: 'bold', color: 'var(--crayon-dark)', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{t.id}</div>
                         <div style={{ color: 'var(--crayon-green)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{getTaskName(t.taskId)}</div>
+                        <div style={{ color: 'var(--crayon-orange)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{getAssigneeName(t.assigneeId)}</div>
                         <div style={{ color: 'var(--crayon-blue)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{t.currentStage}</div>
                         <div style={{ color: 'var(--crayon-purple)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{getAssigneeName(t.currentStageAssigneeId)}</div>
                         <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '1.3rem', color: t.processingDays >= 3 ? 'white' : 'var(--crayon-dark)', backgroundColor: t.processingDays >= 3 ? 'var(--crayon-red)' : 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '2px solid var(--crayon-dark)' }}>

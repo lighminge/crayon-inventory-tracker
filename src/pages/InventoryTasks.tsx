@@ -142,13 +142,23 @@ export default function InventoryTasks() {
       });
       const assigneeList = Object.values(assigneeStats).sort((a, b) => b.items - a.items);
 
+      // Calculate total days spent
+      let totalDaysSpent: number | null = null;
+      if (linkedTickets.length > 0) {
+        const maxCloseDate = Math.max(...linkedTickets.map(t => t.closeDate || 0));
+        if (maxCloseDate > 0) {
+          totalDaysSpent = Math.max(1, Math.ceil((maxCloseDate - task.startDate) / (1000 * 3600 * 24)));
+        }
+      }
+
       return {
         ...task,
         completedItems,
         completedTicketsCount,
         completionRate,
         isExpired,
-        assigneeList
+        assigneeList,
+        totalDaysSpent
       };
     });
   }, [tasks, tickets, personnel]);
@@ -226,6 +236,13 @@ export default function InventoryTasks() {
                 >
                   完成狀態
                 </button>
+                <button 
+                  className={`doodle-button ${currentTab === 'report' ? 'active' : ''}`}
+                  style={{ flex: 1, padding: '5px', minHeight: 'auto', backgroundColor: currentTab === 'report' ? 'var(--crayon-dark)' : 'white', color: currentTab === 'report' ? 'white' : 'var(--crayon-dark)' }}
+                  onClick={() => setActiveTab(prev => ({...prev, [task.id]: 'report'}))}
+                >
+                  任務報告
+                </button>
               </div>
 
               {currentTab === 'info' ? (
@@ -275,7 +292,7 @@ export default function InventoryTasks() {
                     </div>
                   </div>
                 </>
-              ) : (
+              ) : currentTab === 'status' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px', minHeight: '340px' }}>
                   <div className="doodle-border" style={{ backgroundColor: '#e3f2fd', padding: '10px', textAlign: 'center' }}>
                     <div style={{ fontWeight: 'bold', color: 'var(--crayon-blue)' }}>統計數量</div>
@@ -337,6 +354,53 @@ export default function InventoryTasks() {
                       )}
                     </div>
                   )}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px', minHeight: '340px' }}>
+                  <div className="doodle-border" style={{ backgroundColor: '#fff9c4', padding: '10px', textAlign: 'center' }}>
+                    <div style={{ fontWeight: 'bold', color: 'var(--crayon-orange)' }}>完成所有盤點項目的總花費天數</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginTop: '5px' }}>
+                      {task.totalDaysSpent ? <span style={{ color: 'var(--crayon-red)' }}>{task.totalDaysSpent} 天</span> : <span style={{ color: '#888' }}>尚未完成</span>}
+                    </div>
+                  </div>
+                  
+                  <div style={{ fontWeight: 'bold', marginTop: '10px', fontSize: '1.1rem' }}>🏆 人員完成項目排名</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {task.assigneeList.map((assignee, rankIdx) => {
+                      let rankStyle = { backgroundColor: 'white', color: 'var(--crayon-dark)', border: '2px solid var(--crayon-dark)' };
+                      let rankBadge = '';
+                      if (rankIdx === 0) {
+                        rankStyle = { backgroundColor: '#fff8e1', color: '#8b6508', border: '2px solid #daa520' };
+                        rankBadge = '🥇 第 1 名';
+                      } else if (rankIdx === 1) {
+                        rankStyle = { backgroundColor: '#f5f5f5', color: '#555', border: '2px solid #9e9e9e' };
+                        rankBadge = '🥈 第 2 名';
+                      } else if (rankIdx === 2) {
+                        rankStyle = { backgroundColor: '#fbe9e7', color: '#8b4513', border: '2px solid #cd7f32' };
+                        rankBadge = '🥉 第 3 名';
+                      } else {
+                        rankBadge = `第 ${rankIdx + 1} 名`;
+                      }
+                      
+                      return (
+                        <div key={assignee.name} className="doodle-border" style={{ 
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                          padding: '12px 15px', borderRadius: '10px', 
+                          ...rankStyle
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{ fontWeight: '900', fontSize: '1.2rem', minWidth: '80px' }}>{rankBadge}</span>
+                            <span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{assignee.name}</span>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '0.8rem', opacity: 0.8, fontWeight: 'bold' }}>完成項目數</div>
+                            <div style={{ fontWeight: '900', fontSize: '1.5rem', color: rankIdx < 3 ? 'inherit' : 'var(--crayon-orange)' }}>{assignee.items} <span style={{ fontSize: '1rem' }}>項</span></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {task.assigneeList.length === 0 && <div style={{ color: '#888', textAlign: 'center', padding: '20px' }}>暫無人員參與</div>}
+                  </div>
                 </div>
               )}
 
