@@ -326,76 +326,83 @@ export default function InventoryTicketsPage() {
       {/* Filter & Sort Bar */}
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#f9f9f9' }}>
         <h3 style={{ marginTop: 0, marginBottom: '15px', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>🔍 查詢與排序</h3>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>盤點單號：</label>
-            <input className="doodle-input" style={{ width: '120px' }} value={filterId} onChange={e => setFilterId(e.target.value)} placeholder="輸入單號" />
-          </div>
-          <div style={{ width: '150px' }}>
-            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>派送日期起：</label>
-            <CrayonDatePicker value={filterStartDate} onChange={setFilterStartDate} />
-          </div>
-          <div style={{ width: '150px' }}>
-            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>派送日期迄：</label>
-            <CrayonDatePicker value={filterEndDate} onChange={setFilterEndDate} />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>狀態：</label>
-            <select className="doodle-input" value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}>
-              <option value="all">全部</option>
-              <option value="inProgress">處理中</option>
-              <option value="closed">已完成</option>
-            </select>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>盤點人員：</label>
-            <select className="doodle-input" value={filterPerson} onChange={e => setFilterPerson(e.target.value)}>
-              <option value="">-- 全部 --</option>
-              {personnel.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>年度：</label>
-            <select className="doodle-input" value={filterYear} onChange={e => setFilterYear(e.target.value)}>
-              <option value="">-- 全部 --</option>
-              {Array.from({length: 5}, (_, i) => new Date().getFullYear() - 2 + i).map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>月份：</label>
-            <select className="doodle-input" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}>
-              <option value="">-- 全部 --</option>
-              {Array.from({length: 12}, (_, i) => i + 1).map(m => (
-                <option key={m} value={m}>{m} 月</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>盤點任務：</label>
-            <select className="doodle-input" value={filterTaskId} onChange={e => setFilterTaskId(e.target.value)}>
-              <option value="">-- 全部 --</option>
-              {tasks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-            </select>
-          </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          {/* 第 1 行 */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>排序方式：</label>
-              <select className="doodle-input" style={{ border: '2px solid var(--crayon-blue)' }} value={sortMethod} onChange={e => setSortMethod(e.target.value as any)}>
-                <option value="id">單號排序</option>
-                <option value="dispatchDate">盤點派單日排序</option>
-                <option value="personnel">人員排序</option>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>盤點單號：</label>
+              <input className="doodle-input" style={{ width: '120px' }} value={filterId} onChange={e => setFilterId(e.target.value)} placeholder="輸入單號" />
+            </div>
+            <div style={{ width: '150px' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>派送日期起：</label>
+              <CrayonDatePicker value={filterStartDate} onChange={setFilterStartDate} />
+            </div>
+            <div style={{ width: '150px' }}>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>派送日期迄：</label>
+              <CrayonDatePicker value={filterEndDate} onChange={setFilterEndDate} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>狀態：</label>
+              <select className="doodle-input" value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}>
+                <option value="all">全部</option>
+                <option value="inProgress">處理中</option>
+                <option value="closed">已完成</option>
               </select>
             </div>
-            <button className="doodle-button" style={{ height: '42px' }} onClick={() => {
-              setFilterId(''); 
-              const d = new Date();
-              setFilterEndDate(d.toISOString().split('T')[0]);
-              d.setMonth(d.getMonth() - 1);
-              setFilterStartDate(d.toISOString().split('T')[0]);
-              setFilterStatus('all'); setFilterPerson(''); setFilterTaskId(''); setFilterYear(''); setFilterMonth(''); setSortMethod('id');
-            }}>清除</button>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>年度：</label>
+              <select className="doodle-input" value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+                <option value="">-- 全部 --</option>
+                {Array.from({length: 5}, (_, i) => new Date().getFullYear() - 2 + i).map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>月份：</label>
+              <select className="doodle-input" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}>
+                <option value="">-- 全部 --</option>
+                {Array.from({length: 12}, (_, i) => i + 1).map(m => (
+                  <option key={m} value={m}>{m} 月</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
+          {/* 第 2 行 */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>盤點任務：</label>
+              <select className="doodle-input" value={filterTaskId} onChange={e => setFilterTaskId(e.target.value)}>
+                <option value="">-- 全部 --</option>
+                {tasks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>盤點人員：</label>
+              <select className="doodle-input" value={filterPerson} onChange={e => setFilterPerson(e.target.value)}>
+                <option value="">-- 全部 --</option>
+                {personnel.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>排序方式：</label>
+                <select className="doodle-input" style={{ border: '2px solid var(--crayon-blue)' }} value={sortMethod} onChange={e => setSortMethod(e.target.value as any)}>
+                  <option value="id">單號排序</option>
+                  <option value="dispatchDate">盤點派單日排序</option>
+                  <option value="personnel">人員排序</option>
+                </select>
+              </div>
+              <button className="doodle-button" style={{ height: '42px' }} onClick={() => {
+                setFilterId(''); 
+                const d = new Date();
+                setFilterEndDate(d.toISOString().split('T')[0]);
+                d.setMonth(d.getMonth() - 1);
+                setFilterStartDate(d.toISOString().split('T')[0]);
+                setFilterStatus('all'); setFilterPerson(''); setFilterTaskId(''); setFilterYear(''); setFilterMonth(''); setSortMethod('id');
+              }}>清除</button>
+            </div>
           </div>
         </div>
       </div>
