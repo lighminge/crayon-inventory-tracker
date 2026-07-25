@@ -14,7 +14,7 @@ export default function InventoryTasks() {
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   
   // Tab and Pagination States for Task Cards
-  const [activeTab, setActiveTab] = useState<Record<string, 'info' | 'status'>>({});
+  const [activeTab, setActiveTab] = useState<Record<string, 'info' | 'status' | 'report'>>({});
   const [statusPage, setStatusPage] = useState<Record<string, number>>({});
   const [itemsPerPage, setItemsPerPage] = useState<Record<string, number>>({});
   
