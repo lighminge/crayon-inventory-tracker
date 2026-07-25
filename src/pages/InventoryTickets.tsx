@@ -781,16 +781,16 @@ export default function InventoryTicketsPage() {
       {updatingTicket && selectedStageId && !isManagerFormOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '400px', backgroundColor: 'white' }}>
-            <h3>更新流程進度</h3>
-            <p>單號：{updatingTicket.id}</p>
+            <h3 style={{ fontSize: '1.8rem', marginTop: 0 }}>🚀 更新流程進度</h3>
+            <p style={{ fontSize: '1.3rem', fontWeight: 'bold' }}>單號：{updatingTicket.id}</p>
             {(() => {
               const currentIndex = workflows.findIndex(w => w.id === selectedStageId);
               const nextFlow = workflows[currentIndex + 1];
               return (
                 <div style={{ marginBottom: '15px' }}>
-                  <p style={{ margin: '5px 0' }}>即將推進至：<strong>{nextFlow ? nextFlow.name : '✅ 結案'}</strong></p>
+                  <p style={{ margin: '5px 0', fontSize: '1.2rem', fontWeight: 'bold' }}>即將推進至：<strong style={{ fontSize: '1.6rem', color: 'var(--crayon-orange)' }}>{nextFlow ? nextFlow.name : '✅ 結案'}</strong></p>
                   {nextFlow && (
-                    <p style={{ margin: '5px 0', color: 'var(--crayon-blue)' }}>
+                    <p style={{ margin: '5px 0', fontSize: '1.1rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
                       下一關負責人：<strong>{getAssigneeName(nextFlow.assigneeId === 'DYNAMIC_ASSIGNEE' ? updatingTicket.assigneeId : (nextFlow.assigneeId || ''))}</strong>
                     </p>
                   )}
@@ -799,8 +799,8 @@ export default function InventoryTicketsPage() {
             })()}
             <form onSubmit={handleStageUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '10px' }}>
               <div>
-                <label>完成日期：</label>
-                <input type="date" className="doodle-input" required value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+                <label style={{ display: 'block', marginBottom: '5px' }}>完成日期：</label>
+                <CrayonDatePicker value={selectedDate} onChange={setSelectedDate} />
               </div>
               {workflows.findIndex(w => w.id === selectedStageId) === workflows.length - 1 && (
                 <div>

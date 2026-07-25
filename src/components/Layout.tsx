@@ -2,6 +2,7 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 // @ts-ignore
 import { Lunar, Solar } from 'lunar-javascript';
+import FloatingCalculator from './FloatingCalculator';
 
 export default function Layout() {
   const [dateInfo, setDateInfo] = useState<{
@@ -155,6 +156,8 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+      
+      <FloatingCalculator />
     </div>
   );
 }
