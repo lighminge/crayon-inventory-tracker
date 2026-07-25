@@ -48,13 +48,14 @@ export default function ItemDetails() {
 
   useEffect(() => {
     loadData();
-    if (location.state?.openTicketId) {
+    if (location.state && location.state.openTicketId) {
       setSelectedTicketId(location.state.openTicketId);
       setViewMode('detail');
-      // Clear the state so it doesn't reopen if they click back
-      navigate(location.pathname, { replace: true });
+      
+      // Clear state so it doesn't trigger again on normal navigation
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, []);
+  }, [location, navigate]);
 
   const filteredTickets = tickets.filter(t => {
     if (filterTicketId && !t.id.includes(filterTicketId)) return false;
@@ -205,6 +206,27 @@ export default function ItemDetails() {
             </table>
           </div>
         )}
+        
+        {deleteConfirmId && (
+          <div style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 10001
+          }}>
+            <div className="doodle-border" style={{ backgroundColor: 'white', padding: '30px', maxWidth: '350px', textAlign: 'center' }}>
+              <h3 style={{ color: 'var(--crayon-red)', marginTop: 0 }}>⚠️ 確定要刪除嗎？</h3>
+              <p style={{ fontSize: '1.1rem', marginBottom: '20px' }}>刪除後將無法復原此筆明細資料。</p>
+              <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+                <button className="doodle-button" onClick={() => setDeleteConfirmId(null)}>取消</button>
+                <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-red)', color: 'white' }} onClick={() => handleDelete(deleteConfirmId)}>確定刪除</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -329,27 +351,6 @@ export default function ItemDetails() {
           </div>
         )}
       </div>
-
-      {deleteConfirmId && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 10001
-        }}>
-          <div className="doodle-border" style={{ backgroundColor: 'white', padding: '30px', maxWidth: '350px', textAlign: 'center' }}>
-            <h3 style={{ color: 'var(--crayon-red)', marginTop: 0 }}>⚠️ 確定要刪除嗎？</h3>
-            <p style={{ fontSize: '1.1rem', marginBottom: '20px' }}>刪除後將無法復原此筆明細資料。</p>
-            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
-              <button className="doodle-button" onClick={() => setDeleteConfirmId(null)}>取消</button>
-              <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-red)', color: 'white' }} onClick={() => handleDelete(deleteConfirmId)}>確定刪除</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
