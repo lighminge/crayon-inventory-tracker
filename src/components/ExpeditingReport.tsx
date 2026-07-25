@@ -302,14 +302,31 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
           </div>
         </div>
 
-        {/* Legend for colors (moved to top) */}
-        <div style={{ marginBottom: '20px', display: 'flex', gap: '15px', fontSize: '0.9rem', flexWrap: 'wrap', backgroundColor: '#f0f0f0', padding: '10px', borderRadius: '5px', border: '2px dashed var(--crayon-dark)' }}>
-          <strong style={{ marginRight: '10px' }}>顏色說明 (處理天數):</strong>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(3), border: '1px solid #ccc', borderRadius: '4px' }}></span> 3天</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(4), border: '1px solid #ccc', borderRadius: '4px' }}></span> 4天</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(5), border: '1px solid #ccc', borderRadius: '4px' }}></span> 5天</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(6), border: '1px solid #ccc', borderRadius: '4px' }}></span> 6天</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(7), border: '1px solid #ccc', borderRadius: '4px' }}></span> 7天以上</div>
+        {/* Legend and Processing Days Stats */}
+        <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px', border: '2px dashed var(--crayon-dark)' }}>
+          <div style={{ display: 'flex', gap: '15px', fontSize: '0.9rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <strong style={{ marginRight: '5px' }}>顏色說明 (處理天數):</strong>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(3), border: '1px solid #ccc', borderRadius: '4px' }}></span> 3天</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(4), border: '1px solid #ccc', borderRadius: '4px' }}></span> 4天</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(5), border: '1px solid #ccc', borderRadius: '4px' }}></span> 5天</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(6), border: '1px solid #ccc', borderRadius: '4px' }}></span> 6天</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(7), border: '1px solid #ccc', borderRadius: '4px' }}></span> 7天以上</div>
+          </div>
+          <div style={{ height: '1px', backgroundColor: '#ddd', width: '100%' }}></div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+            <strong style={{ marginRight: '5px' }}>處理天數統計：</strong>
+            {[1, 2, 3, 4, 5, 6, 7].map(d => {
+              const count = processedTickets.filter(t => d === 7 ? t.processingDays >= 7 : t.processingDays === d).length;
+              if (count === 0) return null;
+              return (
+                <div key={d} style={{ display: 'flex', alignItems: 'center', gap: '5px', backgroundColor: 'white', padding: '3px 8px', borderRadius: '5px', border: '1px solid #ccc', fontSize: '0.9rem' }}>
+                  <span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: getRowColor(d), border: '1px solid #999', borderRadius: '3px' }}></span>
+                  <span style={{ fontWeight: 'bold' }}>{d === 7 ? '7天以上' : `${d}天`}:</span> {count} 筆
+                </div>
+              );
+            })}
+            {processedTickets.length === 0 && <span style={{ color: '#888', fontSize: '0.9rem' }}>無資料</span>}
+          </div>
         </div>
 
         {/* Pagination (Top) */}
@@ -346,20 +363,6 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
         </div>
 
         <div ref={reportRef} style={{ padding: '10px', backgroundColor: 'white' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '15px', backgroundColor: '#f9f9f9', padding: '10px', borderRadius: '8px', border: '2px dashed var(--crayon-dark)' }}>
-            <strong style={{ width: '100%' }}>處理天數統計：</strong>
-            {[1, 2, 3, 4, 5, 6, 7].map(d => {
-              const count = processedTickets.filter(t => d === 7 ? t.processingDays >= 7 : t.processingDays === d).length;
-              if (count === 0) return null;
-              return (
-                <div key={d} style={{ display: 'flex', alignItems: 'center', gap: '5px', backgroundColor: 'white', padding: '5px 10px', borderRadius: '5px', border: '1px solid #ccc' }}>
-                  <span style={{ display: 'inline-block', width: '15px', height: '15px', backgroundColor: getRowColor(d), border: '1px solid #999', borderRadius: '3px' }}></span>
-                  <span style={{ fontWeight: 'bold' }}>{d === 7 ? '7天以上' : `${d}天`}:</span> {count} 筆
-                </div>
-              );
-            })}
-            {processedTickets.length === 0 && <span style={{ color: '#888' }}>無資料</span>}
-          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {/* Table Header */}
