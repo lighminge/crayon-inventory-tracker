@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CrayonDatePicker from './CrayonDatePicker';
-import { getPersonnel, checkItemDetailExists, saveItemDetail, getTickets } from '../services/api';
+import { getPersonnel, checkItemDetailExists, saveItemDetail, getTickets, getExistingSubItems } from '../services/api';
 import type { Personnel, InventoryItemDetail, InventoryTicket } from '../types';
 
 export default function FloatingCalculator() {
@@ -22,6 +22,7 @@ export default function FloatingCalculator() {
   const [importTicketId, setImportTicketId] = useState('');
   const [importItemSeq, setImportItemSeq] = useState('001');
   const [importSubItemSeq, setImportSubItemSeq] = useState('1');
+  const [existingSubItems, setExistingSubItems] = useState<string[]>([]);
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
   const [existingDetailId, setExistingDetailId] = useState<string | undefined>(undefined);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
@@ -42,6 +43,16 @@ export default function FloatingCalculator() {
       }
     }
   }, [importTicketId, tickets]);
+
+  useEffect(() => {
+    if (importTicketId.trim() && importItemSeq.trim()) {
+      getExistingSubItems(importTicketId.trim(), importItemSeq.trim())
+        .then(setExistingSubItems)
+        .catch(console.error);
+    } else {
+      setExistingSubItems([]);
+    }
+  }, [importTicketId, importItemSeq]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -129,6 +140,12 @@ export default function FloatingCalculator() {
       if (!isNaN(currentSubSeq)) {
         setImportSubItemSeq((currentSubSeq + 1).toString());
       }
+      
+      // Refresh existing sub-items
+      getExistingSubItems(importTicketId.trim(), importItemSeq.trim())
+        .then(setExistingSubItems)
+        .catch(console.error);
+        
     } catch (e) {
       console.error(e);
       setAlertMessage('匯入失敗');
@@ -225,6 +242,11 @@ export default function FloatingCalculator() {
                   />
                 </div>
               </div>
+              {existingSubItems.length > 0 && (
+                <div style={{ fontSize: '0.85rem', color: '#666', marginTop: '5px' }}>
+                  已建立子項：<span style={{ color: 'var(--crayon-purple)', fontWeight: 'bold' }}>{existingSubItems.join(', ')}</span>
+                </div>
+              )}
             </div>
 
             <div>

@@ -133,6 +133,12 @@ export const checkItemDetailExists = async (ticketId: string, itemSeq: string, s
   return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as InventoryItemDetail;
 };
 
+export const getExistingSubItems = async (ticketId: string, itemSeq: string): Promise<string[]> => {
+  const q = query(collection(db, 'inventory_item_details'), where('ticketId', '==', ticketId), where('itemSeq', '==', itemSeq));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => doc.data().subItemSeq || '').filter(s => s !== '').sort();
+};
+
 export const saveItemDetail = async (detail: Omit<InventoryItemDetail, 'id'>, existingId?: string): Promise<InventoryItemDetail> => {
   if (existingId) {
     await updateDoc(doc(db, 'inventory_item_details', existingId), { ...detail });

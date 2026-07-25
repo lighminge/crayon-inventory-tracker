@@ -143,15 +143,17 @@ export default function ItemDetails() {
                   const totalItemCount = group.reduce((sum, d) => sum + d.totalItemCount, 0);
                   
                   // Subtotal by container type
-                  const byType: { [type: string]: { count: number, netWeight: number, unitWeight: number } } = {};
+                  const byType: { [type: string]: { count: number, netWeight: number, unitWeight: number, grossWeight: number } } = {};
                   group.forEach(d => {
                     const t = mapContainerType(d.containerType);
-                    if (!byType[t]) byType[t] = { count: 0, netWeight: 0, unitWeight: d.containerUnitWeight };
+                    if (!byType[t]) byType[t] = { count: 0, netWeight: 0, unitWeight: d.containerUnitWeight, grossWeight: 0 };
                     byType[t].count += d.containerCount;
                     byType[t].netWeight += (d.netWeight || 0);
+                    byType[t].grossWeight += d.grossWeight;
                   });
                   const types = Object.keys(byType);
                   const typeStr = types.join(', ');
+                  const grossWtStr = types.map(t => `${t}: ${byType[t].grossWeight.toFixed(2)}`).join(' | ');
                   const countStr = types.map(t => `${t}: ${byType[t].count}`).join(' | ');
                   const netWtStr = types.map(t => `${t}: ${byType[t].netWeight.toFixed(2)}`).join(' | ');
                   const unitWtStr = types.map(t => `${t}: ${byType[t].unitWeight}`).join(' | ');
@@ -184,7 +186,10 @@ export default function ItemDetails() {
                           <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)' }}></td>
                           <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>小計 ({itemSeq})</td>
                           <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}></td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>{totalGross.toFixed(2)} 公斤</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontSize: '0.85rem' }}>
+                            <div style={{ fontWeight: 'bold', marginBottom: '3px' }}>總計: {totalGross.toFixed(2)} 公斤</div>
+                            {grossWtStr}
+                          </td>
                           <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontSize: '0.85rem' }}>{typeStr}</td>
                           <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontSize: '0.85rem' }}>{countStr}</td>
                           <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontSize: '0.85rem' }}>{unitWtStr}</td>
