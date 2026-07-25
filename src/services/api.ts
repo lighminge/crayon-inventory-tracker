@@ -126,8 +126,8 @@ export const getAllItemDetails = async (): Promise<InventoryItemDetail[]> => {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryItemDetail));
 };
 
-export const checkItemDetailExists = async (ticketId: string, itemSeq: string): Promise<InventoryItemDetail | null> => {
-  const q = query(collection(db, 'inventory_item_details'), where('ticketId', '==', ticketId), where('itemSeq', '==', itemSeq));
+export const checkItemDetailExists = async (ticketId: string, itemSeq: string, subItemSeq: string): Promise<InventoryItemDetail | null> => {
+  const q = query(collection(db, 'inventory_item_details'), where('ticketId', '==', ticketId), where('itemSeq', '==', itemSeq), where('subItemSeq', '==', subItemSeq));
   const snapshot = await getDocs(q);
   if (snapshot.empty) return null;
   return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as InventoryItemDetail;

@@ -21,6 +21,7 @@ export default function FloatingCalculator() {
   // Import State
   const [importTicketId, setImportTicketId] = useState('');
   const [importItemSeq, setImportItemSeq] = useState('001');
+  const [importSubItemSeq, setImportSubItemSeq] = useState('1');
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
   const [existingDetailId, setExistingDetailId] = useState<string | undefined>(undefined);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
@@ -80,8 +81,8 @@ export default function FloatingCalculator() {
   }, [netWeight, materialUnitWeight]);
 
   const handleImport = async () => {
-    if (!importTicketId.trim() || !importItemSeq.trim()) {
-      setAlertMessage('請輸入盤點單號與項目編號！');
+    if (!importTicketId.trim() || !importItemSeq.trim() || !importSubItemSeq.trim()) {
+      setAlertMessage('請輸入盤點單號、項目編號與明細子項！');
       return;
     }
     if (grossWeight === '' || containerCount === '' || containerUnitWeight === '' || materialUnitWeight === '') {
@@ -90,7 +91,7 @@ export default function FloatingCalculator() {
     }
 
     try {
-      const existing = await checkItemDetailExists(importTicketId.trim(), importItemSeq.trim());
+      const existing = await checkItemDetailExists(importTicketId.trim(), importItemSeq.trim(), importSubItemSeq.trim());
       if (existing) {
         setExistingDetailId(existing.id);
         setShowOverwriteModal(true);
@@ -108,6 +109,7 @@ export default function FloatingCalculator() {
       const detail: Omit<InventoryItemDetail, 'id'> = {
         ticketId: importTicketId.trim(),
         itemSeq: importItemSeq.trim(),
+        subItemSeq: importSubItemSeq.trim(),
         grossWeight: Number(grossWeight),
         containerType: containerType,
         containerCount: Number(containerCount),
@@ -122,10 +124,10 @@ export default function FloatingCalculator() {
       setAlertMessage('✅ 匯入成功！');
       setShowOverwriteModal(false);
       setExistingDetailId(undefined);
-      // Auto-increment sequence for next entry
-      const currentSeq = parseInt(importItemSeq, 10);
-      if (!isNaN(currentSeq)) {
-        setImportItemSeq((currentSeq + 1).toString().padStart(3, '0'));
+      // Auto-increment sub item sequence for next entry
+      const currentSubSeq = parseInt(importSubItemSeq, 10);
+      if (!isNaN(currentSubSeq)) {
+        setImportSubItemSeq((currentSubSeq + 1).toString());
       }
     } catch (e) {
       console.error(e);
@@ -188,13 +190,13 @@ export default function FloatingCalculator() {
             {/* Import Section (Moved to top) */}
             <div style={{ backgroundColor: '#f0f8ff', padding: '15px', borderRadius: '8px', border: '2px dashed var(--crayon-blue)' }}>
               <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-blue)' }}>📥 匯入設定</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.85rem' }}>盤點單號</label>
                   <input 
                     type="text" 
                     className="doodle-input" 
-                    style={{ padding: '8px' }}
+                    style={{ padding: '8px', width: '100%' }}
                     value={importTicketId} 
                     onChange={e => setImportTicketId(e.target.value)}
                     placeholder="輸入單號"
@@ -205,10 +207,21 @@ export default function FloatingCalculator() {
                   <input 
                     type="text" 
                     className="doodle-input" 
-                    style={{ padding: '8px' }}
+                    style={{ padding: '8px', width: '100%' }}
                     value={importItemSeq} 
                     onChange={e => setImportItemSeq(e.target.value)}
                     placeholder="001"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.85rem' }}>明細子項</label>
+                  <input 
+                    type="text" 
+                    className="doodle-input" 
+                    style={{ padding: '8px', width: '100%' }}
+                    value={importSubItemSeq} 
+                    onChange={e => setImportSubItemSeq(e.target.value)}
+                    placeholder="1"
                   />
                 </div>
               </div>
@@ -343,7 +356,7 @@ export default function FloatingCalculator() {
               style={{ width: '100%', marginTop: '15px', backgroundColor: 'var(--crayon-dark)', color: 'white' }}
               onClick={() => {
                 setIsOpen(false);
-                navigate('/item-details');
+                navigate('/item-details', { state: { openTicketId: importTicketId.trim() } });
               }}
             >
               📑 前往項目明細畫面
@@ -365,7 +378,7 @@ export default function FloatingCalculator() {
         }}>
           <div className="doodle-border" style={{ backgroundColor: 'white', padding: '30px', maxWidth: '400px', textAlign: 'center' }}>
             <h3 style={{ color: 'var(--crayon-red)', marginTop: 0 }}>⚠️ 資料已存在</h3>
-            <p>盤點單 <strong>{importTicketId}</strong> 的項目編號 <strong>{importItemSeq}</strong> 已經有資料了。</p>
+            <p>盤點單 <strong>{importTicketId}</strong> 的項目編號 <strong>{importItemSeq}</strong> - 子項 <strong>{importSubItemSeq}</strong> 已經有資料了。</p>
             <p>您確定要使用當前計算機的數據覆蓋它嗎？</p>
             <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '20px' }}>
               <button className="doodle-button" onClick={() => setShowOverwriteModal(false)}>取消</button>

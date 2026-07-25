@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getTickets, getAllItemDetails } from '../services/api';
 import type { InventoryTicket, InventoryItemDetail } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 
 export default function ItemDetails() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
   const [details, setDetails] = useState<InventoryItemDetail[]>([]);
   
@@ -44,6 +47,12 @@ export default function ItemDetails() {
 
   useEffect(() => {
     loadData();
+    if (location.state?.openTicketId) {
+      setSelectedTicketId(location.state.openTicketId);
+      setViewMode('detail');
+      // Clear the state so it doesn't reopen if they click back
+      navigate(location.pathname, { replace: true });
+    }
   }, []);
 
   const filteredTickets = tickets.filter(t => {
@@ -70,7 +79,11 @@ export default function ItemDetails() {
   const totalPages = Math.ceil(sortedTickets.length / itemsPerPage);
   const currentTickets = sortedTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const currentDetails = details.filter(d => d.ticketId === selectedTicketId).sort((a, b) => a.itemSeq.localeCompare(b.itemSeq));
+  const currentDetails = details.filter(d => d.ticketId === selectedTicketId).sort((a, b) => {
+    const seqDiff = a.itemSeq.localeCompare(b.itemSeq);
+    if (seqDiff !== 0) return seqDiff;
+    return (a.subItemSeq || '').localeCompare(b.subItemSeq || '');
+  });
 
   if (viewMode === 'detail') {
     return (
@@ -105,7 +118,9 @@ export default function ItemDetails() {
               <tbody>
                 {currentDetails.map((d, index) => (
                   <tr key={d.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
-                    <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>{d.itemSeq}</td>
+                    <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>
+                      {d.itemSeq} {d.subItemSeq ? `- ${d.subItemSeq}` : ''}
+                    </td>
                     <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.date || '無'}</td>
                     <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.grossWeight} 公斤</td>
                     <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.containerType === 'T' ? '鐵桶' : d.containerType === 'P' ? '塑膠箱' : d.containerType === 'B' ? '紙箱' : d.containerType}</td>
@@ -213,9 +228,9 @@ export default function ItemDetails() {
           <tbody>
             {currentTickets.map((t, index) => {
               const seqNum = (currentPage - 1) * itemsPerPage + index + 1;
-              const itemsImported = details.filter(d => d.ticketId === t.id).length;
+              const uniqueItemsImported = new Set(details.filter(d => d.ticketId === t.id).map(d => d.itemSeq)).size;
               const totalItems = t.itemCount || 0;
-              const isComplete = totalItems > 0 && itemsImported >= totalItems;
+              const isComplete = totalItems > 0 && uniqueItemsImported >= totalItems;
               
               return (
                 <tr key={t.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
@@ -229,8 +244,8 @@ export default function ItemDetails() {
                   <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>{t.id}</td>
                   <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{t.ticketType || '無'}</td>
                   <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
-                    <span style={{ color: isComplete ? 'var(--crayon-green)' : itemsImported > 0 ? 'var(--crayon-blue)' : '#999', fontWeight: 'bold' }}>
-                      {itemsImported} / {totalItems} 筆
+                    <span style={{ color: isComplete ? 'var(--crayon-green)' : uniqueItemsImported > 0 ? 'var(--crayon-blue)' : '#999', fontWeight: 'bold' }}>
+                      {uniqueItemsImported} / {totalItems} 筆
                     </span>
                   </td>
                 </tr>
