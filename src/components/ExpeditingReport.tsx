@@ -23,6 +23,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
   const [selectedTaskId, setSelectedTaskId] = useState('');
   const [selectedAssigneeId, setSelectedAssigneeId] = useState('');
   const [selectedDays, setSelectedDays] = useState('1'); // "1" ~ "7"
+  const [sortBy, setSortBy] = useState('processingDays'); // 'id', 'stage', 'assignee', 'processingDays'
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -105,9 +106,21 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
       }
     });
     
-    // Sort by processing days descending
-    return filtered.sort((a, b) => b.processingDays - a.processingDays);
-  }, [tickets, startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays, workflows]);
+    // Sorting
+    return filtered.sort((a, b) => {
+      if (sortBy === 'id') {
+        return a.id.localeCompare(b.id);
+      } else if (sortBy === 'stage') {
+        return a.currentStage.localeCompare(b.currentStage);
+      } else if (sortBy === 'assignee') {
+        const nameA = getAssigneeName(a.currentStageAssigneeId);
+        const nameB = getAssigneeName(b.currentStageAssigneeId);
+        return nameA.localeCompare(nameB);
+      } else { // processingDays
+        return b.processingDays - a.processingDays;
+      }
+    });
+  }, [tickets, startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays, workflows, sortBy]);
 
   // Pagination logic
   const totalPages = Math.ceil(processedTickets.length / itemsPerPage);
@@ -238,17 +251,58 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
       <div className="doodle-border" style={{ backgroundColor: 'white', padding: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
           <h2 style={{ margin: 0, color: 'var(--crayon-red)' }}>📄 符合條件清單 (共 {processedTickets.length} 筆)</h2>
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <label style={{ fontWeight: 'bold' }}>分類排序:</label>
+              <select className="doodle-input" value={sortBy} onChange={e => setSortBy(e.target.value)} style={{ padding: '5px' }}>
+                <option value="id">單號</option>
+                <option value="stage">目前狀態</option>
+                <option value="assignee">負責人</option>
+                <option value="processingDays">處理天數 (大至小)</option>
+              </select>
+            </div>
             <button className="doodle-button success" onClick={exportToImage}>🖼️ 匯出圖檔</button>
             <button className="doodle-button success" onClick={exportToExcel}>📊 匯出 Excel</button>
             <button className="doodle-button success" onClick={exportToText}>📝 匯出文字檔</button>
           </div>
         </div>
 
+        {/* Legend for colors (moved to top) */}
+        <div style={{ marginBottom: '20px', display: 'flex', gap: '15px', fontSize: '0.9rem', flexWrap: 'wrap', backgroundColor: '#f0f0f0', padding: '10px', borderRadius: '5px', border: '2px dashed var(--crayon-dark)' }}>
+          <strong style={{ marginRight: '10px' }}>顏色說明 (處理天數):</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(3), border: '1px solid #ccc', borderRadius: '4px' }}></span> 3天</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(4), border: '1px solid #ccc', borderRadius: '4px' }}></span> 4天</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(5), border: '1px solid #ccc', borderRadius: '4px' }}></span> 5天</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(6), border: '1px solid #ccc', borderRadius: '4px' }}></span> 6天</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(7), border: '1px solid #ccc', borderRadius: '4px' }}></span> 7天以上</div>
+        </div>
+
+        {/* Pagination (Top) */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
+            <button 
+              className="doodle-button" 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            >
+              上一頁
+            </button>
+            <span style={{ fontWeight: 'bold' }}>{currentPage} / {totalPages}</span>
+            <button 
+              className="doodle-button" 
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            >
+              下一頁
+            </button>
+          </div>
+        )}
+
         <div ref={reportRef} style={{ padding: '10px', backgroundColor: 'white' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {/* Table Header */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr 1fr 1fr', gap: '10px', padding: '10px', borderBottom: '2px dashed var(--crayon-dark)', fontWeight: 'bold' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 1.5fr 2fr 1fr 1fr', gap: '10px', padding: '10px', borderBottom: '3px solid var(--crayon-dark)', fontWeight: 'bold', fontSize: '1.1rem', backgroundColor: '#e0f7fa', borderRadius: '5px' }}>
+              <div style={{ textAlign: 'center' }}>序號</div>
               <div>單號</div>
               <div>盤點任務</div>
               <div>目前狀態</div>
@@ -257,40 +311,35 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
             </div>
             
             {/* Table Body */}
-            {currentData.length > 0 ? currentData.map(t => (
+            {currentData.length > 0 ? currentData.map((t, idx) => (
               <div 
                 key={t.id} 
                 style={{ 
                   display: 'grid', 
-                  gridTemplateColumns: '1fr 1fr 2fr 1fr 1fr', 
+                  gridTemplateColumns: '50px 1fr 1.5fr 2fr 1fr 1fr', 
                   gap: '10px', 
                   padding: '10px', 
                   backgroundColor: getRowColor(t.processingDays),
-                  borderBottom: '1px solid #eee',
+                  border: '2px solid var(--crayon-dark)',
                   alignItems: 'center',
-                  borderRadius: '5px'
+                  borderRadius: '10px',
+                  boxShadow: '2px 2px 0px rgba(0,0,0,0.1)'
                 }}
               >
-                <div style={{ fontWeight: 'bold' }}>{t.id}</div>
-                <div>{getTaskName(t.taskId)}</div>
-                <div style={{ color: 'var(--crayon-blue)', fontWeight: 'bold' }}>{t.currentStage}</div>
-                <div>{getAssigneeName(t.currentStageAssigneeId)}</div>
-                <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '1.2rem', color: t.processingDays >= 3 ? 'var(--crayon-red)' : 'inherit' }}>
+                <div style={{ textAlign: 'center', fontWeight: 'bold', backgroundColor: 'white', padding: '5px', borderRadius: '5px', border: '1px solid #ccc' }}>
+                  {(currentPage - 1) * itemsPerPage + idx + 1}
+                </div>
+                <div style={{ fontWeight: 'bold', color: 'var(--crayon-dark)', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999' }}>{t.id}</div>
+                <div style={{ color: 'var(--crayon-green)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999' }}>{getTaskName(t.taskId)}</div>
+                <div style={{ color: 'var(--crayon-blue)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999' }}>{t.currentStage}</div>
+                <div style={{ color: 'var(--crayon-purple)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999' }}>{getAssigneeName(t.currentStageAssigneeId)}</div>
+                <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '1.2rem', color: t.processingDays >= 3 ? 'white' : 'var(--crayon-dark)', backgroundColor: t.processingDays >= 3 ? 'var(--crayon-red)' : 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '2px solid var(--crayon-dark)' }}>
                   {t.processingDays} 天
                 </div>
               </div>
             )) : (
               <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>沒有符合條件的資料</div>
             )}
-          </div>
-          
-          {/* Legend for colors if exported to image */}
-          <div style={{ marginTop: '20px', display: 'flex', gap: '15px', fontSize: '0.8rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '15px', height: '15px', backgroundColor: getRowColor(3), border: '1px solid #ccc' }}></span> 3天</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '15px', height: '15px', backgroundColor: getRowColor(4), border: '1px solid #ccc' }}></span> 4天</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '15px', height: '15px', backgroundColor: getRowColor(5), border: '1px solid #ccc' }}></span> 5天</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '15px', height: '15px', backgroundColor: getRowColor(6), border: '1px solid #ccc' }}></span> 6天</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '15px', height: '15px', backgroundColor: getRowColor(7), border: '1px solid #ccc' }}></span> 7天以上</div>
           </div>
         </div>
         

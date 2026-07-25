@@ -563,8 +563,8 @@ export default function WorkflowTickets() {
 
       {/* Stage Update Modal */}
       {updatingTicket && selectedStageId && !isManagerFormOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '500px', backgroundColor: 'white', minHeight: '450px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 100, paddingTop: '10vh', overflowY: 'auto' }}>
+          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '500px', backgroundColor: 'white', minHeight: '450px', marginBottom: '50px' }}>
             <h3 style={{ fontSize: '1.8rem', marginTop: 0 }}>🚀 更新流程進度</h3>
             <p style={{ fontSize: '1.3rem', fontWeight: 'bold' }}>單號：{updatingTicket.id}</p>
             {(() => {
