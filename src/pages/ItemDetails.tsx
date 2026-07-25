@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getTickets, getAllItemDetails } from '../services/api';
+import { getTickets, getAllItemDetails, deleteItemDetail } from '../services/api';
 import type { InventoryTicket, InventoryItemDetail } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 
@@ -23,6 +23,7 @@ export default function ItemDetails() {
   // View State
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Pagination & Sort state
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -85,6 +86,25 @@ export default function ItemDetails() {
     return (a.subItemSeq || '').localeCompare(b.subItemSeq || '');
   });
 
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteItemDetail(id);
+      loadData();
+      setDeleteConfirmId(null);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const mapContainerType = (type: string) => type === 'T' ? '鐵桶' : type === 'P' ? '塑膠箱' : type === 'B' ? '紙箱' : type;
+
+  // Group by itemSeq for subtotals
+  const groupedDetails: { [key: string]: InventoryItemDetail[] } = {};
+  currentDetails.forEach(d => {
+    if (!groupedDetails[d.itemSeq]) groupedDetails[d.itemSeq] = [];
+    groupedDetails[d.itemSeq].push(d);
+  });
+
   if (viewMode === 'detail') {
     return (
       <div>
@@ -104,6 +124,7 @@ export default function ItemDetails() {
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
               <thead>
                 <tr style={{ backgroundColor: 'var(--crayon-dark)', color: 'white' }}>
+                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)', width: '60px' }}>功能</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>序號</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>日期</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>物料總重量</th>
@@ -116,21 +137,65 @@ export default function ItemDetails() {
                 </tr>
               </thead>
               <tbody>
-                {currentDetails.map((d, index) => (
-                  <tr key={d.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
-                    <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>
-                      {d.itemSeq} {d.subItemSeq ? `- ${d.subItemSeq}` : ''}
-                    </td>
-                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.date || '無'}</td>
-                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.grossWeight} 公斤</td>
-                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.containerType === 'T' ? '鐵桶' : d.containerType === 'P' ? '塑膠箱' : d.containerType === 'B' ? '紙箱' : d.containerType}</td>
-                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.containerCount}</td>
-                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.containerUnitWeight} 公斤</td>
-                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.netWeight !== undefined ? `${d.netWeight} 公斤` : '無'}</td>
-                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.materialUnitWeight} 公克</td>
-                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold', color: 'var(--crayon-red)' }}>{d.totalItemCount} 項</td>
-                  </tr>
-                ))}
+                {Object.keys(groupedDetails).map(itemSeq => {
+                  const group = groupedDetails[itemSeq];
+                  const totalGross = group.reduce((sum, d) => sum + d.grossWeight, 0);
+                  const totalItemCount = group.reduce((sum, d) => sum + d.totalItemCount, 0);
+                  
+                  // Subtotal by container type
+                  const byType: { [type: string]: { count: number, netWeight: number, unitWeight: number } } = {};
+                  group.forEach(d => {
+                    const t = mapContainerType(d.containerType);
+                    if (!byType[t]) byType[t] = { count: 0, netWeight: 0, unitWeight: d.containerUnitWeight };
+                    byType[t].count += d.containerCount;
+                    byType[t].netWeight += (d.netWeight || 0);
+                  });
+                  const types = Object.keys(byType);
+                  const typeStr = types.join(', ');
+                  const countStr = types.map(t => `${t}: ${byType[t].count}`).join(' | ');
+                  const netWtStr = types.map(t => `${t}: ${byType[t].netWeight.toFixed(2)}`).join(' | ');
+                  const unitWtStr = types.map(t => `${t}: ${byType[t].unitWeight}`).join(' | ');
+
+                  return (
+                    <React.Fragment key={itemSeq}>
+                      {group.map((d, index) => (
+                        <tr key={d.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
+                          <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
+                            <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', backgroundColor: 'var(--crayon-red)', color: 'white', minHeight: 'auto' }} onClick={() => setDeleteConfirmId(d.id)}>
+                              刪除
+                            </button>
+                          </td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>
+                            {d.itemSeq} {d.subItemSeq ? `- ${d.subItemSeq}` : ''}
+                          </td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.date || '無'}</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.grossWeight} 公斤</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{mapContainerType(d.containerType)}</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.containerCount}</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.containerUnitWeight} 公斤</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.netWeight !== undefined ? `${d.netWeight} 公斤` : '無'}</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.materialUnitWeight} 公克</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold', color: 'var(--crayon-red)' }}>{d.totalItemCount} 項</td>
+                        </tr>
+                      ))}
+                      {/* Subtotal row */}
+                      {group.length > 1 && (
+                        <tr style={{ backgroundColor: '#e3f2fd', borderBottom: '2px solid var(--crayon-dark)' }}>
+                          <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)' }}></td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>小計 ({itemSeq})</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}></td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>{totalGross.toFixed(2)} 公斤</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontSize: '0.85rem' }}>{typeStr}</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontSize: '0.85rem' }}>{countStr}</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontSize: '0.85rem' }}>{unitWtStr}</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontSize: '0.85rem' }}>{netWtStr}</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{group[0].materialUnitWeight} 公克</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold', color: 'var(--crayon-red)' }}>{totalItemCount} 項</td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -259,6 +324,27 @@ export default function ItemDetails() {
           </div>
         )}
       </div>
+
+      {deleteConfirmId && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 10001
+        }}>
+          <div className="doodle-border" style={{ backgroundColor: 'white', padding: '30px', maxWidth: '350px', textAlign: 'center' }}>
+            <h3 style={{ color: 'var(--crayon-red)', marginTop: 0 }}>⚠️ 確定要刪除嗎？</h3>
+            <p style={{ fontSize: '1.1rem', marginBottom: '20px' }}>刪除後將無法復原此筆明細資料。</p>
+            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+              <button className="doodle-button" onClick={() => setDeleteConfirmId(null)}>取消</button>
+              <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-red)', color: 'white' }} onClick={() => handleDelete(deleteConfirmId)}>確定刪除</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

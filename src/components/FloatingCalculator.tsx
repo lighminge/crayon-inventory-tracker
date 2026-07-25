@@ -190,18 +190,18 @@ export default function FloatingCalculator() {
             {/* Import Section (Moved to top) */}
             <div style={{ backgroundColor: '#f0f8ff', padding: '15px', borderRadius: '8px', border: '2px dashed var(--crayon-blue)' }}>
               <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-blue)' }}>📥 匯入設定</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.85rem' }}>盤點單號</label>
-                  <input 
-                    type="text" 
-                    className="doodle-input" 
-                    style={{ padding: '8px', width: '100%' }}
-                    value={importTicketId} 
-                    onChange={e => setImportTicketId(e.target.value)}
-                    placeholder="輸入單號"
-                  />
-                </div>
+              <div style={{ marginBottom: '10px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.85rem' }}>盤點單號</label>
+                <input 
+                  type="text" 
+                  className="doodle-input" 
+                  style={{ padding: '8px', width: '100%' }}
+                  value={importTicketId} 
+                  onChange={e => setImportTicketId(e.target.value)}
+                  placeholder="輸入單號"
+                />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.85rem' }}>項目編號</label>
                   <input 
