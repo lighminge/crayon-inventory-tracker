@@ -36,3 +36,16 @@ export interface InventoryTicket {
   itemCount?: number; // 盤點項目數量
   taskId?: string; // 關聯的盤點任務 ID
 }
+
+export interface InventoryItemDetail {
+  id: string; // Document ID (usually auto-generated)
+  ticketId: string; // 盤點單號
+  itemSeq: string; // 項目編號 (e.g. '001')
+  grossWeight: number; // 物料總重量
+  containerType: string; // 容器類型
+  containerCount: number; // 容器數量
+  containerUnitWeight: number; // 容器單重
+  materialUnitWeight: number; // 物料單重
+  totalItemCount: number; // 物料總數
+  createdAt?: number; // 建立時間
+}

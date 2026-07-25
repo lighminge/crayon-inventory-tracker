@@ -110,3 +110,40 @@ export const updateTicket = async (id: string, ticket: Partial<InventoryTicket>)
 export const deleteTicket = async (id: string): Promise<void> => {
   await deleteDoc(doc(db, 'inventory_tickets', id));
 };
+
+// --- Item Details API ---
+import type { InventoryItemDetail } from '../types';
+import { where } from 'firebase/firestore';
+
+export const getItemDetails = async (ticketId: string): Promise<InventoryItemDetail[]> => {
+  const q = query(collection(db, 'inventory_item_details'), where('ticketId', '==', ticketId));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryItemDetail)).sort((a, b) => a.itemSeq.localeCompare(b.itemSeq));
+};
+
+export const getAllItemDetails = async (): Promise<InventoryItemDetail[]> => {
+  const snapshot = await getDocs(collection(db, 'inventory_item_details'));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryItemDetail));
+};
+
+export const checkItemDetailExists = async (ticketId: string, itemSeq: string): Promise<InventoryItemDetail | null> => {
+  const q = query(collection(db, 'inventory_item_details'), where('ticketId', '==', ticketId), where('itemSeq', '==', itemSeq));
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) return null;
+  return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as InventoryItemDetail;
+};
+
+export const saveItemDetail = async (detail: Omit<InventoryItemDetail, 'id'>, existingId?: string): Promise<InventoryItemDetail> => {
+  if (existingId) {
+    await updateDoc(doc(db, 'inventory_item_details', existingId), { ...detail });
+    return { id: existingId, ...detail };
+  } else {
+    const newRef = doc(collection(db, 'inventory_item_details'));
+    await setDoc(newRef, detail);
+    return { id: newRef.id, ...detail };
+  }
+};
+
+export const deleteItemDetail = async (id: string): Promise<void> => {
+  await deleteDoc(doc(db, 'inventory_item_details', id));
+};

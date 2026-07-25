@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import CrayonDatePicker from './CrayonDatePicker';
-import { getPersonnel } from '../services/api';
-import type { Personnel } from '../types';
+import { getPersonnel, checkItemDetailExists, saveItemDetail } from '../services/api';
+import type { Personnel, InventoryItemDetail } from '../types';
 
 export default function FloatingCalculator() {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,6 +15,12 @@ export default function FloatingCalculator() {
   const [containerUnitWeight, setContainerUnitWeight] = useState<number | ''>(''); // kg
   const [materialUnitWeight, setMaterialUnitWeight] = useState<number | ''>(''); // g
   const [preparerId, setPreparerId] = useState('');
+  
+  // Import State
+  const [importTicketId, setImportTicketId] = useState('');
+  const [importItemSeq, setImportItemSeq] = useState('001');
+  const [showOverwriteModal, setShowOverwriteModal] = useState(false);
+  const [existingDetailId, setExistingDetailId] = useState<string | undefined>(undefined);
   
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   
@@ -58,6 +64,58 @@ export default function FloatingCalculator() {
     const netWeightInGrams = netWeight * 1000;
     return Math.ceil(netWeightInGrams / muw);
   }, [netWeight, materialUnitWeight]);
+
+  const handleImport = async () => {
+    if (!importTicketId.trim() || !importItemSeq.trim()) {
+      alert('請輸入盤點單號與項目編號！');
+      return;
+    }
+    if (grossWeight === '' || containerCount === '' || containerUnitWeight === '' || materialUnitWeight === '') {
+      alert('請先填寫完整的計算機欄位！');
+      return;
+    }
+
+    try {
+      const existing = await checkItemDetailExists(importTicketId.trim(), importItemSeq.trim());
+      if (existing) {
+        setExistingDetailId(existing.id);
+        setShowOverwriteModal(true);
+      } else {
+        await executeImport();
+      }
+    } catch (e) {
+      console.error(e);
+      alert('檢查重複資料時發生錯誤');
+    }
+  };
+
+  const executeImport = async (overwriteId?: string) => {
+    try {
+      const detail: Omit<InventoryItemDetail, 'id'> = {
+        ticketId: importTicketId.trim(),
+        itemSeq: importItemSeq.trim(),
+        grossWeight: Number(grossWeight),
+        containerType: containerType,
+        containerCount: Number(containerCount),
+        containerUnitWeight: Number(containerUnitWeight),
+        materialUnitWeight: Number(materialUnitWeight),
+        totalItemCount: totalItemCount,
+        createdAt: new Date().getTime(),
+      };
+      await saveItemDetail(detail, overwriteId);
+      alert('✅ 匯入成功！');
+      setShowOverwriteModal(false);
+      setExistingDetailId(undefined);
+      // Auto-increment sequence for next entry
+      const currentSeq = parseInt(importItemSeq, 10);
+      if (!isNaN(currentSeq)) {
+        setImportItemSeq((currentSeq + 1).toString().padStart(3, '0'));
+      }
+    } catch (e) {
+      console.error(e);
+      alert('匯入失敗');
+    }
+  };
 
   return (
     <div ref={containerRef}>
@@ -225,6 +283,65 @@ export default function FloatingCalculator() {
             >
               🔄 清空重設
             </button>
+            
+            {/* Import Section */}
+            <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '2px dashed var(--crayon-dark)' }}>
+              <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-dark)' }}>📥 匯入盤點項目明細</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.85rem' }}>盤點單號</label>
+                  <input 
+                    type="text" 
+                    className="doodle-input" 
+                    style={{ padding: '8px' }}
+                    value={importTicketId} 
+                    onChange={e => setImportTicketId(e.target.value)}
+                    placeholder="輸入單號"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.85rem' }}>項目編號 (如: 001)</label>
+                  <input 
+                    type="text" 
+                    className="doodle-input" 
+                    style={{ padding: '8px' }}
+                    value={importItemSeq} 
+                    onChange={e => setImportItemSeq(e.target.value)}
+                    placeholder="001"
+                  />
+                </div>
+              </div>
+              <button 
+                className="doodle-button" 
+                style={{ width: '100%', backgroundColor: 'var(--crayon-blue)', color: 'white' }}
+                onClick={handleImport}
+              >
+                📥 匯入資料
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Overwrite Warning Modal */}
+      {showOverwriteModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 10001
+        }}>
+          <div className="doodle-border" style={{ backgroundColor: 'white', padding: '30px', maxWidth: '400px', textAlign: 'center' }}>
+            <h3 style={{ color: 'var(--crayon-red)', marginTop: 0 }}>⚠️ 資料已存在</h3>
+            <p>盤點單 <strong>{importTicketId}</strong> 的項目編號 <strong>{importItemSeq}</strong> 已經有資料了。</p>
+            <p>您確定要使用當前計算機的數據覆蓋它嗎？</p>
+            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '20px' }}>
+              <button className="doodle-button" onClick={() => setShowOverwriteModal(false)}>取消</button>
+              <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-red)', color: 'white' }} onClick={() => executeImport(existingDetailId)}>確定覆蓋</button>
+            </div>
           </div>
         </div>
       )}

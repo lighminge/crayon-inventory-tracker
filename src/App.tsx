@@ -9,6 +9,7 @@ import WorkflowTickets from './pages/WorkflowTickets';
 import Statistics from './pages/Statistics';
 import Login from './pages/Login';
 import InventoryTasks from './pages/InventoryTasks';
+import ItemDetails from './pages/ItemDetails';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="tickets" element={<InventoryTickets />} />
           <Route path="workflow-tickets" element={<WorkflowTickets />} />
           <Route path="workflow" element={<WorkflowManagement />} />
+          <Route path="item-details" element={<ItemDetails />} />
           <Route path="personnel" element={<Personnel />} />
           <Route path="statistics" element={<Statistics />} />
         </Route>

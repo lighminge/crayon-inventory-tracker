@@ -1,0 +1,188 @@
+import { useState, useEffect } from 'react';
+import { getTickets, getAllItemDetails } from '../services/api';
+import type { InventoryTicket, InventoryItemDetail } from '../types';
+import CrayonDatePicker from '../components/CrayonDatePicker';
+
+export default function ItemDetails() {
+  const [tickets, setTickets] = useState<InventoryTicket[]>([]);
+  const [details, setDetails] = useState<InventoryItemDetail[]>([]);
+  
+  // Filter state
+  const [filterStartDate, setFilterStartDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().split('T')[0];
+  });
+  const [filterEndDate, setFilterEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [filterTicketId, setFilterTicketId] = useState('');
+  const [filterTicketType, setFilterTicketType] = useState('all');
+
+  // View State
+  const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+
+  const loadData = async () => {
+    try {
+      const t = await getTickets();
+      setTickets(t.sort((a, b) => (b.dispatchDate || 0) - (a.dispatchDate || 0)));
+      const d = await getAllItemDetails();
+      setDetails(d);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const filteredTickets = tickets.filter(t => {
+    if (filterTicketId && !t.id.includes(filterTicketId)) return false;
+    if (filterTicketType !== 'all' && t.ticketType !== filterTicketType) return false;
+    
+    if (t.dispatchDate) {
+      const start = new Date(filterStartDate).getTime();
+      // add 1 day to end date to include the whole day
+      const end = new Date(filterEndDate).getTime() + 86400000;
+      if (t.dispatchDate < start || t.dispatchDate > end) return false;
+    }
+    
+    return true;
+  });
+
+  const currentDetails = details.filter(d => d.ticketId === selectedTicketId).sort((a, b) => a.itemSeq.localeCompare(b.itemSeq));
+
+  if (viewMode === 'detail') {
+    return (
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2>📋 單號 {selectedTicketId} - 項目明細</h2>
+          <button className="doodle-button" onClick={() => { setViewMode('list'); setSelectedTicketId(null); loadData(); }}>
+            🔙 返回清單
+          </button>
+        </div>
+        
+        {currentDetails.length === 0 ? (
+          <div className="doodle-border" style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+            目前沒有任何明細資料。
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
+              <thead>
+                <tr style={{ backgroundColor: 'var(--crayon-dark)', color: 'white' }}>
+                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>序號</th>
+                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>物料總重量</th>
+                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>容器類型</th>
+                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>容器數量</th>
+                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>容器單重</th>
+                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>物料單重</th>
+                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>物料總數</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentDetails.map((d, index) => (
+                  <tr key={d.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
+                    <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>{d.itemSeq}</td>
+                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.grossWeight} 公斤</td>
+                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.containerType === 'T' ? '台車' : d.containerType === 'P' ? '棧板' : d.containerType === 'B' ? '籃子' : d.containerType}</td>
+                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.containerCount}</td>
+                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.containerUnitWeight} 公斤</td>
+                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.materialUnitWeight} 公克</td>
+                    <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold', color: 'var(--crayon-red)' }}>{d.totalItemCount} 項</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2>📝 盤點項目明細</h2>
+      </div>
+
+      <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#f9f9f9' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '15px', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>🔍 查詢功能區</h3>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end' }}>
+          <div style={{ width: '150px' }}>
+            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>派送日期起：</label>
+            <CrayonDatePicker value={filterStartDate} onChange={setFilterStartDate} />
+          </div>
+          <div style={{ width: '150px' }}>
+            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>派送日期迄：</label>
+            <CrayonDatePicker value={filterEndDate} onChange={setFilterEndDate} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>盤點單號：</label>
+            <input className="doodle-input" style={{ width: '150px' }} value={filterTicketId} onChange={e => setFilterTicketId(e.target.value)} placeholder="輸入單號" />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>盤點類型：</label>
+            <select className="doodle-input" value={filterTicketType} onChange={e => setFilterTicketType(e.target.value)}>
+              <option value="all">全部</option>
+              <option value="夾鉗">夾鉗</option>
+              <option value="TKW">TKW</option>
+            </select>
+          </div>
+          <div style={{ marginLeft: 'auto' }}>
+            <button className="doodle-button" style={{ height: '42px' }} onClick={() => {
+              setFilterTicketId(''); setFilterTicketType('all');
+              const d = new Date();
+              setFilterEndDate(d.toISOString().split('T')[0]);
+              d.setMonth(d.getMonth() - 1);
+              setFilterStartDate(d.toISOString().split('T')[0]);
+            }}>清除</button>
+            <button className="doodle-button" style={{ height: '42px', marginLeft: '10px', backgroundColor: 'var(--crayon-blue)', color: 'white' }} onClick={loadData}>重新整理</button>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+          <thead>
+            <tr style={{ backgroundColor: 'var(--crayon-dark)', color: 'white' }}>
+              <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)', width: '100px' }}>功能</th>
+              <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)', width: '60px' }}>序號</th>
+              <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>盤點單號</th>
+              <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>盤點類型</th>
+              <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>項目數 (已匯入)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredTickets.map((t, index) => {
+              const itemsImported = details.filter(d => d.ticketId === t.id).length;
+              return (
+                <tr key={t.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
+                  <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
+                    <button className="doodle-button" style={{ padding: '5px 10px', minHeight: 'auto', fontSize: '0.85rem' }} onClick={() => {
+                      setSelectedTicketId(t.id);
+                      setViewMode('detail');
+                    }}>項目明細</button>
+                  </td>
+                  <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{index + 1}</td>
+                  <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>{t.id}</td>
+                  <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{t.ticketType || '無'}</td>
+                  <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
+                    <span style={{ color: itemsImported > 0 ? 'var(--crayon-blue)' : '#999', fontWeight: 'bold' }}>
+                      {itemsImported} 筆
+                    </span>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+        {filteredTickets.length === 0 && (
+          <div className="doodle-border" style={{ padding: '40px', textAlign: 'center', color: '#666', borderTop: 'none' }}>
+            沒有符合條件的盤點單。
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
