@@ -4,8 +4,10 @@ import { getTickets, getPersonnel, getWorkflows, getTasks } from '../services/ap
 import { calculateBusinessDays } from '../utils/dateUtils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid, LineChart, Line } from 'recharts';
 import CrayonDatePicker from '../components/CrayonDatePicker';
+import ExpeditingReport from '../components/ExpeditingReport';
 
 export default function Statistics() {
+  const [mainTab, setMainTab] = useState<'overview' | 'expediting'>('overview');
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -208,8 +210,29 @@ export default function Statistics() {
   };
 
   return (
-    <div>
-      <h2>📈 統計作業</h2>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ display: 'flex', gap: '15px' }}>
+        <button 
+          className={`doodle-button ${mainTab === 'overview' ? 'success' : ''}`}
+          onClick={() => setMainTab('overview')}
+        >
+          📊 統計總覽
+        </button>
+        <button 
+          className={`doodle-button ${mainTab === 'expediting' ? 'success' : ''}`}
+          onClick={() => setMainTab('expediting')}
+        >
+          📋 稽催報表
+        </button>
+      </div>
+
+      {mainTab === 'expediting' && (
+        <ExpeditingReport tickets={tickets} personnel={personnel} tasks={tasks} workflows={workflows} />
+      )}
+
+      {mainTab === 'overview' && (
+        <div>
+          <h2 style={{ marginTop: 0 }}>📈 統計作業</h2>
 
       {/* 條件篩選 */}
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '30px', backgroundColor: '#f9f9f9' }}>
@@ -490,6 +513,8 @@ export default function Statistics() {
         })}
         {statsByPerson.length === 0 && <p>查無人員資料。</p>}
       </div>
+        </div>
+      )}
     </div>
   );
 }

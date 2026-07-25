@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import CrayonDatePicker from './CrayonDatePicker';
 import { getPersonnel } from '../services/api';
 import type { Personnel } from '../types';
 
 export default function FloatingCalculator() {
   const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   // State for calculation
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -20,6 +21,21 @@ export default function FloatingCalculator() {
   useEffect(() => {
     getPersonnel().then(setPersonnel).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      // 如果點擊的目標不是在 Calculator 容器內，就關閉它
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   const preparers = useMemo(() => {
     // 尋找工作職責為「備料」或職稱為備料相關的人員
@@ -44,7 +60,7 @@ export default function FloatingCalculator() {
   }, [netWeight, materialUnitWeight]);
 
   return (
-    <>
+    <div ref={containerRef}>
       {/* 浮動按鈕 */}
       <button 
         onClick={() => setIsOpen(!isOpen)}
@@ -212,6 +228,6 @@ export default function FloatingCalculator() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
