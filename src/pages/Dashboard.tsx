@@ -13,8 +13,9 @@ export default function Dashboard() {
   const [personnelTicketType, setPersonnelTicketType] = useState('');
   
   // Personnel Cards State
-  const [activeTab, setActiveTab] = useState<Record<string, 'stats' | 'incomplete'>>({});
+  const [activeTab, setActiveTab] = useState<Record<string, 'stats' | 'incomplete' | 'doing'>>({});
   const [incompletePage, setIncompletePage] = useState<Record<string, number>>({});
+  const [doingPage, setDoingPage] = useState<Record<string, number>>({});
   const [cardTicketType, setCardTicketType] = useState<Record<string, string>>({});
   
   // Dashboard Chart State
@@ -127,6 +128,19 @@ export default function Dashboard() {
       const incompleteTickets = pTickets.filter(t => !t.closeDate);
       const incompleteCount = incompleteTickets.length;
       
+      // 盤點中件數 (In progress specifically in '盤點中' stage)
+      const doingTickets = incompleteTickets.filter(t => {
+        const nextStage = getNextStage(t);
+        let currentStageName = '未開始';
+        if (!nextStage) {
+          currentStageName = '等候結案';
+        } else if (t.stageDates && Object.keys(t.stageDates).length > 0) {
+          currentStageName = nextStage.name;
+        }
+        return currentStageName === '盤點中';
+      });
+      const doingCount = doingTickets.length;
+      
       // 本月派送
       const monthTickets = pTickets.filter(t => {
         if (!t.dispatchDate) return false;
@@ -161,6 +175,8 @@ export default function Dashboard() {
         ...p,
         incompleteTickets,
         incompleteCount,
+        doingTickets,
+        doingCount,
         monthDispatch,
         monthCompleted,
         monthCompletionRate,
@@ -413,13 +429,16 @@ export default function Dashboard() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
               {personnelStats.map(p => {
                 const currentTab = activeTab[p.id] || 'stats';
-                const currentPage = incompletePage[p.id] || 1;
+                const currentPage = currentTab === 'doing' ? (doingPage[p.id] || 1) : (incompletePage[p.id] || 1);
                 const itemsPerPage = 5;
                 const typeFilter = cardTicketType[p.id];
-                const filteredIncomplete = typeFilter ? p.incompleteTickets.filter(t => t.ticketType === typeFilter) : p.incompleteTickets;
-                const totalPages = Math.ceil(filteredIncomplete.length / itemsPerPage);
+                
+                const targetTickets = currentTab === 'doing' ? p.doingTickets : p.incompleteTickets;
+                const filteredTicketsList = typeFilter ? targetTickets.filter((t: InventoryTicket) => t.ticketType === typeFilter) : targetTickets;
+                
+                const totalPages = Math.ceil(filteredTicketsList.length / itemsPerPage);
                 const startIndex = (currentPage - 1) * itemsPerPage;
-                const paginatedTickets = filteredIncomplete.slice(startIndex, startIndex + itemsPerPage);
+                const paginatedTickets = filteredTicketsList.slice(startIndex, startIndex + itemsPerPage);
 
                 return (
                   <div key={p.id} className="doodle-border" style={{ padding: '15px', backgroundColor: 'white', position: 'relative', display: 'flex', flexDirection: 'column' }}>
@@ -453,6 +472,27 @@ export default function Dashboard() {
                             transform: 'rotate(5deg)'
                           }}>
                             {p.incompleteCount}
+                          </span>
+                        )}
+                      </button>
+                      <button 
+                        className={`doodle-button ${currentTab === 'doing' ? 'success' : ''}`} 
+                        style={{ flex: 1, padding: '5px', minHeight: 'auto', position: 'relative' }}
+                        onClick={() => setActiveTab(prev => ({...prev, [p.id]: 'doing'}))}
+                      >
+                        🏃 盤點中
+                        {p.doingCount > 0 && (
+                          <span style={{
+                            position: 'absolute', top: '-15px', right: '-15px',
+                            backgroundColor: 'var(--crayon-purple)', color: 'white',
+                            border: '3px solid var(--crayon-dark)',
+                            borderRadius: '50%', width: '32px', height: '32px',
+                            fontSize: '1.2rem', fontWeight: '900', display: 'flex', 
+                            alignItems: 'center', justifyContent: 'center', zIndex: 1,
+                            boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                            transform: 'rotate(-5deg)'
+                          }}>
+                            {p.doingCount}
                           </span>
                         )}
                       </button>
@@ -507,14 +547,18 @@ export default function Dashboard() {
                           flexDirection: 'column'
                         }}>
                           <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>總計：{filteredIncomplete.length} 件 / {filteredIncomplete.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0)} 項</span>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>總計：{filteredTicketsList.length} 件 / {filteredTicketsList.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0)} 項</span>
                             <select 
                               className="doodle-input" 
                               style={{ width: 'auto', padding: '2px 5px', fontSize: '0.8rem', backgroundColor: 'white' }}
                               value={cardTicketType[p.id] || ''}
                               onChange={e => {
                                 setCardTicketType(prev => ({...prev, [p.id]: e.target.value}));
-                                setIncompletePage(prev => ({...prev, [p.id]: 1}));
+                                if (currentTab === 'doing') {
+                                  setDoingPage(prev => ({...prev, [p.id]: 1}));
+                                } else {
+                                  setIncompletePage(prev => ({...prev, [p.id]: 1}));
+                                }
                               }}
                             >
                               <option value="">全部類型</option>
@@ -523,8 +567,8 @@ export default function Dashboard() {
                             </select>
                           </div>
                           
-                          {p.incompleteCount === 0 ? (
-                            <div style={{ textAlign: 'center', color: '#888', padding: '20px 0' }}>太棒了！目前沒有未完成的單據 🎉</div>
+                          {filteredTicketsList.length === 0 ? (
+                            <div style={{ textAlign: 'center', color: '#888', padding: '20px 0' }}>太棒了！目前沒有{currentTab === 'doing' ? '盤點中' : '未完成'}的單據 🎉</div>
                           ) : (
                             <>
                               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
@@ -579,13 +623,19 @@ export default function Dashboard() {
                                   <button 
                                     className="doodle-button" style={{ padding: '2px 8px', minHeight: 'auto', fontSize: '0.8rem' }}
                                     disabled={currentPage === 1}
-                                    onClick={() => setIncompletePage(prev => ({...prev, [p.id]: currentPage - 1}))}
+                                    onClick={() => {
+                                      if (currentTab === 'doing') setDoingPage(prev => ({...prev, [p.id]: currentPage - 1}));
+                                      else setIncompletePage(prev => ({...prev, [p.id]: currentPage - 1}));
+                                    }}
                                   >◀</button>
                                   <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{currentPage} / {totalPages}</span>
                                   <button 
                                     className="doodle-button" style={{ padding: '2px 8px', minHeight: 'auto', fontSize: '0.8rem' }}
                                     disabled={currentPage === totalPages}
-                                    onClick={() => setIncompletePage(prev => ({...prev, [p.id]: currentPage + 1}))}
+                                    onClick={() => {
+                                      if (currentTab === 'doing') setDoingPage(prev => ({...prev, [p.id]: currentPage + 1}));
+                                      else setIncompletePage(prev => ({...prev, [p.id]: currentPage + 1}));
+                                    }}
                                   >▶</button>
                                 </div>
                               )}

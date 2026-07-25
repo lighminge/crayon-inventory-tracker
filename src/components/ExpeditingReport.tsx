@@ -23,7 +23,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
   const [selectedTaskId, setSelectedTaskId] = useState('');
   const [selectedAssigneeId, setSelectedAssigneeId] = useState('');
   const [selectedDays, setSelectedDays] = useState('1'); // "1" ~ "7"
-  const [sortBy, setSortBy] = useState('processingDays'); // 'id', 'stage', 'assignee', 'processingDays'
+  const [sortBy, setSortBy] = useState('id'); // 'id', 'stage', 'assignee', 'processingDays'
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -31,6 +31,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
   
   // Ref for image export
   const reportRef = useRef<HTMLDivElement>(null);
+  const fullReportRef = useRef<HTMLDivElement>(null);
 
   const getFirstStageDate = (t: InventoryTicket) => {
     if (t.dispatchDate) return t.dispatchDate;
@@ -188,9 +189,9 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
   };
 
   const exportToImage = async () => {
-    if (!reportRef.current) return;
+    if (!fullReportRef.current) return;
     try {
-      const canvas = await html2canvas(reportRef.current, { scale: 2 });
+      const canvas = await html2canvas(fullReportRef.current, { scale: 2 });
       const url = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = url;
@@ -363,6 +364,64 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
             </button>
           </div>
         )}
+
+        {/* Off-screen Full Report for Export */}
+        <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
+          <div ref={fullReportRef} style={{ padding: '20px', backgroundColor: 'white', width: '1200px' }}>
+            <h2 style={{ color: 'var(--crayon-red)', marginBottom: '20px', textAlign: 'center' }}>
+              稽催報表 ({new Date().toISOString().split('T')[0]})
+            </h2>
+            <div style={{ marginBottom: '20px', display: 'flex', gap: '15px', fontSize: '1rem', flexWrap: 'wrap', backgroundColor: '#f0f0f0', padding: '10px', borderRadius: '5px', border: '2px dashed var(--crayon-dark)' }}>
+              <strong style={{ marginRight: '10px' }}>顏色說明 (處理天數):</strong>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(3), border: '1px solid #ccc', borderRadius: '4px' }}></span> 3天</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(4), border: '1px solid #ccc', borderRadius: '4px' }}></span> 4天</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(5), border: '1px solid #ccc', borderRadius: '4px' }}></span> 5天</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(6), border: '1px solid #ccc', borderRadius: '4px' }}></span> 6天</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(7), border: '1px solid #ccc', borderRadius: '4px' }}></span> 7天以上</div>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '50px 1fr 1.5fr 2fr 1fr 1fr', gap: '10px', padding: '10px', borderBottom: '3px solid var(--crayon-dark)', fontWeight: 'bold', fontSize: '1.2rem', backgroundColor: '#e0f7fa', borderRadius: '5px' }}>
+                <div style={{ textAlign: 'center' }}>序號</div>
+                <div>單號</div>
+                <div>盤點任務</div>
+                <div>目前狀態</div>
+                <div>負責人</div>
+                <div style={{ textAlign: 'center' }}>處理天數</div>
+              </div>
+              
+              {processedTickets.length > 0 ? processedTickets.map((t, idx) => (
+                <div 
+                  key={t.id} 
+                  style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: '50px 1fr 1.5fr 2fr 1fr 1fr', 
+                    gap: '10px', 
+                    padding: '10px', 
+                    backgroundColor: getRowColor(t.processingDays),
+                    border: '2px solid var(--crayon-dark)',
+                    alignItems: 'center',
+                    borderRadius: '10px'
+                  }}
+                >
+                  <div style={{ textAlign: 'center', fontWeight: 'bold', backgroundColor: 'white', padding: '5px', borderRadius: '5px', border: '1px solid #ccc', fontSize: '1.1rem' }}>
+                    {idx + 1}
+                  </div>
+                  <div style={{ fontWeight: 'bold', color: 'var(--crayon-dark)', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{t.id}</div>
+                  <div style={{ color: 'var(--crayon-green)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{getTaskName(t.taskId)}</div>
+                  <div style={{ color: 'var(--crayon-blue)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{t.currentStage}</div>
+                  <div style={{ color: 'var(--crayon-purple)', fontWeight: 'bold', backgroundColor: 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '1px dashed #999', fontSize: '1.1rem' }}>{getAssigneeName(t.currentStageAssigneeId)}</div>
+                  <div style={{ textAlign: 'center', fontWeight: 'bold', fontSize: '1.3rem', color: t.processingDays >= 3 ? 'white' : 'var(--crayon-dark)', backgroundColor: t.processingDays >= 3 ? 'var(--crayon-red)' : 'rgba(255,255,255,0.7)', padding: '5px', borderRadius: '5px', border: '2px solid var(--crayon-dark)' }}>
+                    {t.processingDays} 天
+                  </div>
+                </div>
+              )) : (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#888', fontSize: '1.2rem' }}>沒有符合條件的資料</div>
+              )}
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
