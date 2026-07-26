@@ -37,10 +37,12 @@ export default function ItemDetails() {
   // Detail Pagination State
   const [detailItemsPerPage, setDetailItemsPerPage] = useState(10);
   const [detailCurrentPage, setDetailCurrentPage] = useState(1);
+  const [filterItemSeq, setFilterItemSeq] = useState('all');
   
   // Reset page when switching tickets
   useEffect(() => {
     setDetailCurrentPage(1);
+    setFilterItemSeq('all');
   }, [selectedTicketId, detailItemsPerPage]);
 
   // Reset page when filters change
@@ -101,11 +103,15 @@ export default function ItemDetails() {
   const totalPages = Math.ceil(sortedTickets.length / itemsPerPage);
   const currentTickets = sortedTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const currentDetails = details.filter(d => d.ticketId === selectedTicketId).sort((a, b) => {
+  const baseDetails = details.filter(d => d.ticketId === selectedTicketId).sort((a, b) => {
     const seqDiff = a.itemSeq.localeCompare(b.itemSeq);
     if (seqDiff !== 0) return seqDiff;
     return (a.subItemSeq || '').localeCompare(b.subItemSeq || '');
   });
+  
+  const availableItemSeqs = Array.from(new Set(baseDetails.map(d => d.itemSeq))).sort();
+  
+  const currentDetails = baseDetails.filter(d => filterItemSeq === 'all' || d.itemSeq === filterItemSeq);
 
   const handleDelete = async (id: string) => {
     try {
@@ -190,12 +196,21 @@ export default function ItemDetails() {
           </button>
         </div>
         
-        {currentDetails.length === 0 ? (
+        {baseDetails.length === 0 ? (
           <div className="doodle-border" style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
             目前沒有任何明細資料。
           </div>
         ) : (
           <>
+            <div style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <label style={{ fontWeight: 'bold', color: 'var(--crayon-purple)' }}>🔍 篩選單一項目：</label>
+              <select className="doodle-input" style={{ width: 'auto', padding: '5px' }} value={filterItemSeq} onChange={e => setFilterItemSeq(e.target.value)}>
+                <option value="all">顯示全部項目 ({availableItemSeqs.length} 項)</option>
+                {availableItemSeqs.map(seq => (
+                  <option key={seq} value={seq}>項目 {seq}</option>
+                ))}
+              </select>
+            </div>
             <div className="doodle-border" style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f0f8ff' }}>
               <h3 style={{ marginTop: 0, color: 'var(--crayon-blue)' }}>📊 盤點單統計摘要</h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', lineHeight: '1.8' }}>
