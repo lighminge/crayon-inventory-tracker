@@ -218,7 +218,11 @@ export default function ItemDetails() {
                 <div style={{ flex: '1 1 300px' }}>
                   <div style={{ marginBottom: '10px' }}>
                     <span style={{ display: 'inline-block', backgroundColor: 'var(--crayon-orange)', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}>總項目數</span>
-                    <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{itemSeqList.length} 項</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '5px' }}>
+                      <span style={{ backgroundColor: 'white', border: '1px dashed var(--crayon-orange)', padding: '2px 8px', borderRadius: '10px', fontSize: '0.9rem', color: 'var(--crayon-orange)', fontWeight: 'bold' }}>
+                        {itemSeqList.length} 項
+                      </span>
+                    </div>
                   </div>
                   <div style={{ marginBottom: '10px' }}>
                     <span style={{ display: 'inline-block', backgroundColor: 'var(--crayon-green)', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}>各項目子項數量</span><br/>
