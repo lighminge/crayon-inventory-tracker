@@ -19,6 +19,8 @@ export default function ItemDetails() {
   const [filterEndDate, setFilterEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [filterTicketId, setFilterTicketId] = useState('');
   const [filterTicketType, setFilterTicketType] = useState('all');
+  const [useDateFilter, setUseDateFilter] = useState(true);
+  const [useTicketIdFilter, setUseTicketIdFilter] = useState(true);
 
   // View State
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
@@ -49,7 +51,7 @@ export default function ItemDetails() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStartDate, filterEndDate, filterTicketId, filterTicketType, sortMethod, itemsPerPage]);
+  }, [filterStartDate, filterEndDate, filterTicketId, filterTicketType, sortMethod, itemsPerPage, useDateFilter, useTicketIdFilter]);
 
   const loadData = async () => {
     try {
@@ -81,10 +83,10 @@ export default function ItemDetails() {
   }, []);
 
   const filteredTickets = tickets.filter(t => {
-    if (filterTicketId && !t.id.includes(filterTicketId)) return false;
+    if (useTicketIdFilter && filterTicketId && !t.id.includes(filterTicketId)) return false;
     if (filterTicketType !== 'all' && t.ticketType !== filterTicketType) return false;
     
-    if (t.dispatchDate) {
+    if (useDateFilter && t.dispatchDate) {
       const start = new Date(filterStartDate).getTime();
       // add 1 day to end date to include the whole day
       const end = new Date(filterEndDate).getTime() + 86400000;
@@ -534,16 +536,26 @@ export default function ItemDetails() {
         <h3 style={{ marginTop: 0, marginBottom: '15px', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>🔍 查詢功能區</h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end' }}>
           <div style={{ width: '150px' }}>
-            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>派送日期起：</label>
-            <CrayonDatePicker value={filterStartDate} onChange={setFilterStartDate} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.9rem', marginBottom: '5px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={useDateFilter} onChange={e => setUseDateFilter(e.target.checked)} />
+              啟用日期篩選 (起)
+            </label>
+            <div style={{ pointerEvents: useDateFilter ? 'auto' : 'none', opacity: useDateFilter ? 1 : 0.4 }}>
+              <CrayonDatePicker value={filterStartDate} onChange={setFilterStartDate} />
+            </div>
           </div>
           <div style={{ width: '150px' }}>
-            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>派送日期迄：</label>
-            <CrayonDatePicker value={filterEndDate} onChange={setFilterEndDate} />
+            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px', opacity: useDateFilter ? 1 : 0.4 }}>派送日期迄：</label>
+            <div style={{ pointerEvents: useDateFilter ? 'auto' : 'none', opacity: useDateFilter ? 1 : 0.4 }}>
+              <CrayonDatePicker value={filterEndDate} onChange={setFilterEndDate} />
+            </div>
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>盤點單號：</label>
-            <input className="doodle-input" style={{ width: '150px' }} value={filterTicketId} onChange={e => setFilterTicketId(e.target.value)} placeholder="輸入單號" />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.9rem', marginBottom: '5px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={useTicketIdFilter} onChange={e => setUseTicketIdFilter(e.target.checked)} />
+              啟用單號篩選
+            </label>
+            <input className="doodle-input" style={{ width: '150px', opacity: useTicketIdFilter ? 1 : 0.4 }} value={filterTicketId} onChange={e => setFilterTicketId(e.target.value)} placeholder="輸入單號" disabled={!useTicketIdFilter} />
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>盤點類型：</label>
