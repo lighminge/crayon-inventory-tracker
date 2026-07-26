@@ -95,9 +95,7 @@ export default function ItemDetails() {
     }
     
     if (filterTicketStatus !== 'all') {
-      const uniqueItemsImported = new Set(details.filter(d => d.ticketId === t.id).map(d => d.itemSeq)).size;
-      const totalItems = t.itemCount || 0;
-      const isComplete = totalItems > 0 && uniqueItemsImported >= totalItems;
+      const isComplete = !!t.closeDate;
       
       if (filterTicketStatus === 'completed' && !isComplete) return false;
       if (filterTicketStatus === 'uncompleted' && isComplete) return false;
@@ -648,9 +646,10 @@ export default function ItemDetails() {
               const seqNum = (currentPage - 1) * itemsPerPage + index + 1;
               const uniqueItemsImported = new Set(details.filter(d => d.ticketId === t.id).map(d => d.itemSeq)).size;
               const totalItems = t.itemCount || 0;
-              const isComplete = totalItems > 0 && uniqueItemsImported >= totalItems;
+              const isComplete = !!t.closeDate;
+              const isAllImported = totalItems > 0 && uniqueItemsImported >= totalItems;
               
-              const rowBgColor = isComplete 
+              const rowBgColor = isAllImported 
                 ? '#e8f5e9' 
                 : uniqueItemsImported > 0 
                   ? '#fff9c4' 
@@ -685,7 +684,7 @@ export default function ItemDetails() {
                     </span>
                   </td>
                   <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
-                    <span style={{ display: 'inline-block', backgroundColor: 'white', border: `1px dashed ${isComplete ? 'var(--crayon-green)' : uniqueItemsImported > 0 ? 'var(--crayon-orange)' : '#999'}`, padding: '2px 8px', borderRadius: '10px', color: isComplete ? 'var(--crayon-green)' : uniqueItemsImported > 0 ? 'var(--crayon-orange)' : '#999', fontWeight: 'bold' }}>
+                    <span style={{ display: 'inline-block', backgroundColor: 'white', border: `1px dashed ${isAllImported ? 'var(--crayon-green)' : uniqueItemsImported > 0 ? 'var(--crayon-orange)' : '#999'}`, padding: '2px 8px', borderRadius: '10px', color: isAllImported ? 'var(--crayon-green)' : uniqueItemsImported > 0 ? 'var(--crayon-orange)' : '#999', fontWeight: 'bold' }}>
                       {uniqueItemsImported} / {totalItems || '未知'}
                     </span>
                   </td>
