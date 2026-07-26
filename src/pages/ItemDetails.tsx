@@ -380,7 +380,9 @@ export default function ItemDetails() {
                                 </div>
                               </td>
                               <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                                <input type="date" className="doodle-input" style={{ width: '100px', padding: '2px' }} value={editData.date || ''} onChange={e => handleEditChange('date', e.target.value)} />
+                                <div style={{ width: '130px' }}>
+                                  <CrayonDatePicker value={editData.date || ''} onChange={val => handleEditChange('date', val)} />
+                                </div>
                               </td>
                               <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
                                 <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={editData.grossWeight || ''} onChange={e => handleEditChange('grossWeight', Number(e.target.value))} />
