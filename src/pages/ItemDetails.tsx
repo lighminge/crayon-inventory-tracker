@@ -425,8 +425,16 @@ export default function ItemDetails() {
                               {d.itemSeq} {d.subItemSeq ? `- ${d.subItemSeq}` : ''}
                             </span>
                           </td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.date || '無'}</td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.grossWeight} 公斤</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-blue)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
+                              {d.date || '無'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-dark)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-dark)', fontWeight: 'bold' }}>
+                              {d.grossWeight} 公斤
+                            </span>
+                          </td>
                           <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
                             <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-purple)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-purple)', fontWeight: 'bold' }}>
                               {mapContainerType(d.containerType)}
