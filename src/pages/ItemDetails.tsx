@@ -33,6 +33,15 @@ export default function ItemDetails() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortMethod, setSortMethod] = useState<'id' | 'date'>('id');
+  
+  // Detail Pagination State
+  const [detailItemsPerPage, setDetailItemsPerPage] = useState(10);
+  const [detailCurrentPage, setDetailCurrentPage] = useState(1);
+  
+  // Reset page when switching tickets
+  useEffect(() => {
+    setDetailCurrentPage(1);
+  }, [selectedTicketId, detailItemsPerPage]);
 
   // Reset page when filters change
   useEffect(() => {
@@ -153,6 +162,16 @@ export default function ItemDetails() {
     groupedDetails[d.itemSeq].push(d);
   });
 
+  const itemSeqList = Object.keys(groupedDetails).sort();
+  const detailTotalPages = Math.ceil(itemSeqList.length / detailItemsPerPage) || 1;
+  const currentSeqList = itemSeqList.slice((detailCurrentPage - 1) * detailItemsPerPage, detailCurrentPage * detailItemsPerPage);
+
+  const containerSummary = currentDetails.reduce((acc, d) => {
+    const type = mapContainerType(d.containerType);
+    acc[type] = (acc[type] || 0) + d.containerCount;
+    return acc;
+  }, {} as Record<string, number>);
+
   if (viewMode === 'detail') {
     return (
       <div>
@@ -168,8 +187,49 @@ export default function ItemDetails() {
             目前沒有任何明細資料。
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
+          <>
+            <div className="doodle-border" style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f0f8ff' }}>
+              <h3 style={{ marginTop: 0, color: 'var(--crayon-blue)' }}>📊 盤點單統計摘要</h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', lineHeight: '1.8' }}>
+                <div style={{ flex: '1 1 300px' }}>
+                  <p style={{ margin: '5px 0' }}><strong>總項目數：</strong> {itemSeqList.length} 項</p>
+                  <p style={{ margin: '5px 0' }}><strong>各項目子項數量：</strong><br/>
+                    {itemSeqList.map(seq => `項目${seq}(${groupedDetails[seq].length}筆)`).join(', ')}
+                  </p>
+                </div>
+                <div style={{ flex: '1 1 300px' }}>
+                  <p style={{ margin: '5px 0' }}><strong>總容器數量：</strong> {Object.entries(containerSummary).map(([type, count]) => `${type}(${count}個)`).join(', ') || '無'}</p>
+                  <p style={{ margin: '5px 0' }}><strong>各項目物料總數：</strong><br/>
+                    {itemSeqList.map(seq => {
+                      const sum = groupedDetails[seq].reduce((acc, d) => acc + (d.totalItemCount || 0), 0);
+                      return `項目${seq}(${sum}項)`;
+                    }).join(', ')}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '15px', gap: '15px', flexWrap: 'wrap' }}>
+              <div>
+                <label style={{ fontWeight: 'bold' }}>每頁筆數：</label>
+                <select className="doodle-input" style={{ width: 'auto', padding: '5px' }} value={detailItemsPerPage} onChange={e => setDetailItemsPerPage(Number(e.target.value))}>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+              
+              {detailTotalPages > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <button className="doodle-button" style={{ padding: '5px 15px', minHeight: 'auto' }} disabled={detailCurrentPage === 1} onClick={() => setDetailCurrentPage(p => p - 1)}>上一頁</button>
+                  <div style={{ padding: '5px 15px', fontWeight: 'bold' }}>{detailCurrentPage} / {detailTotalPages}</div>
+                  <button className="doodle-button" style={{ padding: '5px 15px', minHeight: 'auto' }} disabled={detailCurrentPage === detailTotalPages} onClick={() => setDetailCurrentPage(p => p + 1)}>下一頁</button>
+                </div>
+              )}
+            </div>
+
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
               <thead>
                 <tr style={{ backgroundColor: 'var(--crayon-dark)', color: 'white' }}>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)', width: '120px', textAlign: 'center' }}>功能</th>
@@ -185,7 +245,7 @@ export default function ItemDetails() {
                 </tr>
               </thead>
               <tbody>
-                {Object.keys(groupedDetails).map(itemSeq => {
+                {currentSeqList.map(itemSeq => {
                   const group = groupedDetails[itemSeq];
                   const totalGross = group.reduce((sum, d) => sum + d.grossWeight, 0);
                   const totalItemCount = group.reduce((sum, d) => sum + d.totalItemCount, 0);
@@ -284,7 +344,10 @@ export default function ItemDetails() {
                       {/* Subtotal row */}
                         <tr style={{ backgroundColor: '#fff0f5', border: '3px solid var(--crayon-purple)', boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)' }}>
                           <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)' }}></td>
-                          <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.2rem', fontWeight: '900', color: 'var(--crayon-purple)' }}>小計 ({itemSeq})</td>
+                          <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.2rem', fontWeight: '900', color: 'var(--crayon-purple)' }}>
+                            小計 ({itemSeq})
+                            <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>共 {group.length} 項</div>
+                          </td>
                           <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)' }}></td>
                           <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.0rem', fontWeight: 'bold' }}>
                             <div style={{ color: 'var(--crayon-red)', marginBottom: '5px' }}>總計: {totalGross.toFixed(2)} 公斤</div>
@@ -305,6 +368,7 @@ export default function ItemDetails() {
               </tbody>
             </table>
           </div>
+          </>
         )}
         
         {deleteConfirmId && (

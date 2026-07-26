@@ -55,6 +55,10 @@ export default function FloatingCalculator() {
             if (latestWithMw) {
               setMaterialUnitWeight(latestWithMw.materialUnitWeight);
             }
+            const latestWithCt = sorted.find(i => i.containerType);
+            if (latestWithCt) {
+              setContainerType(latestWithCt.containerType);
+            }
           }
         })
         .catch(console.error);
