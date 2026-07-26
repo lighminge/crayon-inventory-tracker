@@ -227,18 +227,20 @@ export default function ItemDetails() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', lineHeight: '1.8' }}>
                 <div style={{ flex: '1 1 300px' }}>
                   <div style={{ marginBottom: '10px' }}>
-                    <span style={{ display: 'inline-block', backgroundColor: 'var(--crayon-orange)', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}><span style={{ color: '#ffeb3b', textShadow: '1px 1px 2px rgba(0,0,0,0.8)', marginRight: '5px', fontSize: '1.1rem' }}>①</span>總項目數</span>
+                    <span style={{ display: 'inline-block', backgroundColor: 'var(--crayon-orange)', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}>總項目數</span>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '5px' }}>
-                      <span style={{ backgroundColor: 'white', border: '1px dashed var(--crayon-orange)', padding: '2px 8px', borderRadius: '10px', fontSize: '0.9rem', color: 'var(--crayon-orange)', fontWeight: 'bold' }}>
+                      <span style={{ backgroundColor: 'white', border: '1px dashed var(--crayon-orange)', padding: '2px 8px', borderRadius: '10px', fontSize: '0.9rem', color: 'var(--crayon-orange)', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--crayon-orange)', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.7rem', marginRight: '5px' }}>1</span>
                         {itemSeqList.length} 項
                       </span>
                     </div>
                   </div>
                   <div style={{ marginBottom: '10px' }}>
-                    <span style={{ display: 'inline-block', backgroundColor: 'var(--crayon-green)', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}><span style={{ color: '#ffeb3b', textShadow: '1px 1px 2px rgba(0,0,0,0.8)', marginRight: '5px', fontSize: '1.1rem' }}>②</span>各項目子項數量</span><br/>
+                    <span style={{ display: 'inline-block', backgroundColor: 'var(--crayon-green)', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}>各項目子項數量</span><br/>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '5px' }}>
-                      {itemSeqList.map(seq => (
-                        <span key={seq} style={{ backgroundColor: 'white', border: '1px dashed var(--crayon-dark)', padding: '2px 8px', borderRadius: '10px', fontSize: '0.9rem', color: 'var(--crayon-dark)' }}>
+                      {itemSeqList.map((seq, index) => (
+                        <span key={seq} style={{ backgroundColor: 'white', border: '1px dashed var(--crayon-dark)', padding: '2px 8px', borderRadius: '10px', fontSize: '0.9rem', color: 'var(--crayon-dark)', display: 'inline-flex', alignItems: 'center' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--crayon-dark)', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.7rem', marginRight: '5px' }}>{index + 1}</span>
                           項目 {seq} ({groupedDetails[seq].length} 筆)
                         </span>
                       ))}
@@ -247,42 +249,46 @@ export default function ItemDetails() {
                 </div>
                 <div style={{ flex: '1 1 300px' }}>
                   <div style={{ marginBottom: '10px' }}>
-                    <span style={{ display: 'inline-block', backgroundColor: 'var(--crayon-purple)', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}><span style={{ color: '#ffeb3b', textShadow: '1px 1px 2px rgba(0,0,0,0.8)', marginRight: '5px', fontSize: '1.1rem' }}>③</span>總容器數量</span>
+                    <span style={{ display: 'inline-block', backgroundColor: 'var(--crayon-purple)', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}>總容器數量</span>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '5px' }}>
-                      {Object.entries(containerSummary).length > 0 ? Object.entries(containerSummary).map(([type, count]) => (
-                        <span key={type} style={{ backgroundColor: 'white', border: '1px dashed var(--crayon-purple)', padding: '2px 8px', borderRadius: '10px', fontSize: '0.9rem', color: 'var(--crayon-purple)', fontWeight: 'bold' }}>
+                      {Object.entries(containerSummary).length > 0 ? Object.entries(containerSummary).map(([type, count], index) => (
+                        <span key={type} style={{ backgroundColor: 'white', border: '1px dashed var(--crayon-purple)', padding: '2px 8px', borderRadius: '10px', fontSize: '0.9rem', color: 'var(--crayon-purple)', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--crayon-purple)', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.7rem', marginRight: '5px' }}>{index + 1}</span>
                           {type}: {count} 個
                         </span>
                       )) : <span style={{ color: '#666' }}>無</span>}
                     </div>
                   </div>
                   <div style={{ marginBottom: '10px' }}>
-                    <span style={{ display: 'inline-block', backgroundColor: 'var(--crayon-red)', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}><span style={{ color: '#ffeb3b', textShadow: '1px 1px 2px rgba(0,0,0,0.8)', marginRight: '5px', fontSize: '1.1rem' }}>④</span>總淨重統計</span>
+                    <span style={{ display: 'inline-block', backgroundColor: 'var(--crayon-red)', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}>總淨重統計</span>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '5px' }}>
-                      {Object.entries(netWeightSummary).length > 0 ? Object.entries(netWeightSummary).map(([type, weight]) => (
-                        <span key={type} style={{ backgroundColor: 'white', border: '1px dashed var(--crayon-red)', padding: '2px 8px', borderRadius: '10px', fontSize: '0.9rem', color: 'var(--crayon-red)', fontWeight: 'bold' }}>
+                      {Object.entries(netWeightSummary).length > 0 ? Object.entries(netWeightSummary).map(([type, weight], index) => (
+                        <span key={type} style={{ backgroundColor: 'white', border: '1px dashed var(--crayon-red)', padding: '2px 8px', borderRadius: '10px', fontSize: '0.9rem', color: 'var(--crayon-red)', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--crayon-red)', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.7rem', marginRight: '5px' }}>{index + 1}</span>
                           {type}: {weight.toFixed(2)} 公斤
                         </span>
                       )) : <span style={{ color: '#666' }}>無</span>}
                     </div>
                   </div>
                   <div style={{ marginBottom: '10px' }}>
-                    <span style={{ display: 'inline-block', backgroundColor: '#20b2aa', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}><span style={{ color: '#ffeb3b', textShadow: '1px 1px 2px rgba(0,0,0,0.8)', marginRight: '5px', fontSize: '1.1rem' }}>⑤</span>物料單重</span>
+                    <span style={{ display: 'inline-block', backgroundColor: '#20b2aa', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}>物料單重</span>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '5px' }}>
-                      {materialUnitWeights.length > 0 ? materialUnitWeights.map(wt => (
-                        <span key={wt} style={{ backgroundColor: 'white', border: '1px dashed #20b2aa', padding: '2px 8px', borderRadius: '10px', fontSize: '0.9rem', color: '#20b2aa', fontWeight: 'bold' }}>
+                      {materialUnitWeights.length > 0 ? materialUnitWeights.map((wt, index) => (
+                        <span key={wt} style={{ backgroundColor: 'white', border: '1px dashed #20b2aa', padding: '2px 8px', borderRadius: '10px', fontSize: '0.9rem', color: '#20b2aa', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center' }}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#20b2aa', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.7rem', marginRight: '5px' }}>{index + 1}</span>
                           {wt} 公克
                         </span>
                       )) : <span style={{ color: '#666' }}>無</span>}
                     </div>
                   </div>
                   <div style={{ marginBottom: '10px' }}>
-                    <span style={{ display: 'inline-block', backgroundColor: '#ff69b4', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}><span style={{ color: '#ffeb3b', textShadow: '1px 1px 2px rgba(0,0,0,0.8)', marginRight: '5px', fontSize: '1.1rem' }}>⑥</span>各項目物料總數</span><br/>
+                    <span style={{ display: 'inline-block', backgroundColor: '#ff69b4', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}>各項目物料總數</span><br/>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '5px' }}>
-                      {itemSeqList.map(seq => {
+                      {itemSeqList.map((seq, index) => {
                         const sum = groupedDetails[seq].reduce((acc, d) => acc + (d.totalItemCount || 0), 0);
                         return (
-                          <span key={seq} style={{ backgroundColor: 'white', border: '1px dashed #ff69b4', padding: '2px 8px', borderRadius: '10px', fontSize: '0.9rem', color: '#ff69b4', fontWeight: 'bold' }}>
+                          <span key={seq} style={{ backgroundColor: 'white', border: '1px dashed #ff69b4', padding: '2px 8px', borderRadius: '10px', fontSize: '0.9rem', color: '#ff69b4', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ff69b4', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', fontSize: '0.7rem', marginRight: '5px' }}>{index + 1}</span>
                             項目 {seq}: {sum} 項
                           </span>
                         );
