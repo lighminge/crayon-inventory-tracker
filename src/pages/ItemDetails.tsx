@@ -21,6 +21,7 @@ export default function ItemDetails() {
   const [filterTicketType, setFilterTicketType] = useState('all');
   const [useDateFilter, setUseDateFilter] = useState(true);
   const [useTicketIdFilter, setUseTicketIdFilter] = useState(true);
+  const [filterTicketStatus, setFilterTicketStatus] = useState('all');
 
   // View State
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
@@ -51,7 +52,7 @@ export default function ItemDetails() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStartDate, filterEndDate, filterTicketId, filterTicketType, sortMethod, itemsPerPage, useDateFilter, useTicketIdFilter]);
+  }, [filterStartDate, filterEndDate, filterTicketId, filterTicketType, filterTicketStatus, sortMethod, itemsPerPage, useDateFilter, useTicketIdFilter]);
 
   const loadData = async () => {
     try {
@@ -91,6 +92,15 @@ export default function ItemDetails() {
       // add 1 day to end date to include the whole day
       const end = new Date(filterEndDate).getTime() + 86400000;
       if (t.dispatchDate < start || t.dispatchDate > end) return false;
+    }
+    
+    if (filterTicketStatus !== 'all') {
+      const uniqueItemsImported = new Set(details.filter(d => d.ticketId === t.id).map(d => d.itemSeq)).size;
+      const totalItems = t.itemCount || 0;
+      const isComplete = totalItems > 0 && uniqueItemsImported >= totalItems;
+      
+      if (filterTicketStatus === 'completed' && !isComplete) return false;
+      if (filterTicketStatus === 'uncompleted' && isComplete) return false;
     }
     
     return true;
@@ -565,13 +575,23 @@ export default function ItemDetails() {
               <option value="TKW">TKW</option>
             </select>
           </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>盤點單狀態：</label>
+            <select className="doodle-input" value={filterTicketStatus} onChange={e => setFilterTicketStatus(e.target.value)}>
+              <option value="all">全部</option>
+              <option value="uncompleted">未結案</option>
+              <option value="completed">已結案</option>
+            </select>
+          </div>
           <div style={{ marginLeft: 'auto' }}>
             <button className="doodle-button" style={{ height: '42px' }} onClick={() => {
-              setFilterTicketId(''); setFilterTicketType('all');
+              setFilterTicketId(''); setFilterTicketType('all'); setFilterTicketStatus('all');
               const d = new Date();
               setFilterEndDate(d.toISOString().split('T')[0]);
               d.setMonth(d.getMonth() - 1);
               setFilterStartDate(d.toISOString().split('T')[0]);
+              setUseDateFilter(true);
+              setUseTicketIdFilter(true);
             }}>清除</button>
             <button className="doodle-button" style={{ height: '42px', marginLeft: '10px', backgroundColor: 'var(--crayon-blue)', color: 'white' }} onClick={loadData}>重新整理</button>
           </div>
@@ -618,6 +638,7 @@ export default function ItemDetails() {
               <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)', width: '100px' }}>功能</th>
               <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)', width: '60px' }}>序號</th>
               <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>盤點單號</th>
+              <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>盤點單狀態</th>
               <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>盤點類型</th>
               <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>項目數 (已匯入)</th>
             </tr>
@@ -643,12 +664,29 @@ export default function ItemDetails() {
                       setViewMode('detail');
                     }}>項目明細</button>
                   </td>
-                  <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{seqNum}</td>
-                  <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>{t.id}</td>
-                  <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{t.ticketType || '無'}</td>
                   <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
-                    <span style={{ color: isComplete ? 'var(--crayon-green)' : uniqueItemsImported > 0 ? 'var(--crayon-blue)' : '#999', fontWeight: 'bold' }}>
-                      {uniqueItemsImported} / {totalItems} 筆
+                    <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-dark)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-dark)', fontWeight: 'bold' }}>
+                      {seqNum}
+                    </span>
+                  </td>
+                  <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
+                    <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-purple)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-purple)', fontWeight: 'bold' }}>
+                      {t.id}
+                    </span>
+                  </td>
+                  <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
+                    <span style={{ display: 'inline-block', backgroundColor: isComplete ? 'var(--crayon-green)' : 'var(--crayon-red)', border: '2px solid var(--crayon-dark)', padding: '2px 8px', borderRadius: '10px', color: 'white', fontWeight: 'bold' }}>
+                      {isComplete ? '已結案' : '未結案'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
+                    <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-blue)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
+                      {t.ticketType || '無'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
+                    <span style={{ display: 'inline-block', backgroundColor: 'white', border: `1px dashed ${isComplete ? 'var(--crayon-green)' : uniqueItemsImported > 0 ? 'var(--crayon-orange)' : '#999'}`, padding: '2px 8px', borderRadius: '10px', color: isComplete ? 'var(--crayon-green)' : uniqueItemsImported > 0 ? 'var(--crayon-orange)' : '#999', fontWeight: 'bold' }}>
+                      {uniqueItemsImported} / {totalItems || '未知'}
                     </span>
                   </td>
                 </tr>
