@@ -420,17 +420,43 @@ export default function ItemDetails() {
                                 <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', backgroundColor: 'var(--crayon-red)', color: 'white', minHeight: 'auto' }} onClick={() => setDeleteConfirmId(d.id)}>刪除</button>
                               </div>
                             </td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>
-                            {d.itemSeq} {d.subItemSeq ? `- ${d.subItemSeq}` : ''}
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-green)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-dark)', fontWeight: 'bold' }}>
+                              {d.itemSeq} {d.subItemSeq ? `- ${d.subItemSeq}` : ''}
+                            </span>
                           </td>
                           <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.date || '無'}</td>
                           <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.grossWeight} 公斤</td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{mapContainerType(d.containerType)}</td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.containerCount}</td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.containerUnitWeight} 公斤</td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.netWeight !== undefined ? `${d.netWeight} 公斤` : '無'}</td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>{d.materialUnitWeight} 公克</td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)', fontWeight: 'bold', color: 'var(--crayon-red)' }}>{d.totalItemCount} 項</td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-purple)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-purple)', fontWeight: 'bold' }}>
+                              {mapContainerType(d.containerType)}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-purple)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-purple)', fontWeight: 'bold' }}>
+                              {d.containerCount}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-purple)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-purple)', fontWeight: 'bold' }}>
+                              {d.containerUnitWeight} 公斤
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-red)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-red)', fontWeight: 'bold' }}>
+                              {d.netWeight !== undefined ? `${d.netWeight} 公斤` : '無'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed #20b2aa', padding: '2px 8px', borderRadius: '10px', color: '#20b2aa', fontWeight: 'bold' }}>
+                              {d.materialUnitWeight} 公克
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed #ff69b4', padding: '2px 8px', borderRadius: '10px', color: '#ff69b4', fontWeight: 'bold' }}>
+                              {d.totalItemCount} 項
+                            </span>
+                          </td>
                         </tr>
                         );
                       })}
