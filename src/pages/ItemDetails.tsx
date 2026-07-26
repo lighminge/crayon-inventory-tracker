@@ -38,6 +38,7 @@ export default function ItemDetails() {
   const [detailItemsPerPage, setDetailItemsPerPage] = useState(10);
   const [detailCurrentPage, setDetailCurrentPage] = useState(1);
   const [filterItemSeq, setFilterItemSeq] = useState('all');
+  const [detailSortMethod, setDetailSortMethod] = useState<'seq' | 'containerType'>('seq');
   
   // Reset page when switching tickets
   useEffect(() => {
@@ -215,33 +216,60 @@ export default function ItemDetails() {
               <h3 style={{ marginTop: 0, color: 'var(--crayon-blue)' }}>📊 盤點單統計摘要</h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', lineHeight: '1.8' }}>
                 <div style={{ flex: '1 1 300px' }}>
-                  <p style={{ margin: '5px 0' }}><strong>總項目數：</strong> {itemSeqList.length} 項</p>
-                  <p style={{ margin: '5px 0' }}><strong>各項目子項數量：</strong><br/>
-                    {itemSeqList.map(seq => `項目${seq}(${groupedDetails[seq].length}筆)`).join(', ')}
-                  </p>
+                  <div style={{ marginBottom: '10px' }}>
+                    <span style={{ display: 'inline-block', backgroundColor: 'var(--crayon-orange)', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}>總項目數</span>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{itemSeqList.length} 項</span>
+                  </div>
+                  <div style={{ marginBottom: '10px' }}>
+                    <span style={{ display: 'inline-block', backgroundColor: 'var(--crayon-green)', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}>各項目子項數量</span><br/>
+                    <span style={{ fontWeight: 'bold', color: 'var(--crayon-dark)' }}>
+                      {itemSeqList.map(seq => `項目${seq}(${groupedDetails[seq].length}筆)`).join(', ')}
+                    </span>
+                  </div>
                 </div>
                 <div style={{ flex: '1 1 300px' }}>
-                  <p style={{ margin: '5px 0' }}><strong>總容器數量：</strong> {Object.entries(containerSummary).map(([type, count]) => `${type}(${count}個)`).join(', ') || '無'}</p>
-                  <p style={{ margin: '5px 0' }}><strong>總淨重統計：</strong> {Object.entries(netWeightSummary).map(([type, weight]) => `${type}(${weight.toFixed(2)}公斤)`).join(', ') || '無'}</p>
-                  <p style={{ margin: '5px 0' }}><strong>物料單重：</strong> {materialUnitWeights.length > 0 ? materialUnitWeights.join(', ') + ' 公克' : '無'}</p>
-                  <p style={{ margin: '5px 0' }}><strong>各項目物料總數：</strong><br/>
-                    {itemSeqList.map(seq => {
-                      const sum = groupedDetails[seq].reduce((acc, d) => acc + (d.totalItemCount || 0), 0);
-                      return `項目${seq}(${sum}項)`;
-                    }).join(', ')}
-                  </p>
+                  <div style={{ marginBottom: '10px' }}>
+                    <span style={{ display: 'inline-block', backgroundColor: 'var(--crayon-purple)', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}>總容器數量</span>
+                    <span style={{ fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{Object.entries(containerSummary).map(([type, count]) => `${type}(${count}個)`).join(', ') || '無'}</span>
+                  </div>
+                  <div style={{ marginBottom: '10px' }}>
+                    <span style={{ display: 'inline-block', backgroundColor: 'var(--crayon-red)', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}>總淨重統計</span>
+                    <span style={{ fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{Object.entries(netWeightSummary).map(([type, weight]) => `${type}(${weight.toFixed(2)}公斤)`).join(', ') || '無'}</span>
+                  </div>
+                  <div style={{ marginBottom: '10px' }}>
+                    <span style={{ display: 'inline-block', backgroundColor: '#20b2aa', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}>物料單重</span>
+                    <span style={{ fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{materialUnitWeights.length > 0 ? materialUnitWeights.join(', ') + ' 公克' : '無'}</span>
+                  </div>
+                  <div style={{ marginBottom: '10px' }}>
+                    <span style={{ display: 'inline-block', backgroundColor: '#ff69b4', color: 'white', padding: '2px 8px', borderRadius: '15px', fontWeight: 'bold', marginRight: '8px', border: '2px solid var(--crayon-dark)' }}>各項目物料總數</span><br/>
+                    <span style={{ fontWeight: 'bold', color: 'var(--crayon-dark)' }}>
+                      {itemSeqList.map(seq => {
+                        const sum = groupedDetails[seq].reduce((acc, d) => acc + (d.totalItemCount || 0), 0);
+                        return `項目${seq}(${sum}項)`;
+                      }).join(', ')}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '15px', gap: '15px', flexWrap: 'wrap' }}>
-              <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <label style={{ fontWeight: 'bold', color: 'var(--crayon-purple)' }}>🔀 子項排序方式：</label>
+                <select className="doodle-input" style={{ width: 'auto', padding: '5px' }} value={detailSortMethod} onChange={e => setDetailSortMethod(e.target.value as any)}>
+                  <option value="seq">依序號排序</option>
+                  <option value="containerType">依容器種類排序</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <div>
                 <label style={{ fontWeight: 'bold' }}>每頁筆數：</label>
                 <select className="doodle-input" style={{ width: 'auto', padding: '5px' }} value={detailItemsPerPage} onChange={e => setDetailItemsPerPage(Number(e.target.value))}>
                   <option value={10}>10</option>
                   <option value={20}>20</option>
                   <option value={50}>50</option>
                 </select>
+              </div>
               </div>
               
               {detailTotalPages > 1 && (
@@ -272,6 +300,16 @@ export default function ItemDetails() {
               <tbody>
                 {currentSeqList.map(itemSeq => {
                   const group = groupedDetails[itemSeq];
+                  const sortedGroup = [...group].sort((a, b) => {
+                    if (detailSortMethod === 'containerType') {
+                      const typeA = mapContainerType(a.containerType);
+                      const typeB = mapContainerType(b.containerType);
+                      const typeDiff = typeA.localeCompare(typeB);
+                      if (typeDiff !== 0) return typeDiff;
+                    }
+                    return (a.subItemSeq || '').localeCompare(b.subItemSeq || '');
+                  });
+
                   const totalGross = group.reduce((sum, d) => sum + d.grossWeight, 0);
                   const totalItemCount = group.reduce((sum, d) => sum + d.totalItemCount, 0);
                   
@@ -294,7 +332,7 @@ export default function ItemDetails() {
 
                   return (
                     <React.Fragment key={itemSeq}>
-                      {group.map((d, index) => {
+                      {sortedGroup.map((d, index) => {
                         if (editingId === d.id) {
                           return (
                             <tr key={d.id} style={{ backgroundColor: '#fffbe6', borderBottom: '2px solid var(--crayon-blue)' }}>
