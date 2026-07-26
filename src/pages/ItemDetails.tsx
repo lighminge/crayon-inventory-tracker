@@ -172,6 +172,14 @@ export default function ItemDetails() {
     return acc;
   }, {} as Record<string, number>);
 
+  const netWeightSummary = currentDetails.reduce((acc, d) => {
+    const type = mapContainerType(d.containerType);
+    acc[type] = (acc[type] || 0) + (d.netWeight || 0);
+    return acc;
+  }, {} as Record<string, number>);
+
+  const materialUnitWeights = Array.from(new Set(currentDetails.map(d => d.materialUnitWeight))).filter(w => w > 0).sort((a,b) => a - b);
+
   if (viewMode === 'detail') {
     return (
       <div>
@@ -199,6 +207,8 @@ export default function ItemDetails() {
                 </div>
                 <div style={{ flex: '1 1 300px' }}>
                   <p style={{ margin: '5px 0' }}><strong>總容器數量：</strong> {Object.entries(containerSummary).map(([type, count]) => `${type}(${count}個)`).join(', ') || '無'}</p>
+                  <p style={{ margin: '5px 0' }}><strong>總淨重統計：</strong> {Object.entries(netWeightSummary).map(([type, weight]) => `${type}(${weight.toFixed(2)}公斤)`).join(', ') || '無'}</p>
+                  <p style={{ margin: '5px 0' }}><strong>物料單重：</strong> {materialUnitWeights.length > 0 ? materialUnitWeights.join(', ') + ' 公克' : '無'}</p>
                   <p style={{ margin: '5px 0' }}><strong>各項目物料總數：</strong><br/>
                     {itemSeqList.map(seq => {
                       const sum = groupedDetails[seq].reduce((acc, d) => acc + (d.totalItemCount || 0), 0);
