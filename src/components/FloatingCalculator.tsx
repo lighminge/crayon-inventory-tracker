@@ -59,6 +59,14 @@ export default function FloatingCalculator() {
             if (latestWithCt) {
               setContainerType(latestWithCt.containerType);
             }
+            const latestWithCw = sorted.find(i => i.containerUnitWeight > 0);
+            if (latestWithCw) {
+              setContainerUnitWeight(latestWithCw.containerUnitWeight);
+            }
+            const latestWithDate = sorted.find(i => i.date);
+            if (latestWithDate) {
+              setDate(latestWithDate.date || '');
+            }
           }
         })
         .catch(console.error);
