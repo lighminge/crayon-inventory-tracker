@@ -341,6 +341,16 @@ export default function InventoryTasks() {
                 const startIndex = (currentPage - 1) * currentItemsPerPage;
                 const paginatedTickets = filteredTickets.slice(startIndex, startIndex + currentItemsPerPage);
 
+                const assigneeStats = filteredTickets.reduce((acc: Record<string, {name: string, count: number, items: number}>, t: any) => {
+                  const id = t.assigneeId || 'unknown';
+                  if (!acc[id]) {
+                    acc[id] = { name: t.assigneeName || '未指定', count: 0, items: 0 };
+                  }
+                  acc[id].count += 1;
+                  acc[id].items += (t.itemCount || 0);
+                  return acc;
+                }, {});
+
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px', minHeight: '340px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -359,11 +369,30 @@ export default function InventoryTasks() {
                     </div>
 
                     <div className="doodle-border" style={{ backgroundColor: '#e3f2fd', padding: '10px', textAlign: 'center' }}>
-                      <div style={{ fontWeight: 'bold', color: 'var(--crayon-blue)' }}>統計數量 (根據篩選)</div>
-                      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '5px' }}>
-                        <div>盤點單：<span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{totalFilteredTickets}</span> 筆</div>
-                        <div>總項目：<span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{totalFilteredItems}</span> 項</div>
+                      <div style={{ fontWeight: 'bold', color: 'var(--crayon-blue)', marginBottom: '5px' }}>統計數量 (根據篩選)</div>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
+                        <div style={{ backgroundColor: 'white', padding: '5px 10px', borderRadius: '5px', border: '1px solid var(--crayon-blue)' }}>
+                          盤點單：<span style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-blue)' }}>{totalFilteredTickets}</span> 筆
+                        </div>
+                        <div style={{ backgroundColor: 'white', padding: '5px 10px', borderRadius: '5px', border: '1px solid var(--crayon-orange)' }}>
+                          總項目：<span style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-orange)' }}>{totalFilteredItems}</span> 項
+                        </div>
                       </div>
+                      
+                      {Object.keys(assigneeStats).length > 0 && (
+                        <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed var(--crayon-blue)', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#666' }}>人員統計</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', justifyContent: 'center' }}>
+                            {Object.values(assigneeStats).map((st, idx) => (
+                              <div key={idx} style={{ backgroundColor: '#fff', fontSize: '0.8rem', padding: '3px 8px', borderRadius: '15px', border: '1px solid #ccc', display: 'flex', gap: '5px' }}>
+                                <span style={{ fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{st.name}</span>
+                                <span style={{ color: 'var(--crayon-blue)' }}>{st.count}筆</span>
+                                <span style={{ color: 'var(--crayon-orange)' }}>{st.items}項</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
@@ -389,18 +418,21 @@ export default function InventoryTasks() {
                           {paginatedTickets.map((t: any, tIdx: number) => {
                             const isCompleted = !!t.closeDate;
                             return (
-                              <li key={tIdx} className="doodle-border" style={{ padding: '8px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', gap: '5px', borderLeft: `5px solid ${isCompleted ? 'var(--crayon-green)' : 'var(--crayon-red)'}` }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #ccc', paddingBottom: '3px' }}>
-                                  <strong style={{ color: 'var(--crayon-purple)' }}>單號: {t.id}</strong>
-                                  <span style={{ backgroundColor: isCompleted ? '#e8f5e9' : '#ffebee', color: isCompleted ? 'var(--crayon-green)' : 'var(--crayon-red)', padding: '2px 5px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                                    {isCompleted ? '已完成' : '未完成'}
+                              <li key={tIdx} className="doodle-border" style={{ padding: '10px', backgroundColor: isCompleted ? '#f1f8e9' : '#fff3e0', display: 'flex', flexDirection: 'column', gap: '5px', border: `2px solid ${isCompleted ? 'var(--crayon-green)' : 'var(--crayon-orange)'}`, borderLeft: `8px solid ${isCompleted ? 'var(--crayon-green)' : 'var(--crayon-orange)'}` }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: `1px dashed ${isCompleted ? '#c5e1a5' : '#ffe0b2'}`, paddingBottom: '5px' }}>
+                                  <strong style={{ color: 'var(--crayon-dark)', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <span style={{ backgroundColor: 'var(--crayon-dark)', color: 'white', borderRadius: '50%', width: '22px', height: '22px', display: 'inline-flex', justifyContent: 'center', alignItems: 'center', fontSize: '0.85rem' }}>{startIndex + tIdx + 1}</span>
+                                    單號: {t.id}
+                                  </strong>
+                                  <span style={{ backgroundColor: isCompleted ? 'var(--crayon-green)' : 'var(--crayon-red)', color: 'white', padding: '3px 8px', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold', boxShadow: '1px 1px 0 rgba(0,0,0,0.2)' }}>
+                                    {isCompleted ? '✔️ 已完成' : '⏳ 未完成'}
                                   </span>
                                 </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                                  <span>負責人: <strong style={{ color: 'var(--crayon-dark)' }}>{t.assigneeName}</strong></span>
-                                  <span>品項: <strong style={{ color: 'var(--crayon-orange)' }}>{t.itemCount || 0}</strong> 項</span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', backgroundColor: 'rgba(255,255,255,0.6)', padding: '5px', borderRadius: '5px' }}>
+                                  <span>負責人: <strong style={{ color: 'var(--crayon-purple)', fontSize: '1.1rem' }}>{t.assigneeName}</strong></span>
+                                  <span>品項: <strong style={{ color: 'var(--crayon-red)', fontSize: '1.1rem' }}>{t.itemCount || 0}</strong> <span style={{fontSize: '0.85rem'}}>項</span></span>
                                 </div>
-                                <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                                <div style={{ fontSize: '0.85rem', color: '#666', textAlign: 'right', fontStyle: 'italic' }}>
                                   派送日: {new Date(t.dispatchDate).toLocaleDateString()}
                                 </div>
                               </li>

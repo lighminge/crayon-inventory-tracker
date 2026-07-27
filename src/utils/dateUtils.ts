@@ -22,5 +22,5 @@ export const calculateBusinessDays = (startMs: number, endMs: number): number =>
     curMs += 24 * 60 * 60 * 1000;
   }
   
-  return days;
+  return Math.max(0, days - 1);
 };

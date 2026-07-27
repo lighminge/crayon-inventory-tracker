@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import type { InventoryTicket, Personnel, Workflow } from '../types';
-import { getTickets, updateTicket, getPersonnel, getWorkflows } from '../services/api';
+import type { InventoryTicket, Personnel, Workflow, InventoryTask } from '../types';
+import { getTickets, updateTicket, getPersonnel, getWorkflows, getTasks } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 
@@ -8,6 +8,7 @@ export default function WorkflowTickets() {
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [tasks, setTasks] = useState<InventoryTask[]>([]);
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -16,6 +17,7 @@ export default function WorkflowTickets() {
   // Search & Filter State
   const [searchId, setSearchId] = useState('');
   const [filterTicketType, setFilterTicketType] = useState('');
+  const [filterTaskId, setFilterTaskId] = useState('');
 
   // Modals State
   const [updatingTicket, setUpdatingTicket] = useState<InventoryTicket | null>(null);
@@ -36,11 +38,12 @@ export default function WorkflowTickets() {
 
   const loadData = async () => {
     try {
-      const [tData, pData, wData] = await Promise.all([getTickets(), getPersonnel(), getWorkflows()]);
+      const [tData, pData, wData, tasksData] = await Promise.all([getTickets(), getPersonnel(), getWorkflows(), getTasks()]);
       // Only keep unfinished tickets
       setTickets(tData.filter(t => !t.closeDate));
       setPersonnel(pData);
       setWorkflows(wData.sort((a, b) => a.order - b.order));
+      setTasks(tasksData);
     } catch (e) {
       console.error(e);
       alert('讀取失敗');
@@ -54,8 +57,11 @@ export default function WorkflowTickets() {
 
   // Sort and Filter active tickets
   const activeTickets = useMemo(() => {
-    return [...tickets].filter(t => !filterTicketType || t.ticketType === filterTicketType).sort((a, b) => a.id.localeCompare(b.id));
-  }, [tickets, filterTicketType]);
+    let result = [...tickets];
+    if (filterTicketType) result = result.filter(t => t.ticketType === filterTicketType);
+    if (filterTaskId) result = result.filter(t => t.taskId === filterTaskId);
+    return result.sort((a, b) => a.id.localeCompare(b.id));
+  }, [tickets, filterTicketType, filterTaskId]);
 
   // Pagination Logic
   const totalPages = Math.ceil(activeTickets.length / itemsPerPage);
@@ -117,7 +123,7 @@ export default function WorkflowTickets() {
     try {
       if (isLastStage) {
         const processingDays = updatingTicket.dispatchDate ? 
-          Math.max(0, calculateBusinessDays(updatingTicket.dispatchDate, timestamp) - 1) : 0;
+          calculateBusinessDays(updatingTicket.dispatchDate, timestamp) : 0;
         await updateTicket(updatingTicket.id, { 
           stageDates: newStageDates,
           closeDate: timestamp,
@@ -148,7 +154,7 @@ export default function WorkflowTickets() {
     
     const timestamp = new Date(selectedDate).getTime();
     const processingDays = updatingTicket.dispatchDate ? 
-      Math.max(0, calculateBusinessDays(updatingTicket.dispatchDate, timestamp) - 1) : 0;
+      calculateBusinessDays(updatingTicket.dispatchDate, timestamp) : 0;
 
     try {
       await updateTicket(updatingTicket.id, {
@@ -323,6 +329,15 @@ export default function WorkflowTickets() {
             <option value="">全部</option>
             <option value="夾鉗">夾鉗</option>
             <option value="TKW">TKW</option>
+          </select>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>📋 盤點任務：</label>
+          <select className="doodle-input" style={{ fontSize: '1.2rem', width: '150px' }} value={filterTaskId} onChange={e => setFilterTaskId(e.target.value)}>
+            <option value="">全部任務</option>
+            {tasks.filter(tk => tk.endDate >= new Date().getTime() - (24 * 60 * 60 * 1000)).map(tk => (
+              <option key={tk.id} value={tk.id}>{tk.name}</option>
+            ))}
           </select>
         </div>
         <form onSubmit={handleSearchAndOpen} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
