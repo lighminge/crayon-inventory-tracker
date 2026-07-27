@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState('');
   const [personnelTicketType, setPersonnelTicketType] = useState('');
+  const [globalYear, setGlobalYear] = useState<number | ''>(new Date().getFullYear());
   
   // Personnel Cards State
   const [activeTab, setActiveTab] = useState<Record<string, 'stats' | 'incomplete' | 'doing'>>({});
@@ -53,6 +54,12 @@ export default function Dashboard() {
 
   const filteredTickets = useMemo(() => {
     let res = tickets;
+    if (globalYear !== '') {
+      res = res.filter(t => {
+        const d = t.dispatchDate ? new Date(t.dispatchDate) : null;
+        return d && d.getFullYear() === globalYear;
+      });
+    }
     if (selectedTaskId) {
       res = res.filter(t => t.taskId === selectedTaskId);
     }
@@ -60,7 +67,7 @@ export default function Dashboard() {
       res = res.filter(t => t.ticketType === personnelTicketType);
     }
     return res;
-  }, [tickets, selectedTaskId, personnelTicketType]);
+  }, [tickets, globalYear, selectedTaskId, personnelTicketType]);
 
   const getFirstStageDate = (t: InventoryTicket) => {
     if (t.stageDates && Object.keys(t.stageDates).length > 0) {
@@ -290,10 +297,18 @@ export default function Dashboard() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
         <h2 style={{ margin: 0 }}>📊 儀表板</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <label style={{ fontWeight: 'bold' }}>切換盤點任務 (簡單比對)：</label>
-          <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e3f2fd' }} value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
-            <option value="">-- 全域資料 (不指定任務) --</option>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: 'bold' }}>西元年度：</label>
+            <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e8f5e9' }} value={globalYear} onChange={e => setGlobalYear(e.target.value === '' ? '' : Number(e.target.value))}>
+              <option value="">全部年度</option>
+              {yearOptions.map(y => <option key={y} value={y}>{y} 年</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: 'bold' }}>切換盤點任務 (簡單比對)：</label>
+            <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e3f2fd' }} value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
+              <option value="">-- 全域資料 (不指定任務) --</option>
             {tasks.filter(t => {
               if (!t.startDate || !t.endDate) return true;
               
@@ -314,6 +329,7 @@ export default function Dashboard() {
               return todayTime >= startTime && todayTime <= endTime;
             }).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
+        </div>
         </div>
       </div>
       
