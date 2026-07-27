@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [incompletePage, setIncompletePage] = useState<Record<string, number>>({});
   const [doingPage, setDoingPage] = useState<Record<string, number>>({});
   const [cardTicketType, setCardTicketType] = useState<Record<string, string>>({});
+  const [cardTaskFilter, setCardTaskFilter] = useState<Record<string, string>>({});
   
   // Dashboard Chart State
   const [chartType, setChartType] = useState<'bar' | 'line' | 'composed'>('bar');
@@ -432,9 +433,13 @@ export default function Dashboard() {
                 const currentPage = currentTab === 'doing' ? (doingPage[p.id] || 1) : (incompletePage[p.id] || 1);
                 const itemsPerPage = 5;
                 const typeFilter = cardTicketType[p.id];
+                const taskFilter = cardTaskFilter[p.id];
                 
                 const targetTickets = currentTab === 'doing' ? p.doingTickets : p.incompleteTickets;
-                const filteredTicketsList = typeFilter ? targetTickets.filter((t: InventoryTicket) => t.ticketType === typeFilter) : targetTickets;
+                let filteredTicketsList = typeFilter ? targetTickets.filter((t: InventoryTicket) => t.ticketType === typeFilter) : targetTickets;
+                if (taskFilter) {
+                  filteredTicketsList = filteredTicketsList.filter((t: InventoryTicket) => t.taskId === taskFilter);
+                }
                 
                 const totalPages = Math.ceil(filteredTicketsList.length / itemsPerPage);
                 const startIndex = (currentPage - 1) * itemsPerPage;
@@ -548,23 +553,37 @@ export default function Dashboard() {
                         }}>
                           <div style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontSize: '0.95rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>總計：{filteredTicketsList.length} 件 / {filteredTicketsList.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0)} 項</span>
-                            <select 
-                              className="doodle-input" 
-                              style={{ width: 'auto', padding: '2px 5px', fontSize: '0.8rem', backgroundColor: 'white' }}
-                              value={cardTicketType[p.id] || ''}
-                              onChange={e => {
-                                setCardTicketType(prev => ({...prev, [p.id]: e.target.value}));
-                                if (currentTab === 'doing') {
-                                  setDoingPage(prev => ({...prev, [p.id]: 1}));
-                                } else {
-                                  setIncompletePage(prev => ({...prev, [p.id]: 1}));
-                                }
-                              }}
-                            >
-                              <option value="">全部類型</option>
-                              <option value="夾鉗">夾鉗</option>
-                              <option value="TKW">TKW</option>
-                            </select>
+                            <div style={{ display: 'flex', gap: '5px' }}>
+                              <select 
+                                className="doodle-input" 
+                                style={{ width: 'auto', padding: '2px 5px', fontSize: '0.8rem', backgroundColor: 'white' }}
+                                value={cardTaskFilter[p.id] || ''}
+                                onChange={e => {
+                                  setCardTaskFilter(prev => ({...prev, [p.id]: e.target.value}));
+                                  if (currentTab === 'doing') setDoingPage(prev => ({...prev, [p.id]: 1}));
+                                  else setIncompletePage(prev => ({...prev, [p.id]: 1}));
+                                }}
+                              >
+                                <option value="">-- 所有任務 --</option>
+                                {tasks.filter(tk => tk.endDate >= new Date().getTime() - (24 * 60 * 60 * 1000)).map(tk => (
+                                  <option key={tk.id} value={tk.id}>{tk.name}</option>
+                                ))}
+                              </select>
+                              <select 
+                                className="doodle-input" 
+                                style={{ width: 'auto', padding: '2px 5px', fontSize: '0.8rem', backgroundColor: 'white' }}
+                                value={cardTicketType[p.id] || ''}
+                                onChange={e => {
+                                  setCardTicketType(prev => ({...prev, [p.id]: e.target.value}));
+                                  if (currentTab === 'doing') setDoingPage(prev => ({...prev, [p.id]: 1}));
+                                  else setIncompletePage(prev => ({...prev, [p.id]: 1}));
+                                }}
+                              >
+                                <option value="">全部類型</option>
+                                <option value="夾鉗">夾鉗</option>
+                                <option value="TKW">TKW</option>
+                              </select>
+                            </div>
                           </div>
                           
                           {filteredTicketsList.length === 0 ? (
@@ -590,8 +609,8 @@ export default function Dashboard() {
                                   return (
                                     <li key={t.id} style={{ 
                                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                      backgroundColor: 'white', padding: '6px 10px', 
-                                      border: '2px solid var(--crayon-dark)', borderRadius: '8px',
+                                      backgroundColor: t.taskId ? '#e1f5fe' : 'white', padding: '6px 10px', 
+                                      border: `2px solid ${t.taskId ? 'var(--crayon-blue)' : 'var(--crayon-dark)'}`, borderRadius: '8px',
                                       boxShadow: '2px 2px 0px rgba(0,0,0,0.1)'
                                     }}>
                                       <span style={{ fontWeight: 'bold', fontSize: '1rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '5px' }}>

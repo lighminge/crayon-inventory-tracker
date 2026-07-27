@@ -117,7 +117,7 @@ export default function WorkflowTickets() {
     try {
       if (isLastStage) {
         const processingDays = updatingTicket.dispatchDate ? 
-          calculateBusinessDays(updatingTicket.dispatchDate, timestamp) : 1;
+          Math.max(0, calculateBusinessDays(updatingTicket.dispatchDate, timestamp) - 1) : 0;
         await updateTicket(updatingTicket.id, { 
           stageDates: newStageDates,
           closeDate: timestamp,
@@ -148,7 +148,7 @@ export default function WorkflowTickets() {
     
     const timestamp = new Date(selectedDate).getTime();
     const processingDays = updatingTicket.dispatchDate ? 
-      calculateBusinessDays(updatingTicket.dispatchDate, timestamp) : 1;
+      Math.max(0, calculateBusinessDays(updatingTicket.dispatchDate, timestamp) - 1) : 0;
 
     try {
       await updateTicket(updatingTicket.id, {

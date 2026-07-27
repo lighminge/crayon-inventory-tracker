@@ -62,6 +62,41 @@ export default function DispatchTickets() {
     setSingleItemCount(1);
   };
 
+  const getTaskStats = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return null;
+    const openedItems = tickets.filter(t => t.taskId === taskId).reduce((sum, t) => sum + (t.itemCount || 0), 0);
+    return { openedItems, totalItems: task.totalItemCount, remaining: task.totalItemCount - openedItems };
+  };
+
+  const getExistingIdWarning = () => {
+    if (dispatchType === 'single') {
+      if (!singleId) return null;
+      const existing = tickets.find(t => t.id === singleId);
+      if (existing) {
+        const p = personnel.find(p => p.id === existing.assigneeId);
+        return `已被分派給 ${p ? p.name : existing.assigneeId}`;
+      }
+    } else {
+      if (!multiStartId || !multiEndId) return null;
+      const start = parseIdSuffix(multiStartId);
+      const end = parseIdSuffix(multiEndId);
+      if (start.prefix !== end.prefix || isNaN(start.num) || isNaN(end.num) || start.num > end.num) return null;
+      if (end.num - start.num > 100) return null; // Avoid heavy loop on typing
+      
+      for (let i = start.num; i <= end.num; i++) {
+        const paddedNum = i.toString().padStart(start.suffixLen, '0');
+        const testId = `${start.prefix}${paddedNum}`;
+        const existing = tickets.find(t => t.id === testId);
+        if (existing) {
+          const p = personnel.find(p => p.id === existing.assigneeId);
+          return `單號 ${testId} 已被分派給 ${p ? p.name : existing.assigneeId}`;
+        }
+      }
+    }
+    return null;
+  };
+
   const handleDispatch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetPerson) return;
@@ -153,6 +188,15 @@ export default function DispatchTickets() {
             <select className="doodle-input" style={{ width: 'auto' }} value={ticketType} onChange={e => setTicketType(e.target.value as '夾鉗' | 'TKW')}>
               <option value="夾鉗">夾鉗</option>
               <option value="TKW">TKW</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ fontWeight: 'bold', marginRight: '10px' }}>關聯任務 (預設)：</label>
+            <select className="doodle-input" style={{ width: 'auto' }} value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
+              <option value="">-- 不指定任務 --</option>
+              {tasks.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -253,6 +297,11 @@ export default function DispatchTickets() {
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
+                {selectedTaskId && getTaskStats(selectedTaskId) && (
+                  <div style={{ marginTop: '5px', fontSize: '0.9rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
+                    目前已開立品項數：{getTaskStats(selectedTaskId)?.openedItems} / 總數：{getTaskStats(selectedTaskId)?.totalItems} (剩餘: {getTaskStats(selectedTaskId)?.remaining})
+                  </div>
+                )}
               </div>
               
               {dispatchType === 'single' ? (
@@ -283,8 +332,40 @@ export default function DispatchTickets() {
                 </>
               )}
 
+              {getExistingIdWarning() && (
+                <div style={{ 
+                  padding: '10px', backgroundColor: '#ffebee', border: '2px dashed var(--crayon-red)', 
+                  borderRadius: '10px', color: 'var(--crayon-red)', fontWeight: 'bold', 
+                  display: 'flex', alignItems: 'center', gap: '10px' 
+                }}>
+                  <span style={{ fontSize: '1.5rem' }}>⚠️</span> 
+                  {getExistingIdWarning()}
+                </div>
+              )}
+
+              {dispatchType === 'single' && selectedTaskId && getTaskStats(selectedTaskId) && singleItemCount > (getTaskStats(selectedTaskId)?.remaining || 0) && (
+                <div style={{ 
+                  padding: '10px', backgroundColor: '#fff3e0', border: '2px dashed var(--crayon-orange)', 
+                  borderRadius: '10px', color: 'var(--crayon-orange)', fontWeight: 'bold', 
+                  display: 'flex', alignItems: 'center', gap: '10px' 
+                }}>
+                  <span style={{ fontSize: '1.5rem' }}>🛑</span> 
+                  超過剩餘可開立品項數！請確認數量。
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button type="submit" className="doodle-button success" style={{ flex: 1 }}>確認送出</button>
+                <button 
+                  type="submit" 
+                  className="doodle-button success" 
+                  style={{ flex: 1 }}
+                  disabled={
+                    Boolean(getExistingIdWarning()) || 
+                    Boolean(dispatchType === 'single' && selectedTaskId && getTaskStats(selectedTaskId) && singleItemCount > ((getTaskStats(selectedTaskId)?.remaining) || 0))
+                  }
+                >
+                  確認送出
+                </button>
                 <button type="button" className="doodle-button danger" style={{ flex: 1 }} onClick={() => setTargetPerson(null)}>取消</button>
               </div>
             </form>

@@ -17,6 +17,7 @@ export default function InventoryTasks() {
   const [activeTab, setActiveTab] = useState<Record<string, 'info' | 'status' | 'report'>>({});
   const [statusPage, setStatusPage] = useState<Record<string, number>>({});
   const [itemsPerPage, setItemsPerPage] = useState<Record<string, number>>({});
+  const [ticketStatusFilter, setTicketStatusFilter] = useState<Record<string, 'all' | 'incomplete' | 'completed'>>({});
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<InventoryTask | null>(null);
@@ -116,22 +117,28 @@ export default function InventoryTasks() {
   // Calculate stats for each task
   const tasksWithStats = useMemo(() => {
     return tasks.map(task => {
-      // Find all completed tickets linked to this task
-      const linkedTickets = tickets.filter(t => t.taskId === task.id && t.closeDate);
+      // Find all tickets linked to this task
+      const allLinkedTickets = tickets.filter(t => t.taskId === task.id);
+      const completedLinkedTickets = allLinkedTickets.filter(t => t.closeDate);
       
       // Sum their item counts
-      const completedItems = linkedTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
-      const completedTicketsCount = linkedTickets.length;
+      const openedItemsCount = allLinkedTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+      const completedItems = completedLinkedTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+      const completedTicketsCount = completedLinkedTickets.length;
       
       const completionRate = task.totalItemCount > 0 
         ? Math.min(100, Math.round((completedItems / task.totalItemCount) * 100))
         : 0;
 
+      const openedRate = task.totalItemCount > 0 
+        ? Math.min(100, Math.round((openedItemsCount / task.totalItemCount) * 100))
+        : 0;
+
       const isExpired = new Date().getTime() > task.endDate;
       
-      // Calculate assignee stats
+      // Calculate assignee stats for report
       const assigneeStats: Record<string, { name: string; tickets: number; items: number }> = {};
-      linkedTickets.forEach(t => {
+      completedLinkedTickets.forEach(t => {
         const id = t.assigneeId || '未指定';
         if (!assigneeStats[id]) {
           const p = personnel.find(p => p.id === id);
@@ -142,10 +149,19 @@ export default function InventoryTasks() {
       });
       const assigneeList = Object.values(assigneeStats).sort((a, b) => b.items - a.items);
 
-      // Calculate total days spent
+      // Calculate ticket list with assignee names for display
+      const mappedTickets = allLinkedTickets.map(t => {
+        const p = personnel.find(p => p.id === t.assigneeId);
+        return {
+          ...t,
+          assigneeName: p ? p.name : t.assigneeId || '未指定'
+        };
+      }).sort((a, b) => (b.dispatchDate || 0) - (a.dispatchDate || 0));
+
+      // Calculate total days spent based on completed tickets
       let totalDaysSpent: number | null = null;
-      if (linkedTickets.length > 0) {
-        const maxCloseDate = Math.max(...linkedTickets.map(t => t.closeDate || 0));
+      if (completedLinkedTickets.length > 0) {
+        const maxCloseDate = Math.max(...completedLinkedTickets.map(t => t.closeDate || 0));
         if (maxCloseDate > 0) {
           totalDaysSpent = Math.max(1, Math.ceil((maxCloseDate - task.startDate) / (1000 * 3600 * 24)));
         }
@@ -153,10 +169,13 @@ export default function InventoryTasks() {
 
       return {
         ...task,
+        openedItemsCount,
+        openedRate,
         completedItems,
         completedTicketsCount,
         completionRate,
         isExpired,
+        mappedTickets,
         assigneeList,
         totalDaysSpent
       };
@@ -196,10 +215,6 @@ export default function InventoryTasks() {
           const currentTab = activeTab[task.id] || 'info';
           const currentPage = statusPage[task.id] || 1;
           const currentItemsPerPage = itemsPerPage[task.id] || 5;
-
-          const totalPages = Math.ceil(task.assigneeList.length / currentItemsPerPage);
-          const startIndex = (currentPage - 1) * currentItemsPerPage;
-          const paginatedAssignees = task.assigneeList.slice(startIndex, startIndex + currentItemsPerPage);
 
           return (
             <div key={task.id} className="doodle-border" style={{ 
@@ -261,8 +276,27 @@ export default function InventoryTasks() {
 
                   <div className="doodle-border" style={{ padding: '10px', backgroundColor: '#e3f2fd', marginBottom: '15px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                      <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>任務進度</span>
-                      <span style={{ fontWeight: 'bold', color: task.completionRate === 100 ? 'var(--crayon-green)' : 'var(--crayon-blue)' }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>已開立品項進度</span>
+                      <span style={{ fontWeight: 'bold', color: task.openedRate === 100 ? 'var(--crayon-purple)' : 'var(--crayon-blue)' }}>
+                        {task.openedRate}%
+                      </span>
+                    </div>
+                    <div style={{ width: '100%', height: '12px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid var(--crayon-dark)', overflow: 'hidden' }}>
+                      <div style={{ 
+                        width: `${task.openedRate}%`, 
+                        height: '100%', 
+                        backgroundColor: task.openedRate === 100 ? 'var(--crayon-purple)' : 'var(--crayon-blue)' 
+                      }}></div>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', textAlign: 'right', marginTop: '5px', color: '#555' }}>
+                      目前已開立：{task.openedItemsCount} / {task.totalItemCount} 項
+                    </div>
+                  </div>
+
+                  <div className="doodle-border" style={{ padding: '10px', backgroundColor: '#e8f5e9', marginBottom: '15px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>完成進度</span>
+                      <span style={{ fontWeight: 'bold', color: task.completionRate === 100 ? 'var(--crayon-green)' : 'var(--crayon-orange)' }}>
                         {task.completionRate}%
                       </span>
                     </div>
@@ -270,7 +304,7 @@ export default function InventoryTasks() {
                       <div style={{ 
                         width: `${task.completionRate}%`, 
                         height: '100%', 
-                        backgroundColor: task.completionRate === 100 ? 'var(--crayon-green)' : 'var(--crayon-blue)' 
+                        backgroundColor: task.completionRate === 100 ? 'var(--crayon-green)' : 'var(--crayon-orange)' 
                       }}></div>
                     </div>
                     <div style={{ fontSize: '0.8rem', textAlign: 'right', marginTop: '5px', color: '#555' }}>
@@ -285,77 +319,114 @@ export default function InventoryTasks() {
                       </div>
                     </div>
                     <div className="doodle-border" style={{ padding: '10px', backgroundColor: '#e8f5e9', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.9rem', color: '#555', fontWeight: 'bold' }}>剩餘項目數</div>
+                      <div style={{ fontSize: '0.9rem', color: '#555', fontWeight: 'bold' }}>剩餘可開立數</div>
                       <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-orange)' }}>
-                        {Math.max(0, task.totalItemCount - task.completedItems)} <span style={{fontSize: '1rem'}}>項</span>
+                        {Math.max(0, task.totalItemCount - task.openedItemsCount)} <span style={{fontSize: '1rem'}}>項</span>
                       </div>
                     </div>
                   </div>
                 </>
-              ) : currentTab === 'status' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px', minHeight: '340px' }}>
-                  <div className="doodle-border" style={{ backgroundColor: '#e3f2fd', padding: '10px', textAlign: 'center' }}>
-                    <div style={{ fontWeight: 'bold', color: 'var(--crayon-blue)' }}>統計數量</div>
-                    <div>總完成盤點單：<span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{task.completedTicketsCount}</span> 筆</div>
-                    <div>總完成項目：<span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{task.completedItems}</span> / {task.totalItemCount} 項</div>
-                  </div>
-                  
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontWeight: 'bold' }}>人員完成狀態清單</span>
-                    <select className="doodle-input" style={{ width: 'auto', padding: '2px 5px', fontSize: '0.8rem', backgroundColor: 'white' }}
-                      value={currentItemsPerPage}
-                      onChange={e => {
-                        setItemsPerPage(prev => ({...prev, [task.id]: Number(e.target.value)}));
-                        setStatusPage(prev => ({...prev, [task.id]: 1}));
-                      }}
-                    >
-                      <option value="5">每頁 5 筆</option>
-                      <option value="10">每頁 10 筆</option>
-                      <option value="15">每頁 15 筆</option>
-                    </select>
-                  </div>
+              ) : currentTab === 'status' ? (() => {
+                const currentFilter = ticketStatusFilter[task.id] || 'all';
+                const filteredTickets = task.mappedTickets.filter((t: any) => {
+                  if (currentFilter === 'completed') return t.closeDate;
+                  if (currentFilter === 'incomplete') return !t.closeDate;
+                  return true;
+                });
 
-                  {task.assigneeList.length === 0 ? (
-                    <div style={{ textAlign: 'center', color: '#888', padding: '20px 0', flex: 1 }}>目前無完成的盤點單</div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                      <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
-                        {paginatedAssignees.map((assignee, aIdx) => {
-                          const ratio = task.totalItemCount > 0 ? ((assignee.items / task.totalItemCount) * 100).toFixed(1) : '0.0';
-                          return (
-                            <li key={aIdx} className="doodle-border" style={{ padding: '8px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #ccc', paddingBottom: '3px' }}>
-                                <strong style={{ color: 'var(--crayon-purple)' }}>{assignee.name}</strong>
-                                <span style={{ backgroundColor: '#f0f0f0', padding: '2px 5px', borderRadius: '4px', fontSize: '0.8rem' }}>類型: {task.ticketType}</span>
-                              </div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                                <span>單據: <strong style={{ color: 'var(--crayon-dark)' }}>{assignee.tickets}</strong> 筆</span>
-                                <span>項目: <strong style={{ color: 'var(--crayon-orange)' }}>{assignee.items}</strong> 項</span>
-                                <span style={{ color: 'var(--crayon-green)', fontWeight: 'bold' }}>占 {ratio}%</span>
-                              </div>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                      {totalPages > 1 && (
-                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
-                          <button 
-                            className="doodle-button" style={{ padding: '2px 8px', minHeight: 'auto', fontSize: '0.8rem' }}
-                            disabled={currentPage === 1}
-                            onClick={() => setStatusPage(prev => ({...prev, [task.id]: currentPage - 1}))}
-                          >◀</button>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{currentPage} / {totalPages}</span>
-                          <button 
-                            className="doodle-button" style={{ padding: '2px 8px', minHeight: 'auto', fontSize: '0.8rem' }}
-                            disabled={currentPage === totalPages}
-                            onClick={() => setStatusPage(prev => ({...prev, [task.id]: currentPage + 1}))}
-                          >▶</button>
-                        </div>
-                      )}
+                const totalFilteredTickets = filteredTickets.length;
+                const totalFilteredItems = filteredTickets.reduce((sum: number, t: any) => sum + (t.itemCount || 0), 0);
+                
+                const totalPages = Math.ceil(filteredTickets.length / currentItemsPerPage);
+                const startIndex = (currentPage - 1) * currentItemsPerPage;
+                const paginatedTickets = filteredTickets.slice(startIndex, startIndex + currentItemsPerPage);
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px', minHeight: '340px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontWeight: 'bold' }}>狀態篩選：</div>
+                      <select className="doodle-input" style={{ width: 'auto', padding: '2px 5px', fontSize: '0.9rem', backgroundColor: 'white' }}
+                        value={currentFilter}
+                        onChange={e => {
+                          setTicketStatusFilter(prev => ({...prev, [task.id]: e.target.value as 'all' | 'incomplete' | 'completed'}));
+                          setStatusPage(prev => ({...prev, [task.id]: 1}));
+                        }}
+                      >
+                        <option value="all">全部</option>
+                        <option value="incomplete">未完成</option>
+                        <option value="completed">已完成</option>
+                      </select>
                     </div>
-                  )}
-                </div>
-              ) : (
+
+                    <div className="doodle-border" style={{ backgroundColor: '#e3f2fd', padding: '10px', textAlign: 'center' }}>
+                      <div style={{ fontWeight: 'bold', color: 'var(--crayon-blue)' }}>統計數量 (根據篩選)</div>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '5px' }}>
+                        <div>盤點單：<span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{totalFilteredTickets}</span> 筆</div>
+                        <div>總項目：<span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{totalFilteredItems}</span> 項</div>
+                      </div>
+                    </div>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                      <span style={{ fontWeight: 'bold' }}>盤點單清單</span>
+                      <select className="doodle-input" style={{ width: 'auto', padding: '2px 5px', fontSize: '0.8rem', backgroundColor: 'white' }}
+                        value={currentItemsPerPage}
+                        onChange={e => {
+                          setItemsPerPage(prev => ({...prev, [task.id]: Number(e.target.value)}));
+                          setStatusPage(prev => ({...prev, [task.id]: 1}));
+                        }}
+                      >
+                        <option value="5">每頁 5 筆</option>
+                        <option value="10">每頁 10 筆</option>
+                        <option value="15">每頁 15 筆</option>
+                      </select>
+                    </div>
+
+                    {filteredTickets.length === 0 ? (
+                      <div style={{ textAlign: 'center', color: '#888', padding: '20px 0', flex: 1 }}>目前無符合條件的盤點單</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                          {paginatedTickets.map((t: any, tIdx: number) => {
+                            const isCompleted = !!t.closeDate;
+                            return (
+                              <li key={tIdx} className="doodle-border" style={{ padding: '8px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', gap: '5px', borderLeft: `5px solid ${isCompleted ? 'var(--crayon-green)' : 'var(--crayon-red)'}` }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #ccc', paddingBottom: '3px' }}>
+                                  <strong style={{ color: 'var(--crayon-purple)' }}>單號: {t.id}</strong>
+                                  <span style={{ backgroundColor: isCompleted ? '#e8f5e9' : '#ffebee', color: isCompleted ? 'var(--crayon-green)' : 'var(--crayon-red)', padding: '2px 5px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                                    {isCompleted ? '已完成' : '未完成'}
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                                  <span>負責人: <strong style={{ color: 'var(--crayon-dark)' }}>{t.assigneeName}</strong></span>
+                                  <span>品項: <strong style={{ color: 'var(--crayon-orange)' }}>{t.itemCount || 0}</strong> 項</span>
+                                </div>
+                                <div style={{ fontSize: '0.8rem', color: '#666' }}>
+                                  派送日: {new Date(t.dispatchDate).toLocaleDateString()}
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                        {totalPages > 1 && (
+                          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
+                            <button 
+                              className="doodle-button" style={{ padding: '2px 8px', minHeight: 'auto', fontSize: '0.8rem' }}
+                              disabled={currentPage === 1}
+                              onClick={() => setStatusPage(prev => ({...prev, [task.id]: currentPage - 1}))}
+                            >◀</button>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>{currentPage} / {totalPages}</span>
+                            <button 
+                              className="doodle-button" style={{ padding: '2px 8px', minHeight: 'auto', fontSize: '0.8rem' }}
+                              disabled={currentPage === totalPages}
+                              onClick={() => setStatusPage(prev => ({...prev, [task.id]: currentPage + 1}))}
+                            >▶</button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })() : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px', minHeight: '340px' }}>
                   <div className="doodle-border" style={{ backgroundColor: '#fff9c4', padding: '10px', textAlign: 'center' }}>
                     <div style={{ fontWeight: 'bold', color: 'var(--crayon-orange)' }}>完成所有盤點項目的總花費天數</div>
