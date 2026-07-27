@@ -273,7 +273,7 @@ export default function DispatchTickets() {
       {/* 輸入單號的派送 Modal */}
       {targetPerson && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '400px', backgroundColor: 'var(--crayon-paper)' }}>
+          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '400px', backgroundColor: 'var(--crayon-paper)', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ marginTop: 0, color: 'var(--crayon-blue)' }}>📤 派送給：{targetPerson.name}</h3>
             
             <div style={{ 
