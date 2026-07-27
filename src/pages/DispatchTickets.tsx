@@ -316,8 +316,33 @@ export default function DispatchTickets() {
                   ))}
                 </select>
                 {selectedTaskId && getTaskStats(selectedTaskId) && (
-                  <div style={{ marginTop: '5px', fontSize: '0.9rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
-                    目前已開立品項數：{getTaskStats(selectedTaskId)?.openedItems} / 總數：{getTaskStats(selectedTaskId)?.totalItems} (剩餘: {getTaskStats(selectedTaskId)?.remaining})
+                  <div className="doodle-border" style={{ 
+                    marginTop: '10px', 
+                    padding: '10px', 
+                    backgroundColor: '#e3f2fd', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '5px',
+                    border: '2px solid var(--crayon-blue)'
+                  }}>
+                    <div style={{ fontSize: '0.9rem', color: '#555', fontWeight: 'bold' }}>任務進度狀況：</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '5px' }}>
+                      <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>
+                        已開立品項：
+                        <span style={{ color: 'var(--crayon-blue)', fontSize: '1.4rem', margin: '0 5px' }}>{getTaskStats(selectedTaskId)?.openedItems}</span> 
+                        / {getTaskStats(selectedTaskId)?.totalItems}
+                      </span>
+                      <span style={{ 
+                        backgroundColor: 'white', 
+                        padding: '3px 8px', 
+                        borderRadius: '8px', 
+                        border: '2px dashed var(--crayon-orange)', 
+                        fontWeight: 'bold',
+                        color: 'var(--crayon-orange)' 
+                      }}>
+                        剩餘: <span style={{ fontSize: '1.3rem', color: 'var(--crayon-red)', margin: '0 3px' }}>{getTaskStats(selectedTaskId)?.remaining}</span> 項
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
