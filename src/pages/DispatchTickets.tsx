@@ -300,7 +300,16 @@ export default function DispatchTickets() {
 
               <div>
                 <label style={{ fontWeight: 'bold', color: 'var(--crayon-dark)' }}>關聯盤點任務 (選填)：</label>
-                <select className="doodle-input" value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
+                <select className="doodle-input" value={selectedTaskId} onChange={e => {
+                  const newTaskId = e.target.value;
+                  setSelectedTaskId(newTaskId);
+                  if (newTaskId) {
+                    const tk = tasks.find(t => t.id === newTaskId);
+                    if (tk && tk.ticketType) {
+                      setTicketType(tk.ticketType as any);
+                    }
+                  }
+                }}>
                   <option value="">-- 不指定任務 --</option>
                   {tasks.map(t => (
                     <option key={t.id} value={t.id}>{t.name}</option>
