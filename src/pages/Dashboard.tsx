@@ -554,7 +554,7 @@ export default function Dashboard() {
                           </div>
                           
                           <div style={{ marginTop: '10px', textAlign: 'right', fontSize: '0.9rem' }}>
-                            <strong>平均：</strong> <span style={{ color: p.avgDays > 0 ? 'var(--crayon-red)' : '#888', fontWeight: 'bold', fontSize: '1.1rem' }}>{p.avgDays > 0 ? `${p.avgDays.toFixed(2)} 天` : '-'}</span>
+                            <strong>平均：</strong> <span style={{ color: p.monthCompleted > 0 ? 'var(--crayon-red)' : '#888', fontWeight: 'bold', fontSize: '1.1rem' }}>{p.monthCompleted > 0 ? `${p.avgDays.toFixed(2)} 天` : '-'}</span>
                           </div>
                         </>
                       ) : (
