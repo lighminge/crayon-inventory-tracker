@@ -277,28 +277,30 @@ export default function InventoryTasks() {
               position: 'relative'
             }}>
               <div style={{
-                position: 'absolute', top: '-25px', right: '-15px',
+                position: 'absolute', top: '-20px', right: '-15px',
                 display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px', zIndex: 2
               }}>
                 <div style={{ 
                   backgroundColor: task.completionRate === 100 ? 'var(--crayon-green)' : (task.isExpired ? 'var(--crayon-red)' : 'var(--crayon-orange)'), 
-                  color: 'white', padding: '8px 15px',
-                  borderRadius: '10px', transform: 'rotate(3deg)', fontSize: '1.2rem',
+                  color: 'white', padding: '10px 20px',
+                  borderRadius: '10px', transform: 'rotate(3deg)', fontSize: '1.4rem',
                   fontWeight: '900', border: '3px solid var(--crayon-dark)',
-                  boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'
+                  boxShadow: '4px 4px 0px rgba(0,0,0,0.2)', textShadow: '1px 1px 2px rgba(0,0,0,0.3)'
                 }}>
-                  {task.completionRate === 100 ? '✅ 已完成' : (task.isExpired ? '❌ 已到期 未完成' : '⏳ 未到期 進行中')}
+                  {task.completionRate === 100 ? '已完成' : (task.isExpired ? '未完成' : '進行中')}
                 </div>
                 <div style={{ 
-                  backgroundColor: 'white', color: 'var(--crayon-dark)', padding: '3px 10px',
-                  borderRadius: '10px', fontSize: '1rem',
-                  fontWeight: 'bold', border: '2px solid var(--crayon-dark)'
+                  backgroundColor: task.isExpired ? '#ffebee' : '#e8f5e9', 
+                  color: task.isExpired ? 'var(--crayon-red)' : 'var(--crayon-green)', 
+                  padding: '5px 15px',
+                  borderRadius: '10px', fontSize: '1.2rem',
+                  fontWeight: '900', border: '3px solid var(--crayon-dark)'
                 }}>
-                  期限: {formatDateLocal(task.endDate)}
+                  {task.isExpired ? '已到期' : '未到期'}
                 </div>
               </div>
               
-              <h3 style={{ margin: '0 0 10px 0', borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <h3 style={{ margin: '20px 0 10px 0', borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span style={{ backgroundColor: 'var(--crayon-dark)', color: 'white', padding: '2px 10px', borderRadius: '15px', fontSize: '1rem' }}>#{(currentPage - 1) * tasksPerPage + index + 1}</span>
                 📝 {task.name}
               </h3>
