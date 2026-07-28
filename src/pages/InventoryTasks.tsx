@@ -23,6 +23,11 @@ export default function InventoryTasks() {
   const [editingTask, setEditingTask] = useState<InventoryTask | null>(null);
   
   const [filterStatus, setFilterStatus] = useState('all');
+  const [filterTicketType, setFilterTicketType] = useState('all');
+  const [filterYear, setFilterYear] = useState('all');
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [tasksPerPage, setTasksPerPage] = useState(4);
   
   const today = formatDateLocal(new Date().getTime());
   const [formData, setFormData] = useState<Omit<InventoryTask, 'id'>>({
@@ -184,11 +189,26 @@ export default function InventoryTasks() {
 
   const filteredTasks = useMemo(() => {
     return tasksWithStats.filter(t => {
-      if (filterStatus === 'active') return !t.isExpired;
-      if (filterStatus === 'expired') return t.isExpired;
+      if (filterStatus === 'active') { if (t.isExpired) return false; }
+      else if (filterStatus === 'expired') { if (!t.isExpired) return false; }
+      
+      if (filterTicketType !== 'all' && t.ticketType !== filterTicketType) return false;
+      
+      if (filterYear !== 'all') {
+        const y = new Date(t.startDate).getFullYear().toString();
+        if (y !== filterYear) return false;
+      }
+      
       return true;
-    }).sort((a, b) => a.startDate - b.startDate);
-  }, [tasksWithStats, filterStatus]);
+    }).sort((a, b) => b.startDate - a.startDate);
+  }, [tasksWithStats, filterStatus, filterTicketType, filterYear]);
+
+  const totalPages = Math.ceil(filteredTasks.length / tasksPerPage);
+  const paginatedTasks = filteredTasks.slice((currentPage - 1) * tasksPerPage, currentPage * tasksPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus, filterTicketType, filterYear, tasksPerPage]);
 
   return (
     <div>
@@ -203,6 +223,23 @@ export default function InventoryTasks() {
               <option value="expired">已到期</option>
             </select>
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: 'bold' }}>類型：</label>
+            <select className="doodle-input" style={{ width: 'auto' }} value={filterTicketType} onChange={e => setFilterTicketType(e.target.value)}>
+              <option value="all">全部</option>
+              <option value="夾鉗">夾鉗</option>
+              <option value="TKW">TKW</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: 'bold' }}>年度：</label>
+            <select className="doodle-input" style={{ width: 'auto' }} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+              <option value="all">全部</option>
+              {Array.from(new Set(tasks.map(t => new Date(t.startDate).getFullYear()))).sort().reverse().map(y => (
+                <option key={y} value={y.toString()}>{y} 年</option>
+              ))}
+            </select>
+          </div>
           <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-blue)' }}>
             總任務數量：{filteredTasks.length} 筆
           </div>
@@ -210,8 +247,25 @@ export default function InventoryTasks() {
         <button className="doodle-button" onClick={() => handleOpenForm()}>＋ 新增盤點任務</button>
       </div>
 
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '10px', backgroundColor: '#f0f8ff', borderRadius: '10px', border: '1px dashed var(--crayon-blue)', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <label style={{ fontWeight: 'bold' }}>每頁顯示筆數：</label>
+          <select className="doodle-input" style={{ width: 'auto', padding: '5px' }} value={tasksPerPage} onChange={e => setTasksPerPage(Number(e.target.value))}>
+            {[2, 4, 6, 8, 10, 12, 16, 20].map(n => <option key={n} value={n}>{n} 筆</option>)}
+          </select>
+        </div>
+        
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+            <button className="doodle-button" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>上一頁</button>
+            <span style={{ fontWeight: 'bold', margin: '0 10px' }}>第 {currentPage} / {totalPages} 頁</span>
+            <button className="doodle-button" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>下一頁</button>
+          </div>
+        )}
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-        {filteredTasks.map((task, index) => {
+        {paginatedTasks.map((task, index) => {
           const currentTab = activeTab[task.id] || 'info';
           const currentPage = statusPage[task.id] || 1;
           const currentItemsPerPage = itemsPerPage[task.id] || 5;
@@ -222,17 +276,30 @@ export default function InventoryTasks() {
               backgroundColor: task.isExpired ? '#f5f5f5' : 'white',
               position: 'relative'
             }}>
-              {task.isExpired && (
+              <div style={{
+                position: 'absolute', top: '-25px', right: '-15px',
+                display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px', zIndex: 2
+              }}>
                 <div style={{ 
-                  position: 'absolute', top: '-10px', right: '-10px',
-                  backgroundColor: '#9e9e9e', color: 'white', padding: '5px 10px',
-                  borderRadius: '5px', transform: 'rotate(10deg)', fontSize: '0.9rem',
-                  fontWeight: 'bold', border: '2px dashed var(--crayon-dark)', zIndex: 1
-                }}>已截止</div>
-              )}
+                  backgroundColor: task.completionRate === 100 ? 'var(--crayon-green)' : (task.isExpired ? 'var(--crayon-red)' : 'var(--crayon-orange)'), 
+                  color: 'white', padding: '8px 15px',
+                  borderRadius: '10px', transform: 'rotate(3deg)', fontSize: '1.2rem',
+                  fontWeight: '900', border: '3px solid var(--crayon-dark)',
+                  boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'
+                }}>
+                  {task.completionRate === 100 ? '✅ 已完成' : (task.isExpired ? '❌ 已到期 未完成' : '⏳ 未到期 進行中')}
+                </div>
+                <div style={{ 
+                  backgroundColor: 'white', color: 'var(--crayon-dark)', padding: '3px 10px',
+                  borderRadius: '10px', fontSize: '1rem',
+                  fontWeight: 'bold', border: '2px solid var(--crayon-dark)'
+                }}>
+                  期限: {formatDateLocal(task.endDate)}
+                </div>
+              </div>
               
               <h3 style={{ margin: '0 0 10px 0', borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '5px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ backgroundColor: 'var(--crayon-dark)', color: 'white', padding: '2px 10px', borderRadius: '15px', fontSize: '1rem' }}>#{index + 1}</span>
+                <span style={{ backgroundColor: 'var(--crayon-dark)', color: 'white', padding: '2px 10px', borderRadius: '15px', fontSize: '1rem' }}>#{(currentPage - 1) * tasksPerPage + index + 1}</span>
                 📝 {task.name}
               </h3>
               
