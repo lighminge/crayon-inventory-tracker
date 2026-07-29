@@ -557,7 +557,7 @@ export default function InventoryTasks() {
                   <div className="doodle-border" style={{ backgroundColor: '#fff9c4', padding: '10px', textAlign: 'center' }}>
                     <div style={{ fontWeight: 'bold', color: 'var(--crayon-orange)' }}>完成所有盤點項目的總花費天數</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginTop: '5px' }}>
-                      {task.totalDaysSpent ? <span style={{ color: 'var(--crayon-red)' }}>{task.totalDaysSpent} 天</span> : <span style={{ color: '#888' }}>尚未完成</span>}
+                      {task.totalDaysSpent !== null ? <span style={{ color: 'var(--crayon-red)' }}>{task.totalDaysSpent} 天</span> : <span style={{ color: '#888' }}>尚未完成</span>}
                     </div>
                   </div>
                   
