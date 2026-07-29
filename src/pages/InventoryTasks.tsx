@@ -26,6 +26,7 @@ export default function InventoryTasks() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterTicketType, setFilterTicketType] = useState('all');
   const [filterYear, setFilterYear] = useState('all');
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   
   const [currentPage, setCurrentPage] = useState(1);
   const [tasksPerPage, setTasksPerPage] = useState(4);
@@ -113,9 +114,10 @@ export default function InventoryTasks() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('確定要刪除這筆盤點任務嗎？（此動作不會刪除關聯的盤點單，但可能影響統計）')) {
-      await deleteTask(id);
+  const confirmDelete = async () => {
+    if (taskToDelete) {
+      await deleteTask(taskToDelete);
+      setTaskToDelete(null);
       loadData();
     }
   };
@@ -616,7 +618,15 @@ export default function InventoryTasks() {
 
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button className="doodle-button success" style={{ flex: 1 }} onClick={() => handleOpenForm(task)}>編輯</button>
-                <button className="doodle-button danger" style={{ flex: 1 }} onClick={() => handleDelete(task.id)}>刪除</button>
+                <button 
+                  className="doodle-button danger" 
+                  style={{ flex: 1, opacity: task.mappedTickets.length > 0 ? 0.5 : 1, cursor: task.mappedTickets.length > 0 ? 'not-allowed' : 'pointer' }} 
+                  disabled={task.mappedTickets.length > 0} 
+                  title={task.mappedTickets.length > 0 ? "已有派送單據，無法刪除" : ""}
+                  onClick={() => setTaskToDelete(task.id)}
+                >
+                  刪除
+                </button>
               </div>
             </div>
           );
@@ -667,6 +677,19 @@ export default function InventoryTasks() {
                 <button type="button" className="doodle-button danger" style={{ flex: 1 }} onClick={() => setIsFormOpen(false)}>取消</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {taskToDelete && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '400px', backgroundColor: 'white', textAlign: 'center' }}>
+            <h3 style={{ marginTop: 0, color: 'var(--crayon-red)' }}>⚠️ 刪除確認</h3>
+            <p style={{ margin: '20px 0', fontSize: '1.1rem', fontWeight: 'bold' }}>確定要刪除這筆盤點任務嗎？</p>
+            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginTop: '20px' }}>
+              <button type="button" className="doodle-button" style={{ flex: 1 }} onClick={() => setTaskToDelete(null)}>取消</button>
+              <button type="button" className="doodle-button danger" style={{ flex: 1 }} onClick={confirmDelete}>確定刪除</button>
+            </div>
           </div>
         </div>
       )}
