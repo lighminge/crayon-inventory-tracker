@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { InventoryTask, InventoryTicket, Personnel } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 import { getTasks, addTask, updateTask, deleteTask, getTickets, getPersonnel } from '../services/api';
+import { calculateBusinessDays } from '../utils/dateUtils';
 
 const formatDateLocal = (timestamp: number) => {
   const d = new Date(timestamp);
@@ -142,24 +143,41 @@ export default function InventoryTasks() {
       const isExpired = new Date().getTime() > task.endDate;
       
       // Calculate assignee stats for report
-      const assigneeStats: Record<string, { name: string; tickets: number; items: number }> = {};
+      const assigneeStats: Record<string, { name: string; tickets: number; items: number; totalDays: number }> = {};
       completedLinkedTickets.forEach(t => {
         const id = t.assigneeId || '未指定';
         if (!assigneeStats[id]) {
           const p = personnel.find(p => p.id === id);
-          assigneeStats[id] = { name: p ? p.name : id, tickets: 0, items: 0 };
+          assigneeStats[id] = { name: p ? p.name : id, tickets: 0, items: 0, totalDays: 0 };
         }
         assigneeStats[id].tickets += 1;
         assigneeStats[id].items += (t.itemCount || 0);
+        
+        const startDate = (t.stageDates && Object.keys(t.stageDates).length > 0) ? Math.min(...Object.values(t.stageDates)) : t.dispatchDate;
+        if (startDate && t.closeDate) {
+          assigneeStats[id].totalDays += calculateBusinessDays(startDate, t.closeDate);
+        }
       });
-      const assigneeList = Object.values(assigneeStats).sort((a, b) => b.items - a.items);
+      const assigneeList = Object.values(assigneeStats).map(a => ({
+        ...a,
+        avgDays: a.tickets > 0 ? (a.totalDays / a.tickets) : 0,
+        completionRate: task.totalItemCount > 0 ? ((a.items / task.totalItemCount) * 100) : 0
+      })).sort((a, b) => b.items - a.items);
 
       // Calculate ticket list with assignee names for display
       const mappedTickets = allLinkedTickets.map(t => {
         const p = personnel.find(p => p.id === t.assigneeId);
+        let processingDays: number | null = null;
+        if (t.closeDate) {
+          const startDate = (t.stageDates && Object.keys(t.stageDates).length > 0) ? Math.min(...Object.values(t.stageDates)) : t.dispatchDate;
+          if (startDate) {
+            processingDays = calculateBusinessDays(startDate, t.closeDate);
+          }
+        }
         return {
           ...t,
-          assigneeName: p ? p.name : t.assigneeId || '未指定'
+          assigneeName: p ? p.name : t.assigneeId || '未指定',
+          processingDays
         };
       }).sort((a, b) => (b.dispatchDate || 0) - (a.dispatchDate || 0));
 
@@ -168,7 +186,7 @@ export default function InventoryTasks() {
       if (completedLinkedTickets.length > 0) {
         const maxCloseDate = Math.max(...completedLinkedTickets.map(t => t.closeDate || 0));
         if (maxCloseDate > 0) {
-          totalDaysSpent = Math.max(1, Math.ceil((maxCloseDate - task.startDate) / (1000 * 3600 * 24)));
+          totalDaysSpent = calculateBusinessDays(task.startDate, maxCloseDate);
         }
       }
 
@@ -501,8 +519,15 @@ export default function InventoryTasks() {
                                   <span>負責人: <strong style={{ color: 'var(--crayon-purple)', fontSize: '1.1rem' }}>{t.assigneeName}</strong></span>
                                   <span>品項: <strong style={{ color: 'var(--crayon-red)', fontSize: '1.1rem' }}>{t.itemCount || 0}</strong> <span style={{fontSize: '0.85rem'}}>項</span></span>
                                 </div>
-                                <div style={{ fontSize: '0.85rem', color: '#666', textAlign: 'right', fontStyle: 'italic' }}>
-                                  派送日: {new Date(t.dispatchDate).toLocaleDateString()}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div style={{ fontSize: '0.85rem', color: '#666', fontStyle: 'italic' }}>
+                                    派送日: {new Date(t.dispatchDate).toLocaleDateString()}
+                                  </div>
+                                  {isCompleted && t.processingDays !== null && (
+                                    <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>
+                                      處理天數: {t.processingDays} 天
+                                    </div>
+                                  )}
                                 </div>
                               </li>
                             );
@@ -557,16 +582,29 @@ export default function InventoryTasks() {
                       return (
                         <div key={assignee.name} className="doodle-border" style={{ 
                           display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                          padding: '12px 15px', borderRadius: '10px', 
+                          padding: '12px 15px', borderRadius: '10px', flexWrap: 'wrap', gap: '10px',
                           ...rankStyle
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <span style={{ fontWeight: '900', fontSize: '1.2rem', minWidth: '80px' }}>{rankBadge}</span>
                             <span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{assignee.name}</span>
                           </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '0.8rem', opacity: 0.8, fontWeight: 'bold' }}>完成項目數</div>
-                            <div style={{ fontWeight: '900', fontSize: '1.5rem', color: rankIdx < 3 ? 'inherit' : 'var(--crayon-orange)' }}>{assignee.items} <span style={{ fontSize: '1rem' }}>項</span></div>
+                          
+                          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'flex-end', flex: 1 }}>
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontSize: '0.8rem', opacity: 0.8, fontWeight: 'bold' }}>完成項目數</div>
+                              <div style={{ fontWeight: '900', fontSize: '1.5rem', color: rankIdx < 3 ? 'inherit' : 'var(--crayon-orange)' }}>{assignee.items} <span style={{ fontSize: '1rem' }}>項</span></div>
+                            </div>
+                            
+                            <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(0,0,0,0.2)', paddingLeft: '20px' }}>
+                              <div style={{ fontSize: '0.8rem', opacity: 0.8, fontWeight: 'bold' }}>完成比率</div>
+                              <div style={{ fontWeight: '900', fontSize: '1.5rem', color: 'var(--crayon-blue)' }}>{assignee.completionRate.toFixed(2)}%</div>
+                            </div>
+                            
+                            <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(0,0,0,0.2)', paddingLeft: '20px' }}>
+                              <div style={{ fontSize: '0.8rem', opacity: 0.8, fontWeight: 'bold' }}>平均天數</div>
+                              <div style={{ fontWeight: '900', fontSize: '1.5rem', color: 'var(--crayon-purple)' }}>{assignee.avgDays.toFixed(2)} <span style={{ fontSize: '1rem' }}>天</span></div>
+                            </div>
                           </div>
                         </div>
                       );
