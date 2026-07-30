@@ -44,6 +44,25 @@ export default function FloatingCalculator() {
     }
   }, [importTicketId, tickets]);
 
+  const currentTicket = useMemo(() => {
+    return tickets.find(t => t.id === importTicketId.trim());
+  }, [importTicketId, tickets]);
+
+  const availableItemSeqs = useMemo(() => {
+    if (!currentTicket || !currentTicket.itemCount) return [];
+    const seqs = [];
+    for (let i = 1; i <= currentTicket.itemCount; i++) {
+      seqs.push(i.toString().padStart(3, '0'));
+    }
+    return seqs;
+  }, [currentTicket]);
+
+  useEffect(() => {
+    if (availableItemSeqs.length > 0 && !availableItemSeqs.includes(importItemSeq)) {
+      setImportItemSeq(availableItemSeqs[0]);
+    }
+  }, [availableItemSeqs, importItemSeq]);
+
   useEffect(() => {
     if (importTicketId.trim() && importItemSeq.trim()) {
       getExistingSubItems(importTicketId.trim(), importItemSeq.trim())
@@ -67,11 +86,17 @@ export default function FloatingCalculator() {
             if (latestWithDate) {
               setDate(latestWithDate.date || '');
             }
+            
+            const maxSeq = Math.max(...items.map(i => Number(i.subItemSeq)).filter(n => !isNaN(n)));
+            setImportSubItemSeq(maxSeq >= 0 ? (maxSeq + 1).toString() : '1');
+          } else {
+            setImportSubItemSeq('1');
           }
         })
         .catch(console.error);
     } else {
       setExistingSubItems([]);
+      setImportSubItemSeq('1');
     }
   }, [importTicketId, importItemSeq]);
 
@@ -243,14 +268,29 @@ export default function FloatingCalculator() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.85rem' }}>項目編號</label>
-                  <input 
-                    type="text" 
-                    className="doodle-input" 
-                    style={{ padding: '8px', width: '100%' }}
-                    value={importItemSeq} 
-                    onChange={e => setImportItemSeq(e.target.value)}
-                    placeholder="001"
-                  />
+                  {availableItemSeqs.length > 0 ? (
+                    <select 
+                      className="doodle-input" 
+                      style={{ padding: '8px', width: '100%', backgroundColor: 'white' }}
+                      value={importItemSeq} 
+                      onChange={e => setImportItemSeq(e.target.value)}
+                    >
+                      {availableItemSeqs.map(seq => (
+                        <option key={seq} value={seq}>{seq}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input 
+                      type="text" 
+                      className="doodle-input" 
+                      style={{ padding: '8px', width: '100%', backgroundColor: '#eee' }}
+                      value={importItemSeq} 
+                      onChange={e => setImportItemSeq(e.target.value)}
+                      placeholder="請先輸入單號"
+                      disabled
+                      title="請先輸入正確的盤點單號"
+                    />
+                  )}
                 </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.85rem' }}>明細子項</label>
@@ -309,6 +349,8 @@ export default function FloatingCalculator() {
                 <option value="T">鐵桶 (T)</option>
                 <option value="P">塑膠箱 (P)</option>
                 <option value="B">紙箱 (B)</option>
+                <option value="L">摺疊籠 (L)</option>
+                <option value="J">鐵架 (J)</option>
               </select>
             </div>
             
