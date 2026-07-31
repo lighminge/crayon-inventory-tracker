@@ -168,6 +168,9 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
     if (days === 5) return '#ffcdd2'; // Light red
     if (days === 4) return '#ffe0b2'; // Orange
     if (days === 3) return '#fff9c4'; // Yellow
+    if (days === 2) return '#dcedc8'; // Light green
+    if (days === 1) return '#c8e6c9'; // Green
+    if (days === 0) return '#b2dfdb'; // Teal
     return 'transparent';
   };
   
@@ -320,6 +323,9 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
         <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '8px', border: '2px dashed var(--crayon-dark)' }}>
           <div style={{ display: 'flex', gap: '15px', fontSize: '0.9rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <strong style={{ marginRight: '5px' }}>顏色說明 (處理天數):</strong>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(0), border: '1px solid #ccc', borderRadius: '4px' }}></span> 0天</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(1), border: '1px solid #ccc', borderRadius: '4px' }}></span> 1天</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(2), border: '1px solid #ccc', borderRadius: '4px' }}></span> 2天</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(3), border: '1px solid #ccc', borderRadius: '4px' }}></span> 3天</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(4), border: '1px solid #ccc', borderRadius: '4px' }}></span> 4天</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ display: 'inline-block', width: '20px', height: '20px', backgroundColor: getRowColor(5), border: '1px solid #ccc', borderRadius: '4px' }}></span> 5天</div>
@@ -329,7 +335,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
           <div style={{ height: '1px', backgroundColor: '#ddd', width: '100%' }}></div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
             <strong style={{ marginRight: '5px' }}>處理天數統計：</strong>
-            {[1, 2, 3, 4, 5, 6, 7].map(d => {
+            {[0, 1, 2, 3, 4, 5, 6, 7].map(d => {
               const count = baseProcessedTickets.filter(t => d === 7 ? t.processingDays >= 7 : t.processingDays === d).length;
               if (count === 0) return null;
               const isSelected = exactDayFilter === d;
