@@ -415,26 +415,25 @@ export default function Statistics() {
           let chartData: any[] = [];
           if (tab === 'chart') {
             const filteredForChart = tType ? stat.pTickets.filter(t => t.ticketType === tType) : stat.pTickets;
-            const stageStats: Record<string, { totalDays: number; count: number }> = {};
-            workflows.forEach(w => stageStats[w.id] = { totalDays: 0, count: 0 });
+            const dateStats: Record<string, { tickets: number; items: number }> = {};
             
             filteredForChart.forEach(t => {
               if (!t.dispatchDate) return;
-              workflows.forEach((w, index) => {
-                if (t.stageDates && t.stageDates[w.id]) {
-                  const previousDate = index === 0 ? t.dispatchDate : t.stageDates[workflows[index - 1].id];
-                  if (previousDate) {
-                    const days = calculateDays(previousDate, t.stageDates[w.id]);
-                    stageStats[w.id].totalDays += days;
-                    stageStats[w.id].count += 1;
-                  }
-                }
-              });
+              const d = new Date(t.dispatchDate);
+              const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              
+              if (!dateStats[dateStr]) {
+                dateStats[dateStr] = { tickets: 0, items: 0 };
+              }
+              dateStats[dateStr].tickets += 1;
+              dateStats[dateStr].items += (t.itemCount || 0);
             });
             
-            chartData = workflows.map(w => ({
-              name: w.name,
-              avgDays: stageStats[w.id].count === 0 ? 0 : Number((stageStats[w.id].totalDays / stageStats[w.id].count).toFixed(2))
+            const sortedDates = Object.keys(dateStats).sort();
+            chartData = sortedDates.map(dateStr => ({
+              name: dateStr,
+              tickets: dateStats[dateStr].tickets,
+              items: dateStats[dateStr].items
             }));
           }
 
@@ -527,7 +526,9 @@ export default function Statistics() {
                         <XAxis dataKey="name" tick={{fontSize: 10, fontWeight: 'bold'}} height={40} angle={-35} textAnchor="end" />
                         <YAxis tick={{fontSize: 10, fontWeight: 'bold'}} />
                         <Tooltip contentStyle={{fontWeight: 'bold', color: 'var(--crayon-dark)'}} />
-                        <Bar dataKey="avgDays" name="平均天數" fill="var(--crayon-orange)" radius={[4, 4, 0, 0]} />
+                        <Legend wrapperStyle={{fontSize: '0.9rem', fontWeight: 'bold'}} />
+                        <Bar dataKey="tickets" name="盤點單數量" fill="var(--crayon-orange)" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="items" name="盤點項目數量" fill="var(--crayon-blue)" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     ) : type === 'line' ? (
                       <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
@@ -535,16 +536,20 @@ export default function Statistics() {
                         <XAxis dataKey="name" tick={{fontSize: 10, fontWeight: 'bold'}} height={40} angle={-35} textAnchor="end" />
                         <YAxis tick={{fontSize: 10, fontWeight: 'bold'}} />
                         <Tooltip contentStyle={{fontWeight: 'bold', color: 'var(--crayon-dark)'}} />
-                        <Line type="monotone" dataKey="avgDays" name="平均天數" stroke="var(--crayon-orange)" strokeWidth={3} dot={{r: 4}} />
+                        <Legend wrapperStyle={{fontSize: '0.9rem', fontWeight: 'bold'}} />
+                        <Line type="monotone" dataKey="tickets" name="盤點單數量" stroke="var(--crayon-orange)" strokeWidth={3} dot={{r: 4}} />
+                        <Line type="monotone" dataKey="items" name="盤點項目數量" stroke="var(--crayon-blue)" strokeWidth={3} dot={{r: 4}} />
                       </LineChart>
                     ) : (
                       <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
                         <XAxis dataKey="name" tick={{fontSize: 10, fontWeight: 'bold'}} height={40} angle={-35} textAnchor="end" />
-                        <YAxis tick={{fontSize: 10, fontWeight: 'bold'}} />
+                        <YAxis yAxisId="left" tick={{fontSize: 10, fontWeight: 'bold'}} />
+                        <YAxis yAxisId="right" orientation="right" tick={{fontSize: 10, fontWeight: 'bold'}} />
                         <Tooltip contentStyle={{fontWeight: 'bold', color: 'var(--crayon-dark)'}} />
-                        <Bar dataKey="avgDays" name="平均天數 (長條)" fill="var(--crayon-orange)" radius={[4, 4, 0, 0]} />
-                        <Line type="monotone" dataKey="avgDays" name="平均天數 (折線)" stroke="var(--crayon-blue)" strokeWidth={3} dot={{r: 4}} />
+                        <Legend wrapperStyle={{fontSize: '0.9rem', fontWeight: 'bold'}} />
+                        <Bar yAxisId="left" dataKey="tickets" name="盤點單數量 (長條)" fill="var(--crayon-orange)" radius={[4, 4, 0, 0]} />
+                        <Line yAxisId="right" type="monotone" dataKey="items" name="盤點項目數量 (折線)" stroke="var(--crayon-blue)" strokeWidth={3} dot={{r: 4}} />
                       </ComposedChart>
                     )}
                   </ResponsiveContainer>

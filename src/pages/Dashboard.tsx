@@ -254,7 +254,7 @@ export default function Dashboard() {
           <CartesianGrid strokeDasharray="5 5" stroke="#ccc" />
           <XAxis dataKey="month" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} />
           <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />
-          <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#fff9c4', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
+          <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#ffffff', color: 'var(--crayon-dark)', fontWeight: 'bold', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
           <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
           {showTicket && <Line type="monotone" dataKey="count" name="盤點數量" stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />}
           {showItem && <Line type="monotone" dataKey="itemCount" name="盤點項目數量" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />}
@@ -268,10 +268,29 @@ export default function Dashboard() {
           <XAxis dataKey="month" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} />
           <YAxis yAxisId="left" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />
           {showTicket && showItem && <YAxis yAxisId="right" orientation="right" stroke="var(--crayon-red)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />}
-          <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#fff9c4', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
+          <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#ffffff', color: 'var(--crayon-dark)', fontWeight: 'bold', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
           <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
-          {showTicket && <Bar yAxisId="left" dataKey="count" name="長條圖(盤點數量)" fill="var(--crayon-green)" radius={[5, 5, 0, 0]} barSize={40} />}
-          {showItem && <Line yAxisId={showTicket ? "right" : "left"} type="monotone" dataKey="itemCount" name="折線圖(盤點項目數)" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />}
+          
+          {showTicket && !showItem && (
+            <>
+              <Bar yAxisId="left" dataKey="count" name="盤點數量 (長條)" fill="var(--crayon-green)" radius={[5, 5, 0, 0]} barSize={40} />
+              <Line yAxisId="left" type="monotone" dataKey="count" name="盤點數量 (折線)" stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />
+            </>
+          )}
+          
+          {!showTicket && showItem && (
+            <>
+              <Bar yAxisId="left" dataKey="itemCount" name="盤點項目數量 (長條)" fill="var(--crayon-green)" radius={[5, 5, 0, 0]} barSize={40} />
+              <Line yAxisId="left" type="monotone" dataKey="itemCount" name="盤點項目數量 (折線)" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />
+            </>
+          )}
+          
+          {showTicket && showItem && (
+            <>
+              <Bar yAxisId="left" dataKey="count" name="盤點數量 (長條)" fill="var(--crayon-green)" radius={[5, 5, 0, 0]} barSize={40} />
+              <Line yAxisId="right" type="monotone" dataKey="itemCount" name="盤點項目數量 (折線)" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />
+            </>
+          )}
         </ComposedChart>
       );
     }
@@ -281,7 +300,7 @@ export default function Dashboard() {
         <CartesianGrid strokeDasharray="5 5" stroke="#ccc" />
         <XAxis dataKey="month" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} />
         <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />
-        <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#fff9c4', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
+        <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#ffffff', color: 'var(--crayon-dark)', fontWeight: 'bold', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
         <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
         {showTicket && <Bar dataKey="count" name="盤點數量" fill="var(--crayon-purple)" radius={[5, 5, 0, 0]} barSize={40} />}
         {showItem && <Bar dataKey="itemCount" name="盤點項目數量" fill="var(--crayon-blue)" radius={[5, 5, 0, 0]} barSize={40} />}

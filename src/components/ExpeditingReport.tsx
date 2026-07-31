@@ -22,7 +22,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [selectedTaskId, setSelectedTaskId] = useState('');
   const [selectedAssigneeId, setSelectedAssigneeId] = useState('');
-  const [selectedDays, setSelectedDays] = useState('1'); // "1" ~ "7"
+  const [selectedDays, setSelectedDays] = useState('0'); // "0" ~ "7"
   const [ticketStatus, setTicketStatus] = useState('all'); // 'all', 'closed', 'unclosed'
   const [exactDayFilter, setExactDayFilter] = useState<number | null>(null);
   
@@ -279,6 +279,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
           <div>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點單處理天數</label>
             <select className="doodle-input" value={selectedDays} onChange={e => setSelectedDays(e.target.value)}>
+              <option value="0">0天 (含) 以上</option>
               <option value="1">1天 (含) 以上</option>
               <option value="2">2天 (含) 以上</option>
               <option value="3">3天 (含) 以上</option>
