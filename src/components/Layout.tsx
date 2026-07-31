@@ -1,42 +1,16 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-// @ts-ignore
-import { Lunar, Solar } from 'lunar-javascript';
+import { getTaiwanDateInfo } from '../utils/taiwanFestivals';
+import type { TaiwanDateInfo } from '../utils/taiwanFestivals';
 import FloatingCalculator from './FloatingCalculator';
 
 export default function Layout() {
   const navigate = useNavigate();
-  const [dateInfo, setDateInfo] = useState<{
-    dateStr: string;
-    weekStr: string;
-    festivals: string[];
-  } | null>(null);
+  const [dateInfo, setDateInfo] = useState<TaiwanDateInfo | null>(null);
 
   useEffect(() => {
-    const today = new Date();
-    const solar = Solar.fromDate(today);
-    const lunar = Lunar.fromDate(today);
-    
-    const d = solar.toYmd();
-    const w = '星期' + solar.getWeekInChinese();
-    
-    const festivals: string[] = [];
-    
-    // Add solar festivals
-    solar.getFestivals().forEach((f: string) => festivals.push(f));
-    
-    // Add lunar festivals
-    lunar.getFestivals().forEach((f: string) => festivals.push(f));
-    
-    // Add solar term if exists
-    const jieQi = lunar.getJieQi();
-    if (jieQi) festivals.push(jieQi);
-
-    setDateInfo({
-      dateStr: d,
-      weekStr: w,
-      festivals
-    });
+    const info = getTaiwanDateInfo(new Date());
+    setDateInfo(info);
   }, []);
 
   return (
