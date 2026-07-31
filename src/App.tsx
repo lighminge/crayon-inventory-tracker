@@ -10,6 +10,7 @@ import Statistics from './pages/Statistics';
 import Login from './pages/Login';
 import InventoryTasks from './pages/InventoryTasks';
 import ItemDetails from './pages/ItemDetails';
+import CalendarManagement from './pages/CalendarManagement';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           <Route path="item-details" element={<ItemDetails />} />
           <Route path="personnel" element={<Personnel />} />
           <Route path="statistics" element={<Statistics />} />
+          <Route path="calendar" element={<CalendarManagement />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

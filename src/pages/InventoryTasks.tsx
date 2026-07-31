@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { InventoryTask, InventoryTicket, Personnel } from '../types';
+import type { InventoryTask, InventoryTicket, Personnel, HolidaySetting } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
-import { getTasks, addTask, updateTask, deleteTask, getTickets, getPersonnel } from '../services/api';
+import { getTasks, addTask, updateTask, deleteTask, getTickets, getPersonnel, getHolidays } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
 
 const formatDateLocal = (timestamp: number) => {
@@ -13,6 +13,7 @@ export default function InventoryTasks() {
   const [tasks, setTasks] = useState<InventoryTask[]>([]);
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
+  const [holidays, setHolidays] = useState<HolidaySetting[]>([]);
   
   // Tab and Pagination States for Task Cards
   const [activeTab, setActiveTab] = useState<Record<string, 'info' | 'status' | 'report'>>({});
@@ -44,15 +45,32 @@ export default function InventoryTasks() {
   const [endDateStr, setEndDateStr] = useState(today);
 
   useEffect(() => {
-    loadData();
+    const fetchData = async () => {
+      try {
+        const [tasksData, ticketsData, personnelData, holidaysData] = await Promise.all([
+          getTasks(),
+          getTickets(),
+          getPersonnel(),
+          getHolidays()
+        ]);
+        setTasks(tasksData);
+        setTickets(ticketsData);
+        setPersonnel(personnelData);
+        setHolidays(holidaysData);
+      } catch (e) {
+        alert('載入資料失敗');
+      }
+    };
+    fetchData();
   }, []);
 
   const loadData = async () => {
     try {
-      const [tData, tkData, pData] = await Promise.all([getTasks(), getTickets(), getPersonnel()]);
+      const [tData, tkData, pData, hData] = await Promise.all([getTasks(), getTickets(), getPersonnel(), getHolidays()]);
       setTasks(tData);
       setTickets(tkData);
       setPersonnel(pData);
+      setHolidays(hData);
     } catch (e) {
       console.error(e);
       alert('讀取資料失敗');
@@ -157,7 +175,7 @@ export default function InventoryTasks() {
         
         const startDate = (t.stageDates && Object.keys(t.stageDates).length > 0) ? Math.min(...Object.values(t.stageDates)) : t.dispatchDate;
         if (startDate && t.closeDate) {
-          assigneeStats[id].totalDays += calculateBusinessDays(startDate, t.closeDate);
+          assigneeStats[id].totalDays += calculateBusinessDays(startDate, t.closeDate, holidays);
         }
       });
       const assigneeList = Object.values(assigneeStats).map(a => ({
@@ -173,7 +191,7 @@ export default function InventoryTasks() {
         if (t.closeDate) {
           const startDate = (t.stageDates && Object.keys(t.stageDates).length > 0) ? Math.min(...Object.values(t.stageDates)) : t.dispatchDate;
           if (startDate) {
-            processingDays = calculateBusinessDays(startDate, t.closeDate);
+            processingDays = calculateBusinessDays(startDate, t.closeDate, holidays);
           }
         }
         return {
@@ -188,7 +206,7 @@ export default function InventoryTasks() {
       if (completedLinkedTickets.length > 0) {
         const maxCloseDate = Math.max(...completedLinkedTickets.map(t => t.closeDate || 0));
         if (maxCloseDate > 0) {
-          totalDaysSpent = calculateBusinessDays(task.startDate, maxCloseDate);
+          totalDaysSpent = calculateBusinessDays(task.startDate, maxCloseDate, holidays);
         }
       }
 
@@ -205,7 +223,7 @@ export default function InventoryTasks() {
         totalDaysSpent
       };
     });
-  }, [tasks, tickets, personnel]);
+  }, [tasks, tickets, personnel, holidays]);
 
   const filteredTasks = useMemo(() => {
     return tasksWithStats.filter(t => {

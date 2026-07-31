@@ -1,10 +1,11 @@
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 // @ts-ignore
 import { Lunar, Solar } from 'lunar-javascript';
 import FloatingCalculator from './FloatingCalculator';
 
 export default function Layout() {
+  const navigate = useNavigate();
   const [dateInfo, setDateInfo] = useState<{
     dateStr: string;
     weekStr: string;
@@ -52,7 +53,9 @@ export default function Layout() {
         <h1 style={{ margin: 0 }}>🖍️ 塗鴉風盤點派發管理系統</h1>
         
         {dateInfo && (
-          <div style={{ 
+          <div 
+            onClick={() => navigate('/calendar')}
+            style={{ 
             display: 'flex', 
             flexDirection: 'column', 
             alignItems: 'center',
@@ -63,8 +66,13 @@ export default function Layout() {
             boxShadow: '3px 3px 0px rgba(0,0,0,0.15)',
             width: '120px',
             overflow: 'hidden',
-            position: 'relative'
-          }}>
+            position: 'relative',
+            cursor: 'pointer',
+            transition: 'transform 0.2s'
+          }}
+          onMouseOver={e => e.currentTarget.style.transform = 'rotate(0deg) scale(1.05)'}
+          onMouseOut={e => e.currentTarget.style.transform = 'rotate(2deg) scale(1)'}
+          >
             {/* Calendar Header / Binder */}
             <div style={{ 
               backgroundColor: 'var(--crayon-red)', 

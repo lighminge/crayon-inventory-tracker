@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { InventoryTicket, Personnel, Workflow } from '../types';
-import { getTickets, updateTicket, deleteTicket, getPersonnel, getWorkflows, addTicket, getTasks } from '../services/api';
+import { getTickets, updateTicket, deleteTicket, getPersonnel, getWorkflows, addTicket, getTasks, getHolidays } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
+import type { HolidaySetting } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 
 export default function InventoryTicketsPage() {
@@ -9,6 +10,7 @@ export default function InventoryTicketsPage() {
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [holidays, setHolidays] = useState<HolidaySetting[]>([]);
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -51,11 +53,18 @@ export default function InventoryTicketsPage() {
 
   const loadData = async () => {
     try {
-      const [tData, pData, wData, tasksData] = await Promise.all([getTickets(), getPersonnel(), getWorkflows(), getTasks()]);
-      setTickets(tData);
-      setPersonnel(pData);
-      setWorkflows(wData.sort((a, b) => a.order - b.order));
+      const [ticketsData, personnelData, workflowsData, tasksData, holidaysData] = await Promise.all([
+        getTickets(),
+        getPersonnel(),
+        getWorkflows(),
+        getTasks(),
+        getHolidays()
+      ]);
+      setTickets(ticketsData);
+      setPersonnel(personnelData);
+      setWorkflows(workflowsData.sort((a, b) => a.order - b.order));
       setTasks(tasksData);
+      setHolidays(holidaysData);
     } catch (e) {
       console.error(e);
       alert('讀取失敗');
@@ -68,7 +77,7 @@ export default function InventoryTicketsPage() {
   };
 
   const calculateDays = (startMs: number, endMs: number) => {
-    return calculateBusinessDays(startMs, endMs);
+    return calculateBusinessDays(startMs, endMs, holidays);
   };
 
   const getFirstStageDate = (ticket: InventoryTicket) => {

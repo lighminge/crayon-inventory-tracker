@@ -153,3 +153,19 @@ export const saveItemDetail = async (detail: Omit<InventoryItemDetail, 'id'>, ex
 export const deleteItemDetail = async (id: string): Promise<void> => {
   await deleteDoc(doc(db, 'inventory_item_details', id));
 };
+
+// --- Holidays API ---
+import type { HolidaySetting } from '../types';
+
+export const getHolidays = async (): Promise<HolidaySetting[]> => {
+  const snapshot = await getDocs(collection(db, 'holidays'));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as HolidaySetting));
+};
+
+export const saveHoliday = async (holiday: HolidaySetting): Promise<void> => {
+  await setDoc(doc(db, 'holidays', holiday.id), holiday);
+};
+
+export const deleteHoliday = async (id: string): Promise<void> => {
+  await deleteDoc(doc(db, 'holidays', id));
+};

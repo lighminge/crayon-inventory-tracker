@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { InventoryTicket, Personnel, Workflow, InventoryTask } from '../types';
-import { getTickets, getPersonnel, getWorkflows, getTasks } from '../services/api';
+import { getTickets, getPersonnel, getWorkflows, getTasks, getHolidays } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
+import type { HolidaySetting } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid, LineChart, Line, ComposedChart } from 'recharts';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 import ExpeditingReport from '../components/ExpeditingReport';
@@ -12,6 +13,7 @@ export default function Statistics() {
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [tasks, setTasks] = useState<InventoryTask[]>([]);
+  const [holidays, setHolidays] = useState<HolidaySetting[]>([]);
   
   // Date range state
   const [startDate, setStartDate] = useState(() => {
@@ -43,11 +45,12 @@ export default function Statistics() {
 
   const loadData = async () => {
     try {
-      const [tData, pData, wData, tasksData] = await Promise.all([getTickets(), getPersonnel(), getWorkflows(), getTasks()]);
+      const [tData, pData, wData, tasksData, hData] = await Promise.all([getTickets(), getPersonnel(), getWorkflows(), getTasks(), getHolidays()]);
       setTickets(tData);
       setPersonnel(pData);
       setWorkflows(wData.sort((a, b) => a.order - b.order));
       setTasks(tasksData);
+      setHolidays(hData);
     } catch (e) {
       console.error(e);
       alert('讀取資料失敗');
@@ -91,7 +94,7 @@ export default function Statistics() {
       
       const closedWithDays = pTickets.filter(t => t.closeDate && getFirstStageDate(t));
       const avgDays = closedWithDays.length === 0 ? 0 : 
-        Number((closedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!), 0) / closedWithDays.length).toFixed(2));
+        Number((closedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!, holidays), 0) / closedWithDays.length).toFixed(2));
       const totalItems = pTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
         
       return {
@@ -104,7 +107,7 @@ export default function Statistics() {
         pTickets
       };
     }).sort((a, b) => b.total - a.total);
-  }, [filteredTickets, personnel]);
+  }, [filteredTickets, personnel, holidays]);
 
   const globalStats = useMemo(() => {
     const total = statsByPerson.reduce((sum, p) => sum + p.total, 0);
@@ -113,15 +116,15 @@ export default function Statistics() {
     
     const globalClosedWithDays = filteredTickets.filter(t => t.closeDate && getFirstStageDate(t));
     const avgDays = globalClosedWithDays.length === 0 ? 0 : 
-      Number((globalClosedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!), 0) / globalClosedWithDays.length).toFixed(2));
+      Number((globalClosedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!, holidays), 0) / globalClosedWithDays.length).toFixed(2));
       
     const totalItems = filteredTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
 
     return { total, closed, completionRate, avgDays, totalItems };
-  }, [statsByPerson, filteredTickets]);
+  }, [statsByPerson, filteredTickets, holidays]);
 
   const calculateDays = (startMs: number, endMs: number) => {
-    return calculateBusinessDays(startMs, endMs);
+    return calculateBusinessDays(startMs, endMs, holidays);
   };
 
   // Workflow Stage Processing Days Stats

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { InventoryTicket, Personnel, InventoryTask, Workflow } from '../types';
-import { getTickets, getPersonnel, getTasks, getWorkflows } from '../services/api';
+import type { InventoryTicket, Personnel, InventoryTask, Workflow, HolidaySetting } from '../types';
+import { getTickets, getPersonnel, getTasks, getWorkflows, getHolidays } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
 import { BarChart, Bar, LineChart, Line, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, PieChart, Pie, Cell } from 'recharts';
 
@@ -9,6 +9,7 @@ export default function Dashboard() {
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [tasks, setTasks] = useState<InventoryTask[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [holidays, setHolidays] = useState<HolidaySetting[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState('');
   const [personnelTicketType, setPersonnelTicketType] = useState('');
   const [globalYear, setGlobalYear] = useState<number | ''>(new Date().getFullYear());
@@ -40,10 +41,11 @@ export default function Dashboard() {
 
   const loadData = async () => {
     try {
-      const [tData, pData, tasksData, wData] = await Promise.all([getTickets(), getPersonnel(), getTasks(), getWorkflows()]);
+      const [tData, pData, tasksData, wData, hData] = await Promise.all([getTickets(), getPersonnel(), getTasks(), getWorkflows(), getHolidays()]);
       setTickets(tData);
       setPersonnel(pData);
       setWorkflows(wData.sort((a, b) => a.order - b.order));
+      setHolidays(hData);
       
       setTasks(tasksData);
     } catch (e) {
@@ -101,7 +103,7 @@ export default function Dashboard() {
 
     const closedWithDays = filteredTickets.filter(t => t.closeDate && getFirstStageDate(t));
     const avgDays = closedWithDays.length === 0 ? 0 : 
-      Number((closedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!), 0) / closedWithDays.length).toFixed(2));
+      Number((closedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!, holidays), 0) / closedWithDays.length).toFixed(2));
 
     // Chart data for last 6 months
     const chartData = [];
@@ -120,7 +122,7 @@ export default function Dashboard() {
     }
 
     return { total, inProgress, inProgressItems, completionRate, avgDays, chartData };
-  }, [filteredTickets]);
+  }, [filteredTickets, holidays]);
 
   // Personnel specific stats for selected month
   const personnelStats = useMemo(() => {
@@ -173,7 +175,7 @@ export default function Dashboard() {
         return d.getFullYear() === tYear && d.getMonth() === tMonth;
       });
       const avgDays = monthCompletedTickets.length === 0 ? 0 :
-        Number((monthCompletedTickets.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!), 0) / monthCompletedTickets.length).toFixed(2));
+        Number((monthCompletedTickets.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!, holidays), 0) / monthCompletedTickets.length).toFixed(2));
 
       // Completed Items calculation
       const completedTickets = pTickets.filter(t => t.closeDate);
@@ -192,7 +194,7 @@ export default function Dashboard() {
         totalCompletedItems
       };
     }).sort((a, b) => b.incompleteCount - a.incompleteCount);
-  }, [filteredTickets, personnel, selectedYear, selectedMonthNum]);
+  }, [filteredTickets, personnel, selectedYear, selectedMonthNum, holidays]);
 
   const personnelTotals = useMemo(() => {
     return personnelStats.reduce((acc, curr) => ({
@@ -846,7 +848,7 @@ export default function Dashboard() {
                           const startMs = getFirstStageDate(t);
                           let daysSpent = 0;
                           if (startMs) {
-                            daysSpent = calculateBusinessDays(startMs, new Date().getTime());
+                            daysSpent = calculateBusinessDays(startMs, new Date().getTime(), holidays);
                           }
                           const nextStage = getNextStage(t);
                           const stageName = nextStage ? nextStage.name : '等候結案';

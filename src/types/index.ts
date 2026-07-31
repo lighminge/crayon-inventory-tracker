@@ -52,3 +52,10 @@ export interface InventoryItemDetail {
   totalItemCount: number; // 物料總數
   createdAt?: number; // 建立時間
 }
+
+export interface HolidaySetting {
+  id: string; // Document ID (usually YYYY-MM-DD format date string)
+  date: string; // YYYY-MM-DD format
+  type: 'holiday' | 'workday'; // holiday (skip calculation) or workday (make-up workday)
+  description: string;
+}

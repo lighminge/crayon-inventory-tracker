@@ -1,7 +1,9 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import type { InventoryTicket, Personnel, InventoryTask, Workflow } from '../types';
 import CrayonDatePicker from './CrayonDatePicker';
 import { calculateBusinessDays } from '../utils/dateUtils';
+import { getHolidays } from '../services/api';
+import type { HolidaySetting } from '../types';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
 
@@ -28,6 +30,11 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
   
   const [sortBy, setSortBy] = useState('id'); // 'id', 'stage', 'assignee', 'processingDays'
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc', 'desc'
+  
+  const [holidays, setHolidays] = useState<HolidaySetting[]>([]);
+  useEffect(() => {
+    getHolidays().then(setHolidays).catch(console.error);
+  }, []);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -75,7 +82,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
       const firstDate = getFirstStageDate(t);
       // Calculate processing days up to today if not closed
       const endDateForDays = t.closeDate || Date.now();
-      const processingDays = firstDate ? calculateBusinessDays(firstDate, endDateForDays) : 0;
+      const processingDays = firstDate ? calculateBusinessDays(firstDate, endDateForDays, holidays) : 0;
       
       // Find current stage
       let currentStage = '未開始';

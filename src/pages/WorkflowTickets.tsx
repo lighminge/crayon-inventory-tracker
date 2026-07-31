@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { InventoryTicket, Personnel, Workflow, InventoryTask } from '../types';
-import { getTickets, updateTicket, getPersonnel, getWorkflows, getTasks } from '../services/api';
+import { getTickets, updateTicket, getPersonnel, getWorkflows, getTasks, getHolidays } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
+import type { HolidaySetting } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 
 export default function WorkflowTickets() {
@@ -9,6 +10,7 @@ export default function WorkflowTickets() {
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [tasks, setTasks] = useState<InventoryTask[]>([]);
+  const [holidays, setHolidays] = useState<HolidaySetting[]>([]);
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -38,12 +40,13 @@ export default function WorkflowTickets() {
 
   const loadData = async () => {
     try {
-      const [tData, pData, wData, tasksData] = await Promise.all([getTickets(), getPersonnel(), getWorkflows(), getTasks()]);
+      const [tData, pData, wData, tasksData, hData] = await Promise.all([getTickets(), getPersonnel(), getWorkflows(), getTasks(), getHolidays()]);
       // Only keep unfinished tickets
       setTickets(tData.filter(t => !t.closeDate));
       setPersonnel(pData);
       setWorkflows(wData.sort((a, b) => a.order - b.order));
       setTasks(tasksData);
+      setHolidays(hData);
     } catch (e) {
       console.error(e);
       alert('讀取失敗');
@@ -92,7 +95,7 @@ export default function WorkflowTickets() {
   };
 
   const calculateDays = (startMs: number, endMs: number) => {
-    return calculateBusinessDays(startMs, endMs);
+    return calculateBusinessDays(startMs, endMs, holidays);
   };
 
   const getFirstStageDate = (ticket: InventoryTicket) => {
