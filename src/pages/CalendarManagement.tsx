@@ -171,17 +171,17 @@ const CalendarManagement: React.FC = () => {
                   key={day.dateStr}
                   onClick={() => openModal(day.dateStr)}
                   style={{ 
-                    border: day.isToday ? '3px solid var(--crayon-red)' : '2px solid var(--crayon-dark)',
+                    border: day.isToday ? '4px solid var(--crayon-orange)' : '2px solid var(--crayon-dark)',
                     borderRadius: '8px',
                     padding: '5px',
                     minHeight: '100px',
-                    backgroundColor: day.isToday ? '#fff0f0' : isWeekend ? '#fefefe' : 'white',
+                    backgroundColor: day.isToday ? '#fff8e1' : isWeekend ? '#fefefe' : 'white',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
                     position: 'relative',
                     transition: 'transform 0.1s',
-                    boxShadow: day.isToday ? '0 0 10px rgba(229, 57, 53, 0.4)' : '2px 2px 0px rgba(0,0,0,0.1)'
+                    boxShadow: day.isToday ? '0 0 15px rgba(255, 152, 0, 0.6)' : '2px 2px 0px rgba(0,0,0,0.1)'
                   }}
                   onMouseOver={e => e.currentTarget.style.transform = 'scale(1.02)'}
                   onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
@@ -197,7 +197,19 @@ const CalendarManagement: React.FC = () => {
                     }}>
                       {day.date}
                     </span>
-                    {day.isToday && <span style={{ fontSize: '0.8rem', color: 'var(--crayon-red)', fontWeight: 'bold' }}>今天</span>}
+                    {day.isToday && (
+                      <span style={{ 
+                        fontSize: '0.9rem', 
+                        color: 'white', 
+                        fontWeight: 'bold',
+                        backgroundColor: 'var(--crayon-red)',
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        boxShadow: '1px 1px 0px rgba(0,0,0,0.2)'
+                      }}>
+                        今天
+                      </span>
+                    )}
                   </div>
                   
                   {/* 台灣節日 / 節氣 */}
