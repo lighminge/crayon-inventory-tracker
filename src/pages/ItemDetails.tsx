@@ -289,7 +289,7 @@ export default function ItemDetails() {
                         return (
                           <span key={seq} style={{ position: 'relative', backgroundColor: 'white', border: '2px dashed #ff69b4', padding: '6px 14px', borderRadius: '10px', fontSize: '1rem', color: '#ff69b4', fontWeight: '900', display: 'inline-flex', alignItems: 'center', margin: '12px 12px 8px 12px' }}>
                             <span style={{ position: 'absolute', top: '-15px', left: '-15px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ff69b4', color: '#fff', borderRadius: '50%', width: '32px', height: '32px', fontSize: '1.2rem', fontWeight: '900', border: '3px solid white', boxShadow: '2px 2px 0px rgba(0,0,0,0.3)', transform: 'rotate(-5deg)', zIndex: 1 }}>{index + 1}</span>
-                            項目 {seq}: {sum} 項
+                            項目 {seq}: {sum} 個
                           </span>
                         );
                       })}
@@ -480,7 +480,7 @@ export default function ItemDetails() {
                           </td>
                           <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
                             <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed #ff69b4', padding: '2px 8px', borderRadius: '10px', color: '#ff69b4', fontWeight: 'bold' }}>
-                              {d.totalItemCount} 項
+                              {d.totalItemCount} 個 (PCS)
                             </span>
                           </td>
                         </tr>
@@ -505,7 +505,7 @@ export default function ItemDetails() {
                           <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.0rem', fontWeight: 'bold' }}>
                             <div style={{ color: 'var(--crayon-red)' }}>單重: {Array.from(new Set(group.map(d => d.materialUnitWeight))).filter(w => w > 0).sort((a,b)=>a-b).join(', ')} 公克</div>
                           </td>
-                          <td style={{ padding: '15px 10px', fontSize: '1.2rem', fontWeight: '900', color: 'var(--crayon-red)' }}>{totalItemCount} 項</td>
+                          <td style={{ padding: '15px 10px', fontSize: '1.2rem', fontWeight: '900', color: 'var(--crayon-red)' }}>{totalItemCount} 個 (PCS)</td>
                         </tr>
                     </React.Fragment>
                   );

@@ -420,7 +420,7 @@ export default function FloatingCalculator() {
               <div style={{ backgroundColor: 'white', padding: '10px', borderRadius: '5px', border: '2px dashed var(--crayon-red)', textAlign: 'center' }}>
                 <span style={{ fontSize: '0.9rem', color: '#555' }}>物料總數 (系統無條件進位)</span>
                 <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>
-                  {totalItemCount} <span style={{fontSize: '1rem'}}>項</span>
+                  {totalItemCount} <span style={{fontSize: '1rem'}}>個 (PCS)</span>
                 </div>
               </div>
             </div>

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { InventoryTicket, Personnel, Workflow, InventoryTask } from '../types';
 import { getTickets, getPersonnel, getWorkflows, getTasks } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid, LineChart, Line, ComposedChart } from 'recharts';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 import ExpeditingReport from '../components/ExpeditingReport';
 
@@ -29,7 +29,7 @@ export default function Statistics() {
   const [selectedTaskId, setSelectedTaskId] = useState('');
 
   // Chart configuration state
-  const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
+  const [chartType, setChartType] = useState<'bar' | 'pie' | 'line' | 'composed'>('bar');
   const [chartMetric, setChartMetric] = useState<'total' | 'completionRate' | 'avgDays'>('total');
   
   // Person Chart Tab state
@@ -169,12 +169,12 @@ export default function Statistics() {
         <ResponsiveContainer width="100%" height={400}>
           <BarChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-            <XAxis dataKey="name" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 16}} />
-            <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 16}} />
+            <XAxis dataKey="name" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 16, fontWeight: 'bold'}} />
+            <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 16, fontWeight: 'bold'}} />
             <Tooltip 
-              contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '2px solid var(--crayon-dark)'}}
+              contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '2px solid var(--crayon-dark)', color: 'var(--crayon-dark)', fontWeight: 'bold', backgroundColor: '#ffffff'}}
             />
-            <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem'}} />
+            <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--crayon-dark)'}} />
             <Bar dataKey={dataKey} name={yAxisLabel} fill="var(--crayon-blue)" radius={[5, 5, 0, 0]} barSize={50}>
               {data.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -183,7 +183,7 @@ export default function Statistics() {
           </BarChart>
         </ResponsiveContainer>
       );
-    } else {
+    } else if (chartType === 'pie') {
       return (
         <ResponsiveContainer width="100%" height={400}>
           <PieChart>
@@ -201,9 +201,40 @@ export default function Statistics() {
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="var(--crayon-dark)" strokeWidth={2} />
               ))}
             </Pie>
-            <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '2px solid var(--crayon-dark)'}} />
-            <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem'}} />
+            <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '2px solid var(--crayon-dark)', color: 'var(--crayon-dark)', fontWeight: 'bold', backgroundColor: '#ffffff'}} />
+            <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--crayon-dark)'}} />
           </PieChart>
+        </ResponsiveContainer>
+      );
+    } else if (chartType === 'line') {
+      return (
+        <ResponsiveContainer width="100%" height={400}>
+          <LineChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
+            <XAxis dataKey="name" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 16, fontWeight: 'bold'}} />
+            <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 16, fontWeight: 'bold'}} />
+            <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '2px solid var(--crayon-dark)', color: 'var(--crayon-dark)', fontWeight: 'bold', backgroundColor: '#ffffff'}} />
+            <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--crayon-dark)'}} />
+            <Line type="monotone" dataKey={dataKey} name={yAxisLabel} stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{ r: 8 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      );
+    } else {
+      return (
+        <ResponsiveContainer width="100%" height={400}>
+          <ComposedChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
+            <XAxis dataKey="name" stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 16, fontWeight: 'bold'}} />
+            <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 16, fontWeight: 'bold'}} />
+            <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '2px solid var(--crayon-dark)', color: 'var(--crayon-dark)', fontWeight: 'bold', backgroundColor: '#ffffff'}} />
+            <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--crayon-dark)'}} />
+            <Bar dataKey={dataKey} name={`${yAxisLabel} (直條)`} fill="var(--crayon-orange)" radius={[5, 5, 0, 0]} barSize={50}>
+              {data.map((_, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Bar>
+            <Line type="monotone" dataKey={dataKey} name={`${yAxisLabel} (折線)`} stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{ r: 8 }} />
+          </ComposedChart>
         </ResponsiveContainer>
       );
     }
@@ -306,7 +337,7 @@ export default function Statistics() {
                 <XAxis dataKey="name" stroke="var(--crayon-dark)" interval={0} tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} />
                 <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} />
                 <Tooltip 
-                  contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#fff9c4', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}}
+                  contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#ffffff', color: 'var(--crayon-dark)', fontWeight: 'bold', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}}
                   formatter={(value) => [`${value} 天`, '平均天數']}
                 />
                 <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
@@ -361,6 +392,8 @@ export default function Statistics() {
               <select className="doodle-input" style={{ width: 'auto' }} value={chartType} onChange={e => setChartType(e.target.value as any)}>
                 <option value="bar">直條圖</option>
                 <option value="pie">圓餅圖</option>
+                <option value="line">折線圖</option>
+                <option value="composed">直條加折線圖</option>
               </select>
             </div>
           </div>
@@ -475,6 +508,7 @@ export default function Statistics() {
                   >
                     <option value="bar">長條圖</option>
                     <option value="line">折線圖</option>
+                    <option value="composed">長條+折線</option>
                   </select>
                   <select 
                     style={{ padding: '2px 5px', borderRadius: '5px', border: '2px solid var(--crayon-dark)', outline: 'none' }}
@@ -490,19 +524,28 @@ export default function Statistics() {
                     {type === 'bar' ? (
                       <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                        <XAxis dataKey="name" tick={{fontSize: 10}} height={40} angle={-35} textAnchor="end" />
-                        <YAxis tick={{fontSize: 10}} />
-                        <Tooltip />
+                        <XAxis dataKey="name" tick={{fontSize: 10, fontWeight: 'bold'}} height={40} angle={-35} textAnchor="end" />
+                        <YAxis tick={{fontSize: 10, fontWeight: 'bold'}} />
+                        <Tooltip contentStyle={{fontWeight: 'bold', color: 'var(--crayon-dark)'}} />
                         <Bar dataKey="avgDays" name="平均天數" fill="var(--crayon-orange)" radius={[4, 4, 0, 0]} />
                       </BarChart>
-                    ) : (
+                    ) : type === 'line' ? (
                       <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                        <XAxis dataKey="name" tick={{fontSize: 10}} height={40} angle={-35} textAnchor="end" />
-                        <YAxis tick={{fontSize: 10}} />
-                        <Tooltip />
+                        <XAxis dataKey="name" tick={{fontSize: 10, fontWeight: 'bold'}} height={40} angle={-35} textAnchor="end" />
+                        <YAxis tick={{fontSize: 10, fontWeight: 'bold'}} />
+                        <Tooltip contentStyle={{fontWeight: 'bold', color: 'var(--crayon-dark)'}} />
                         <Line type="monotone" dataKey="avgDays" name="平均天數" stroke="var(--crayon-orange)" strokeWidth={3} dot={{r: 4}} />
                       </LineChart>
+                    ) : (
+                      <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                        <XAxis dataKey="name" tick={{fontSize: 10, fontWeight: 'bold'}} height={40} angle={-35} textAnchor="end" />
+                        <YAxis tick={{fontSize: 10, fontWeight: 'bold'}} />
+                        <Tooltip contentStyle={{fontWeight: 'bold', color: 'var(--crayon-dark)'}} />
+                        <Bar dataKey="avgDays" name="平均天數 (長條)" fill="var(--crayon-orange)" radius={[4, 4, 0, 0]} />
+                        <Line type="monotone" dataKey="avgDays" name="平均天數 (折線)" stroke="var(--crayon-blue)" strokeWidth={3} dot={{r: 4}} />
+                      </ComposedChart>
                     )}
                   </ResponsiveContainer>
                 </div>
