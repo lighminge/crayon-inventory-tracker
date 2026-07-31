@@ -234,9 +234,9 @@ export default function Dashboard() {
   }, [unclosedTicketsGrouped, unclosedAssigneeFilter]);
 
   const UNCLOSED_COLORS = [
-    '#FF5252', '#448AFF', '#69F0AE', '#E040FB', 
-    '#FFAB40', '#18FFFF', '#FF4081', '#BCAAA4', 
-    '#C6FF00', '#536DFE', '#00E676', '#FF6E40'
+    '#E63946', '#1D3557', '#2A9D8F', '#F4A261', 
+    '#E76F51', '#264653', '#2B2D42', '#8D99AE', 
+    '#D90429', '#023047', '#457B9D', '#A8DADC'
   ];
 
   const renderChart = () => {
@@ -779,13 +779,33 @@ export default function Dashboard() {
                   </BarChart>
                 ) : (
                   <PieChart margin={{ top: 30, right: 30, bottom: 30, left: 30 }}>
-                    <Pie data={unclosedChartData} dataKey="ticketCount" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                    <Pie 
+                      data={unclosedChartData} 
+                      dataKey="ticketCount" 
+                      nameKey="name" 
+                      cx="50%" 
+                      cy="50%" 
+                      outerRadius={100} 
+                      label={({ cx, cy, midAngle, outerRadius, value, name }) => {
+                        const RADIAN = Math.PI / 180;
+                        const radius = outerRadius + 20;
+                        const mAngle = midAngle || 0;
+                        const x = cx + radius * Math.cos(-mAngle * RADIAN);
+                        const y = cy + radius * Math.sin(-mAngle * RADIAN);
+                        return (
+                          <text x={x} y={y} fill="var(--crayon-dark)" fontWeight="bold" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
+                            {`${name} ${value}件`}
+                          </text>
+                        );
+                      }}
+                      labelLine={{ stroke: 'var(--crayon-dark)', strokeWidth: 2 }}
+                    >
                       {unclosedChartData.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={UNCLOSED_COLORS[index % UNCLOSED_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ borderRadius: '10px', border: '2px solid var(--crayon-dark)' }} />
-                    <Legend />
+                    <Tooltip contentStyle={{ borderRadius: '10px', border: '2px solid var(--crayon-dark)', color: 'var(--crayon-dark)', fontWeight: 'bold' }} />
+                    <Legend wrapperStyle={{ fontWeight: 'bold', color: 'var(--crayon-dark)' }} />
                   </PieChart>
                 )}
               </ResponsiveContainer>

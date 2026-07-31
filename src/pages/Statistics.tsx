@@ -155,7 +155,8 @@ export default function Statistics() {
   }, [filteredTickets, workflows]);
 
   // Colors for Pie Chart
-  const COLORS = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#1A535C', '#F7FFF7', '#8ECAE6', '#219EBC', '#023047', '#FFB703', '#FB8500'];
+  // Colors for Pie Chart
+  const COLORS = ['#E63946', '#1D3557', '#2A9D8F', '#F4A261', '#E76F51', '#264653', '#2B2D42', '#8D99AE', '#D90429', '#023047'];
 
   const renderChart = () => {
     const data = statsByPerson.filter(p => p[chartMetric] > 0);
@@ -194,7 +195,18 @@ export default function Statistics() {
               cx="50%"
               cy="50%"
               outerRadius={150}
-              label={({name, percent}) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+              label={({ cx, cy, midAngle, outerRadius, name, percent }) => {
+                const RADIAN = Math.PI / 180;
+                const radius = outerRadius + 20;
+                const mAngle = midAngle || 0;
+                const x = cx + radius * Math.cos(-mAngle * RADIAN);
+                const y = cy + radius * Math.sin(-mAngle * RADIAN);
+                return (
+                  <text x={x} y={y} fill="var(--crayon-dark)" fontWeight="bold" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
+                    {`${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                  </text>
+                );
+              }}
               labelLine={{ stroke: 'var(--crayon-dark)', strokeWidth: 2 }}
             >
               {data.map((_, index) => (
