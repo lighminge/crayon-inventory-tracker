@@ -212,6 +212,32 @@ const CalendarManagement: React.FC = () => {
     return Array.from(years).sort((a, b) => parseInt(b) - parseInt(a));
   }, [holidays]);
 
+  // Pagination controls (reused above and below the table)
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px' }}>
+        <button 
+          className="doodle-button secondary"
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+        >
+          上一頁
+        </button>
+        <span style={{ fontWeight: 'bold', color: 'var(--crayon-dark)' }}>
+          第 {currentPage} / {totalPages} 頁
+        </span>
+        <button 
+          className="doodle-button secondary"
+          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+          disabled={currentPage === totalPages}
+        >
+          下一頁
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
@@ -270,9 +296,9 @@ const CalendarManagement: React.FC = () => {
                 <div 
                   key={day.dateStr}
                   onClick={() => openModal(day.dateStr)}
+                  className="doodle-border"
                   style={{ 
-                    border: day.isToday ? '4px solid var(--crayon-orange)' : '2px solid var(--crayon-dark)',
-                    borderRadius: '8px',
+                    border: day.isToday ? '4px solid var(--crayon-orange)' : '3px solid var(--crayon-dark)',
                     padding: '5px',
                     minHeight: '100px',
                     backgroundColor: day.isToday ? '#fff8e1' : day.isWeekend ? '#fefefe' : 'white',
@@ -281,10 +307,11 @@ const CalendarManagement: React.FC = () => {
                     flexDirection: 'column',
                     position: 'relative',
                     transition: 'transform 0.1s',
-                    boxShadow: day.isToday ? '0 0 15px rgba(255, 152, 0, 0.6)' : '2px 2px 0px rgba(0,0,0,0.1)'
+                    boxShadow: day.isToday ? '4px 4px 0px var(--crayon-orange)' : '4px 4px 0px rgba(0,0,0,1)',
+                    transform: day.isToday ? 'scale(1.02)' : 'none'
                   }}
-                  onMouseOver={e => e.currentTarget.style.transform = 'scale(1.02)'}
-                  onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+                  onMouseOver={e => e.currentTarget.style.transform = 'scale(1.04)'}
+                  onMouseOut={e => e.currentTarget.style.transform = day.isToday ? 'scale(1.02)' : 'scale(1)'}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <span style={{ 
@@ -385,6 +412,11 @@ const CalendarManagement: React.FC = () => {
           </div>
         </div>
 
+        {/* Top Pagination */}
+        <div style={{ marginBottom: '15px' }}>
+          {renderPagination()}
+        </div>
+
         <table className="doodle-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
           <thead>
             <tr>
@@ -435,28 +467,8 @@ const CalendarManagement: React.FC = () => {
           </tbody>
         </table>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px' }}>
-            <button 
-              className="doodle-button secondary"
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              上一頁
-            </button>
-            <span style={{ fontWeight: 'bold', color: 'var(--crayon-dark)' }}>
-              第 {currentPage} / {totalPages} 頁
-            </span>
-            <button 
-              className="doodle-button secondary"
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              下一頁
-            </button>
-          </div>
-        )}
+        {/* Bottom Pagination */}
+        {renderPagination()}
       </div>
 
       {/* Modal for adding/editing holidays */}
