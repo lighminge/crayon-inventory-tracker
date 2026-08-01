@@ -235,6 +235,9 @@ export default function InventoryTasks() {
     });
   }, [tasks, tickets, personnel, holidays]);
 
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+
   const filteredTasks = useMemo(() => {
     return tasksWithStats.filter(t => {
       if (filterStatus === 'active') { if (t.isExpired) return false; }
@@ -246,17 +249,27 @@ export default function InventoryTasks() {
         const y = new Date(t.startDate).getFullYear().toString();
         if (y !== filterYear) return false;
       }
+
+      if (filterStartDate) {
+        const startMs = new Date(filterStartDate).getTime();
+        if (t.startDate < startMs) return false;
+      }
+      
+      if (filterEndDate) {
+        const endMs = new Date(filterEndDate).getTime() + 24 * 60 * 60 * 1000 - 1;
+        if (t.startDate > endMs) return false;
+      }
       
       return true;
     }).sort((a, b) => b.startDate - a.startDate);
-  }, [tasksWithStats, filterStatus, filterTicketType, filterYear]);
+  }, [tasksWithStats, filterStatus, filterTicketType, filterYear, filterStartDate, filterEndDate]);
 
   const totalPages = Math.ceil(filteredTasks.length / tasksPerPage);
   const paginatedTasks = filteredTasks.slice((currentPage - 1) * tasksPerPage, currentPage * tasksPerPage);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStatus, filterTicketType, filterYear, tasksPerPage]);
+  }, [filterStatus, filterTicketType, filterYear, filterStartDate, filterEndDate, tasksPerPage]);
 
   return (
     <div>
@@ -287,6 +300,12 @@ export default function InventoryTasks() {
                 <option key={y} value={y.toString()}>{y} 年</option>
               ))}
             </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: 'bold' }}>建立日期區間：</label>
+            <input type="date" className="doodle-input" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} />
+            <span>~</span>
+            <input type="date" className="doodle-input" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} />
           </div>
           <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-blue)' }}>
             總任務數量：{filteredTasks.length} 筆
