@@ -384,9 +384,10 @@ const CalendarManagement: React.FC = () => {
 
                   {/* 盤點任務 */}
                   {day.overlappingTasks && day.overlappingTasks.length > 0 && (
-                    <div style={{ marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {day.overlappingTasks.map((t: TaskWithStatus) => {
-                        const colorIndex = t.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % TASK_COLORS.length;
+                        const taskIndex = tasks.findIndex(x => x.id === t.id);
+                        const colorIndex = taskIndex >= 0 ? taskIndex % TASK_COLORS.length : 0;
                         
                         let isCompletedToday = false;
                         if (t.isCompleted && t.completedDate) {
@@ -398,13 +399,14 @@ const CalendarManagement: React.FC = () => {
                           }
                         }
                         
-                        const taskBgColor = isCompletedToday ? 'var(--crayon-green)' : TASK_COLORS[colorIndex];
+                        const taskBgColor = TASK_COLORS[colorIndex];
                         return (
                         <div key={t.id} style={{ 
+                          position: 'relative',
                           fontSize: '0.8rem', 
                           backgroundColor: taskBgColor, 
                           color: 'white', 
-                          padding: '4px 6px', 
+                          padding: '6px 6px', 
                           borderRadius: '4px', 
                           fontWeight: 'bold',
                           whiteSpace: 'normal',
@@ -413,7 +415,26 @@ const CalendarManagement: React.FC = () => {
                           boxShadow: '1px 1px 0px rgba(0,0,0,0.2)'
                         }}>
                           📋 {t.name}
-                          {isCompletedToday && <div style={{ marginTop: '2px', color: '#ffffe0' }}>✔️ 已完成</div>}
+                          {isCompletedToday && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '-8px',
+                              right: '-5px',
+                              backgroundColor: 'var(--crayon-green)',
+                              color: 'white',
+                              padding: '2px 6px',
+                              borderRadius: '8px',
+                              transform: 'rotate(5deg)',
+                              fontSize: '0.7rem',
+                              fontWeight: '900',
+                              border: '1px solid var(--crayon-dark)',
+                              boxShadow: '1px 1px 0px rgba(0,0,0,0.2)',
+                              zIndex: 2,
+                              whiteSpace: 'nowrap'
+                            }}>
+                              ✔️ 已完成
+                            </div>
+                          )}
                         </div>
                         );
                       })}
