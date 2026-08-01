@@ -32,10 +32,12 @@ export default function Statistics() {
   const [enableTicketFilter, setEnableTicketFilter] = useState(false);
   const [enableTaskFilter, setEnableTaskFilter] = useState(false);
   const [enableTypeFilter, setEnableTypeFilter] = useState(false);
+  const [enableDaysFilter, setEnableDaysFilter] = useState(false);
 
   // Multi-select state
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedDaysFilter, setSelectedDaysFilter] = useState('0');
 
   // Chart configuration state
   const [chartType, setChartType] = useState<'bar' | 'pie' | 'line' | 'composed'>('bar');
@@ -68,6 +70,13 @@ export default function Statistics() {
     }
   };
 
+  const getFirstStageDate = (t: InventoryTicket) => {
+    if (t.stageDates && Object.keys(t.stageDates).length > 0) {
+      return Math.min(...Object.values(t.stageDates));
+    }
+    return t.dispatchDate;
+  };
+
   // Filter tickets based on Date and ID ranges
   const filteredTickets = useMemo(() => {
     const startMs = startDate ? new Date(startDate).getTime() : 0;
@@ -96,9 +105,23 @@ export default function Statistics() {
         if (!t.ticketType || !selectedTypes.includes(t.ticketType)) return false;
       }
 
+      // Days filter
+      if (enableDaysFilter && selectedDaysFilter) {
+        if (!t.closeDate) return false;
+        const start = getFirstStageDate(t);
+        if (!start) return false;
+        const days = calculateBusinessDays(start, t.closeDate, holidays);
+        
+        if (selectedDaysFilter === '7+') {
+          if (days < 7) return false;
+        } else {
+          if (days !== parseInt(selectedDaysFilter)) return false;
+        }
+      }
+
       return true;
     });
-  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskIds, selectedTypes, enableDateFilter, enableTicketFilter, enableTaskFilter, enableTypeFilter]);
+  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskIds, selectedTypes, selectedDaysFilter, enableDateFilter, enableTicketFilter, enableTaskFilter, enableTypeFilter, enableDaysFilter, holidays]);
 
   // Derive tasks to show in the "依盤點任務" list
   const filteredTasksList = useMemo(() => {
@@ -120,13 +143,6 @@ export default function Statistics() {
   useEffect(() => {
     setTaskPage(1);
   }, [filteredTasksList]);
-
-  const getFirstStageDate = (t: InventoryTicket) => {
-    if (t.stageDates && Object.keys(t.stageDates).length > 0) {
-      return Math.min(...Object.values(t.stageDates));
-    }
-    return t.dispatchDate;
-  };
 
   const statsByPerson = useMemo(() => {
     return personnel.map(p => {
@@ -400,6 +416,22 @@ export default function Statistics() {
                 </div>
               )}
 
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: '0.85rem', color: '#555', fontWeight: 'bold' }}>
+                  已選取: {selectedTaskIds.length} / {filteredTasksList.length}
+                </div>
+                <div style={{ display: 'flex', gap: '5px' }}>
+                  <button 
+                    onClick={() => setSelectedTaskIds(filteredTasksList.map(t => t.id))} 
+                    style={{ padding: '2px 5px', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '4px', border: '1px solid #ccc', backgroundColor: '#fff' }}
+                  >全選</button>
+                  <button 
+                    onClick={() => setSelectedTaskIds([])} 
+                    style={{ padding: '2px 5px', fontSize: '0.8rem', cursor: 'pointer', borderRadius: '4px', border: '1px solid #ccc', backgroundColor: '#fff' }}
+                  >全取消</button>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '120px' }}>
                 {paginatedTasks.length === 0 ? <div style={{ color: '#888' }}>無符合任務</div> : paginatedTasks.map(t => (
                   <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
@@ -471,6 +503,36 @@ export default function Statistics() {
                 />
                 TKW
               </label>
+            </div>
+          </div>
+
+          {/* 完成日數區塊 */}
+          <div className="doodle-border" style={{ 
+            backgroundColor: '#e0f7fa', 
+            padding: '15px', transform: 'rotate(-0.5deg)',
+            opacity: enableDaysFilter ? 1 : 0.6
+          }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#00838f', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <input type="checkbox" checked={enableDaysFilter} onChange={e => setEnableDaysFilter(e.target.checked)} style={{ transform: 'scale(1.5)', cursor: 'pointer' }} />
+              📌 依盤點單完成日數
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: enableDaysFilter ? 'auto' : 'none' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>選擇完成日數：</label>
+              <select 
+                className="doodle-input" 
+                style={{ width: '100%', padding: '5px' }}
+                value={selectedDaysFilter}
+                onChange={e => setSelectedDaysFilter(e.target.value)}
+              >
+                <option value="0">0 天</option>
+                <option value="1">1 天</option>
+                <option value="2">2 天</option>
+                <option value="3">3 天</option>
+                <option value="4">4 天</option>
+                <option value="5">5 天</option>
+                <option value="6">6 天</option>
+                <option value="7+">7 天以上</option>
+              </select>
             </div>
           </div>
         </div>
