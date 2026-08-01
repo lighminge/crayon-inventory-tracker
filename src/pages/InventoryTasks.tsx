@@ -29,6 +29,7 @@ export default function InventoryTasks() {
   
   const [chartTypes, setChartTypes] = useState<Record<string, 'bar' | 'line' | 'pie' | 'composed'>>({});
   const [pieMetrics, setPieMetrics] = useState<Record<string, 'items' | 'completionRate' | 'tickets'>>({});
+  const [reportViewMode, setReportViewMode] = useState<Record<string, 'text' | 'chart'>>({});
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<InventoryTask | null>(null);
@@ -583,16 +584,35 @@ export default function InventoryTasks() {
                 );
               })() : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px', minHeight: '340px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '5px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button 
+                        className={`doodle-button ${(reportViewMode[task.id] || 'text') === 'text' ? 'active' : ''}`}
+                        style={{ padding: '5px 15px', minHeight: 'auto', backgroundColor: (reportViewMode[task.id] || 'text') === 'text' ? 'var(--crayon-dark)' : 'white', color: (reportViewMode[task.id] || 'text') === 'text' ? 'white' : 'var(--crayon-dark)' }}
+                        onClick={() => setReportViewMode(prev => ({...prev, [task.id]: 'text'}))}
+                      >
+                        📄 數據報告
+                      </button>
+                      <button 
+                        className={`doodle-button ${(reportViewMode[task.id] || 'text') === 'chart' ? 'active' : ''}`}
+                        style={{ padding: '5px 15px', minHeight: 'auto', backgroundColor: (reportViewMode[task.id] || 'text') === 'chart' ? 'var(--crayon-dark)' : 'white', color: (reportViewMode[task.id] || 'text') === 'chart' ? 'white' : 'var(--crayon-dark)' }}
+                        onClick={() => setReportViewMode(prev => ({...prev, [task.id]: 'chart'}))}
+                      >
+                        📊 績效圖表
+                      </button>
+                    </div>
                     <button 
                       className="doodle-button" 
-                      style={{ backgroundColor: 'var(--crayon-blue)', color: 'white', padding: '5px 15px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                      style={{ backgroundColor: 'var(--crayon-blue)', color: 'white', padding: '5px 15px', display: 'flex', alignItems: 'center', gap: '5px', minHeight: 'auto' }}
                       onClick={() => navigate('/calendar', { state: { targetDate: task.startDate } })}
                     >
                       📅 在行事曆中查看
                     </button>
                   </div>
-                  <div className="doodle-border" style={{ backgroundColor: '#fff9c4', padding: '10px', textAlign: 'center' }}>
+                  
+                  {(reportViewMode[task.id] || 'text') === 'text' ? (
+                    <>
+                      <div className="doodle-border" style={{ backgroundColor: '#fff9c4', padding: '10px', textAlign: 'center' }}>
                     <div style={{ fontWeight: 'bold', color: 'var(--crayon-orange)' }}>完成所有盤點項目的總花費天數</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginTop: '5px' }}>
                       {task.totalDaysSpent !== null ? <span style={{ color: 'var(--crayon-red)' }}>{task.totalDaysSpent} 天</span> : <span style={{ color: '#888' }}>尚未完成</span>}
@@ -649,8 +669,10 @@ export default function InventoryTasks() {
                     })}
                     {task.assigneeList.length === 0 && <div style={{ color: '#888', textAlign: 'center', padding: '20px' }}>暫無人員參與</div>}
                   </div>
-                  
-                  <div style={{ fontWeight: 'bold', marginTop: '20px', fontSize: '1.1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontWeight: 'bold', fontSize: '1.1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>📊 績效圖表</span>
                     <select 
                       className="doodle-input" 
@@ -763,6 +785,8 @@ export default function InventoryTasks() {
                         </ResponsiveContainer>
                       </div>
                     </div>
+                  )}
+                    </>
                   )}
                 </div>
               )}
