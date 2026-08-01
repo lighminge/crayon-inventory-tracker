@@ -46,6 +46,10 @@ export default function Statistics() {
   const [personChartType, setPersonChartType] = useState<Record<string, 'bar' | 'line'>>({});
   const [personTicketType, setPersonTicketType] = useState<Record<string, string>>({});
 
+  // Local task list filter & pagination
+  const [taskFilterType, setTaskFilterType] = useState('');
+  const [taskPage, setTaskPage] = useState(1);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -95,6 +99,27 @@ export default function Statistics() {
       return true;
     });
   }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskIds, selectedTypes, enableDateFilter, enableTicketFilter, enableTaskFilter, enableTypeFilter]);
+
+  // Derive tasks to show in the "依盤點任務" list
+  const filteredTasksList = useMemo(() => {
+    let list = tasks;
+    if (enableTypeFilter && selectedTypes.length > 0) {
+      // 1. 如果有勾選"依盤點類型"，只能顯示該類型的任務
+      list = list.filter(t => selectedTypes.includes(t.ticketType));
+    } else if (taskFilterType) {
+      // 2. 否則，依照本地下拉選單過濾
+      list = list.filter(t => t.ticketType === taskFilterType);
+    }
+    return list;
+  }, [tasks, enableTypeFilter, selectedTypes, taskFilterType]);
+
+  const totalTaskPages = Math.ceil(filteredTasksList.length / 5);
+  const paginatedTasks = filteredTasksList.slice((taskPage - 1) * 5, taskPage * 5);
+  
+  // Reset page if filtered list changes
+  useEffect(() => {
+    setTaskPage(1);
+  }, [filteredTasksList]);
 
   const getFirstStageDate = (t: InventoryTicket) => {
     if (t.stageDates && Object.keys(t.stageDates).length > 0) {
@@ -357,21 +382,57 @@ export default function Statistics() {
               <input type="checkbox" checked={enableTaskFilter} onChange={e => setEnableTaskFilter(e.target.checked)} style={{ transform: 'scale(1.5)', cursor: 'pointer' }} />
               📌 依盤點任務
             </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: enableTaskFilter ? 'auto' : 'none', maxHeight: '150px', overflowY: 'auto' }}>
-              {tasks.length === 0 ? <div style={{ color: '#888' }}>目前無任務</div> : tasks.map(t => (
-                <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-                  <input 
-                    type="checkbox" 
-                    style={{ transform: 'scale(1.2)' }}
-                    checked={selectedTaskIds.includes(t.id)} 
-                    onChange={e => {
-                      if (e.target.checked) setSelectedTaskIds(prev => [...prev, t.id]);
-                      else setSelectedTaskIds(prev => prev.filter(id => id !== t.id));
-                    }} 
-                  />
-                  {t.name}
-                </label>
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: enableTaskFilter ? 'auto' : 'none' }}>
+              
+              {/* 任務過濾下拉 (若全域類型過濾未啟用，則顯示) */}
+              {!(enableTypeFilter && selectedTypes.length > 0) && (
+                <div style={{ marginBottom: '5px' }}>
+                  <select 
+                    className="doodle-input" 
+                    style={{ width: '100%', padding: '2px 5px' }}
+                    value={taskFilterType}
+                    onChange={e => setTaskFilterType(e.target.value)}
+                  >
+                    <option value="">-- 過濾類型 (全部) --</option>
+                    <option value="夾鉗">夾鉗</option>
+                    <option value="TKW">TKW</option>
+                  </select>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '120px' }}>
+                {paginatedTasks.length === 0 ? <div style={{ color: '#888' }}>無符合任務</div> : paginatedTasks.map(t => (
+                  <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                    <input 
+                      type="checkbox" 
+                      style={{ transform: 'scale(1.2)' }}
+                      checked={selectedTaskIds.includes(t.id)} 
+                      onChange={e => {
+                        if (e.target.checked) setSelectedTaskIds(prev => [...prev, t.id]);
+                        else setSelectedTaskIds(prev => prev.filter(id => id !== t.id));
+                      }} 
+                    />
+                    {t.name} <span style={{ fontSize: '0.8rem', color: '#555' }}>({t.ticketType})</span>
+                  </label>
+                ))}
+              </div>
+
+              {/* 分頁控制 */}
+              {totalTaskPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '5px', fontSize: '0.9rem' }}>
+                  <button 
+                    disabled={taskPage === 1}
+                    onClick={() => setTaskPage(prev => Math.max(1, prev - 1))}
+                    style={{ cursor: taskPage === 1 ? 'not-allowed' : 'pointer', padding: '2px 8px', borderRadius: '4px', border: '1px solid #ccc', backgroundColor: taskPage === 1 ? '#eee' : 'white' }}
+                  >◀</button>
+                  <span style={{ fontWeight: 'bold' }}>{taskPage} / {totalTaskPages}</span>
+                  <button 
+                    disabled={taskPage === totalTaskPages}
+                    onClick={() => setTaskPage(prev => Math.min(totalTaskPages, prev + 1))}
+                    style={{ cursor: taskPage === totalTaskPages ? 'not-allowed' : 'pointer', padding: '2px 8px', borderRadius: '4px', border: '1px solid #ccc', backgroundColor: taskPage === totalTaskPages ? '#eee' : 'white' }}
+                  >▶</button>
+                </div>
+              )}
             </div>
           </div>
 
