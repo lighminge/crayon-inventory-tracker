@@ -439,7 +439,12 @@ const CalendarManagement: React.FC = () => {
                           lineHeight: '1.2',
                           boxShadow: '1px 1px 0px rgba(0,0,0,0.2)'
                         }}>
-                          📋 {t.name}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span>📋 {t.name}</span>
+                            <span style={{ fontSize: '0.75rem', opacity: 0.9 }}>
+                              {t.isCompleted ? '✔️ 已完成' : '⏳ 未完成'}
+                            </span>
+                          </div>
                           {isCompletedToday && (
                             <div style={{
                               position: 'absolute',
