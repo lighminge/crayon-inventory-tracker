@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  BarChart, Bar, LineChart, Line, PieChart, Pie, ComposedChart,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell
+} from 'recharts';
 import type { InventoryTask, InventoryTicket, Personnel, HolidaySetting } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 import { getTasks, addTask, updateTask, deleteTask, getTickets, getPersonnel, getHolidays } from '../services/api';
@@ -22,6 +26,9 @@ export default function InventoryTasks() {
   const [statusPage, setStatusPage] = useState<Record<string, number>>({});
   const [itemsPerPage, setItemsPerPage] = useState<Record<string, number>>({});
   const [ticketStatusFilter, setTicketStatusFilter] = useState<Record<string, 'all' | 'incomplete' | 'completed'>>({});
+  
+  const [chartTypes, setChartTypes] = useState<Record<string, 'bar' | 'line' | 'pie' | 'composed'>>({});
+  const [pieMetrics, setPieMetrics] = useState<Record<string, 'items' | 'completionRate' | 'tickets'>>({});
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<InventoryTask | null>(null);
@@ -642,6 +649,121 @@ export default function InventoryTasks() {
                     })}
                     {task.assigneeList.length === 0 && <div style={{ color: '#888', textAlign: 'center', padding: '20px' }}>暫無人員參與</div>}
                   </div>
+                  
+                  <div style={{ fontWeight: 'bold', marginTop: '20px', fontSize: '1.1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>📊 績效圖表</span>
+                    <select 
+                      className="doodle-input" 
+                      style={{ padding: '2px 5px', fontSize: '0.9rem', width: 'auto' }}
+                      value={chartTypes[task.id] || 'bar'}
+                      onChange={(e) => setChartTypes(prev => ({...prev, [task.id]: e.target.value as 'bar'|'line'|'pie'|'composed'}))}
+                    >
+                      <option value="bar">長條圖</option>
+                      <option value="line">折線圖</option>
+                      <option value="pie">圓餅圖</option>
+                      <option value="composed">長條與折線圖</option>
+                    </select>
+                  </div>
+                  
+                  {task.assigneeList.length > 0 && (
+                    <div className="doodle-border" style={{ padding: '15px', backgroundColor: 'white', marginTop: '10px', overflowX: 'auto' }}>
+                      {(chartTypes[task.id] || 'bar') === 'pie' && (
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
+                          <button 
+                            className={`doodle-button ${(pieMetrics[task.id] || 'items') === 'items' ? 'active' : ''}`}
+                            style={{ padding: '2px 8px', fontSize: '0.8rem', minHeight: 'auto', backgroundColor: (pieMetrics[task.id] || 'items') === 'items' ? 'var(--crayon-dark)' : 'white', color: (pieMetrics[task.id] || 'items') === 'items' ? 'white' : 'var(--crayon-dark)' }}
+                            onClick={() => setPieMetrics(prev => ({...prev, [task.id]: 'items'}))}
+                          >完成項目數</button>
+                          <button 
+                            className={`doodle-button ${(pieMetrics[task.id] || 'items') === 'completionRate' ? 'active' : ''}`}
+                            style={{ padding: '2px 8px', fontSize: '0.8rem', minHeight: 'auto', backgroundColor: (pieMetrics[task.id] || 'items') === 'completionRate' ? 'var(--crayon-dark)' : 'white', color: (pieMetrics[task.id] || 'items') === 'completionRate' ? 'white' : 'var(--crayon-dark)' }}
+                            onClick={() => setPieMetrics(prev => ({...prev, [task.id]: 'completionRate'}))}
+                          >完成比率</button>
+                          <button 
+                            className={`doodle-button ${(pieMetrics[task.id] || 'items') === 'tickets' ? 'active' : ''}`}
+                            style={{ padding: '2px 8px', fontSize: '0.8rem', minHeight: 'auto', backgroundColor: (pieMetrics[task.id] || 'items') === 'tickets' ? 'var(--crayon-dark)' : 'white', color: (pieMetrics[task.id] || 'items') === 'tickets' ? 'white' : 'var(--crayon-dark)' }}
+                            onClick={() => setPieMetrics(prev => ({...prev, [task.id]: 'tickets'}))}
+                          >盤點單數</button>
+                        </div>
+                      )}
+                      
+                      <div style={{ height: '300px', width: '100%', minWidth: '400px' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          {(() => {
+                            const cType = chartTypes[task.id] || 'bar';
+                            const pMetric = pieMetrics[task.id] || 'items';
+                            const data = task.assigneeList;
+                            const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+
+                            if (cType === 'bar') {
+                              return (
+                                <BarChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="name" />
+                                  <YAxis yAxisId="left" orientation="left" stroke="var(--crayon-dark)" />
+                                  <YAxis yAxisId="right" orientation="right" stroke="var(--crayon-blue)" />
+                                  <Tooltip cursor={{fill: 'transparent'}} />
+                                  <Legend />
+                                  <Bar yAxisId="left" dataKey="items" name="完成項目數" fill="var(--crayon-green)" />
+                                  <Bar yAxisId="left" dataKey="tickets" name="盤點單數" fill="var(--crayon-orange)" />
+                                  <Bar yAxisId="right" dataKey="completionRate" name="完成比率(%)" fill="var(--crayon-blue)" />
+                                </BarChart>
+                              );
+                            } else if (cType === 'line') {
+                              return (
+                                <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="name" />
+                                  <YAxis yAxisId="left" orientation="left" stroke="var(--crayon-dark)" />
+                                  <YAxis yAxisId="right" orientation="right" stroke="var(--crayon-blue)" />
+                                  <Tooltip />
+                                  <Legend />
+                                  <Line yAxisId="left" type="monotone" dataKey="items" name="完成項目數" stroke="var(--crayon-green)" strokeWidth={3} />
+                                  <Line yAxisId="left" type="monotone" dataKey="tickets" name="盤點單數" stroke="var(--crayon-orange)" strokeWidth={3} />
+                                  <Line yAxisId="right" type="monotone" dataKey="completionRate" name="完成比率(%)" stroke="var(--crayon-blue)" strokeWidth={3} />
+                                </LineChart>
+                              );
+                            } else if (cType === 'composed') {
+                              return (
+                                <ComposedChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                  <CartesianGrid strokeDasharray="3 3" />
+                                  <XAxis dataKey="name" />
+                                  <YAxis yAxisId="left" orientation="left" stroke="var(--crayon-dark)" />
+                                  <YAxis yAxisId="right" orientation="right" stroke="var(--crayon-blue)" />
+                                  <Tooltip cursor={{fill: 'transparent'}} />
+                                  <Legend />
+                                  <Bar yAxisId="left" dataKey="items" name="完成項目數" fill="var(--crayon-green)" />
+                                  <Bar yAxisId="left" dataKey="tickets" name="盤點單數" fill="var(--crayon-orange)" />
+                                  <Line yAxisId="right" type="monotone" dataKey="completionRate" name="完成比率(%)" stroke="var(--crayon-blue)" strokeWidth={3} />
+                                </ComposedChart>
+                              );
+                            } else {
+                              return (
+                                <PieChart>
+                                  <Pie
+                                    data={data}
+                                    cx="50%"
+                                    cy="50%"
+                                    outerRadius={100}
+                                    fill="#8884d8"
+                                    dataKey={pMetric}
+                                    nameKey="name"
+                                    label={({name, percent}) => `${name} ${(percent ? percent * 100 : 0).toFixed(0)}%`}
+                                  >
+                                    {data.map((_entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                  </Pie>
+                                  <Tooltip formatter={(value: any) => [pMetric === 'completionRate' ? `${Number(value).toFixed(2)}%` : value, pMetric === 'items' ? '完成項目數' : pMetric === 'tickets' ? '盤點單數' : '完成比率']} />
+                                  <Legend />
+                                </PieChart>
+                              );
+                            }
+                          })()}
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
