@@ -17,10 +17,18 @@ const CalendarManagement: React.FC = () => {
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // List View State
+  const [filterYear, setFilterYear] = useState<string>('all');
+  const [filterMonth, setFilterMonth] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
   const fetchHolidays = async () => {
     setLoading(true);
     try {
       const data = await getHolidays();
+      // sort by date descending
+      data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setHolidays(data);
     } catch (error: any) {
       alert('無法取得行事曆設定：' + error.message);
@@ -39,6 +47,14 @@ const CalendarManagement: React.FC = () => {
 
   const handleNextMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setCurrentDate(new Date(parseInt(e.target.value), currentDate.getMonth(), 1));
+  };
+
+  const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setCurrentDate(new Date(currentDate.getFullYear(), parseInt(e.target.value) - 1, 1));
   };
 
   const openModal = (dateStr: string) => {
@@ -77,11 +93,11 @@ const CalendarManagement: React.FC = () => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = async (dateStr: string = selectedDateStr) => {
     if (!window.confirm('確定要刪除此設定嗎？')) return;
     setSaving(true);
     try {
-      await deleteHoliday(selectedDateStr);
+      await deleteHoliday(dateStr);
       setIsModalOpen(false);
       fetchHolidays();
     } catch (error: any) {
@@ -91,8 +107,15 @@ const CalendarManagement: React.FC = () => {
     }
   };
 
+  const jumpToDateAndEdit = (dateStr: string) => {
+    const [y, m, d] = dateStr.split('-');
+    setCurrentDate(new Date(parseInt(y), parseInt(m) - 1, parseInt(d)));
+    openModal(dateStr);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Calendar rendering logic
-  const calendarDays = useMemo(() => {
+  const { calendarDays, monthStats } = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const firstDay = new Date(year, month, 1).getDay(); // 0 (Sun) to 6 (Sat)
@@ -108,6 +131,10 @@ const CalendarManagement: React.FC = () => {
     const todayStr = new Date().toISOString().split('T')[0];
     const holidayMap = new Map(holidays.map(h => [h.date, h]));
 
+    let weekendCount = 0;
+    let customHolidayCount = 0;
+    let customWorkdayCount = 0;
+
     // Fill actual days
     for (let i = 1; i <= daysInMonth; i++) {
       const dateObj = new Date(year, month, i);
@@ -117,35 +144,85 @@ const CalendarManagement: React.FC = () => {
       const taiwanInfo = getTaiwanDateInfo(dateObj);
       const customSetting = holidayMap.get(dateStr);
       
+      const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+      if (isWeekend) weekendCount++;
+      if (customSetting?.type === 'holiday') customHolidayCount++;
+      if (customSetting?.type === 'workday') customWorkdayCount++;
+
       days.push({
         date: i,
         dateStr,
         isToday,
+        isWeekend,
         festivals: taiwanInfo.festivals,
         customSetting
       });
     }
-    return days;
+    return { calendarDays: days, monthStats: { weekendCount, customHolidayCount, customWorkdayCount } };
   }, [currentDate, holidays]);
 
   const existingSettingForModal = holidays.find(h => h.date === selectedDateStr);
+  const selectedTaiwanInfo = selectedDateStr ? getTaiwanDateInfo(new Date(selectedDateStr)) : null;
+  const hasFestivalInModal = selectedTaiwanInfo && selectedTaiwanInfo.festivals.length > 0;
+
+  // List View logic
+  const filteredList = useMemo(() => {
+    return holidays.filter(h => {
+      const [y, m] = h.date.split('-');
+      if (filterYear !== 'all' && y !== filterYear) return false;
+      if (filterMonth !== 'all' && m !== filterMonth) return false;
+      return true;
+    });
+  }, [holidays, filterYear, filterMonth]);
+
+  const paginatedList = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredList.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredList, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredList.length / itemsPerPage) || 1;
+
+  // Unique years for filter
+  const availableYears = useMemo(() => {
+    const years = new Set(holidays.map(h => h.date.split('-')[0]));
+    years.add(new Date().getFullYear().toString()); // always include current year
+    return Array.from(years).sort((a, b) => parseInt(b) - parseInt(a));
+  }, [holidays]);
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      
+      {/* Calendar Section */}
       <div className="doodle-border" style={{ backgroundColor: 'white', padding: '20px', position: 'relative' }}>
         <h2 style={{ marginTop: 0, color: 'var(--crayon-orange)', display: 'flex', alignItems: 'center', gap: '10px' }}>
           📅 行事曆管理
         </h2>
-        <p style={{ color: '#555', marginBottom: '20px' }}>
-          點擊任一日期，即可設定「放假」或「補班」。系統將自動計算並調整盤點單處理天數。
-        </p>
+        
+        {/* Month Stats */}
+        <div style={{ display: 'flex', gap: '15px', marginBottom: '15px', padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '8px', border: '1px solid #ddd' }}>
+          <span style={{ fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{currentDate.getMonth() + 1}月統計：</span>
+          <span style={{ color: '#555' }}>一般週末：{monthStats.weekendCount} 天</span>
+          <span style={{ color: 'var(--crayon-red)' }}>設定放假：{monthStats.customHolidayCount} 天</span>
+          <span style={{ color: 'var(--crayon-green)' }}>設定補班：{monthStats.customWorkdayCount} 天</span>
+        </div>
 
-        {/* Calendar Navigation */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        {/* Calendar Navigation & Quick Jump */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
           <button className="doodle-button" onClick={handlePrevMonth}>◀ 上個月</button>
-          <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--crayon-dark)' }}>
-            {currentDate.getFullYear()} 年 {currentDate.getMonth() + 1} 月
-          </h3>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <select className="doodle-input" value={currentDate.getFullYear()} onChange={handleYearChange} style={{ fontSize: '1.2rem', padding: '5px 10px' }}>
+              {Array.from({length: 10}, (_, i) => currentDate.getFullYear() - 5 + i).map(y => (
+                <option key={y} value={y}>{y} 年</option>
+              ))}
+            </select>
+            <select className="doodle-input" value={currentDate.getMonth() + 1} onChange={handleMonthChange} style={{ fontSize: '1.2rem', padding: '5px 10px' }}>
+              {Array.from({length: 12}, (_, i) => i + 1).map(m => (
+                <option key={m} value={m}>{m} 月</option>
+              ))}
+            </select>
+          </div>
+
           <button className="doodle-button" onClick={handleNextMonth}>下個月 ▶</button>
         </div>
 
@@ -163,7 +240,6 @@ const CalendarManagement: React.FC = () => {
             calendarDays.map((day, idx) => {
               if (!day) return <div key={`empty-${idx}`} style={{ backgroundColor: '#f0f0f0', borderRadius: '5px', border: '1px dashed #ccc' }} />;
               
-              const isWeekend = idx % 7 === 0 || idx % 7 === 6;
               const hasCustom = !!day.customSetting;
               
               return (
@@ -175,7 +251,7 @@ const CalendarManagement: React.FC = () => {
                     borderRadius: '8px',
                     padding: '5px',
                     minHeight: '100px',
-                    backgroundColor: day.isToday ? '#fff8e1' : isWeekend ? '#fefefe' : 'white',
+                    backgroundColor: day.isToday ? '#fff8e1' : day.isWeekend ? '#fefefe' : 'white',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
@@ -190,7 +266,7 @@ const CalendarManagement: React.FC = () => {
                     <span style={{ 
                       fontSize: '1.2rem', 
                       fontWeight: 'bold',
-                      color: day.isToday ? 'var(--crayon-red)' : isWeekend ? '#d32f2f' : 'var(--crayon-dark)',
+                      color: day.isToday ? 'var(--crayon-red)' : day.isWeekend ? '#d32f2f' : 'var(--crayon-dark)',
                       backgroundColor: day.isToday ? '#ffcdd2' : 'transparent',
                       padding: day.isToday ? '2px 8px' : '0',
                       borderRadius: '50%'
@@ -247,6 +323,105 @@ const CalendarManagement: React.FC = () => {
         </div>
       </div>
 
+      {/* List Section */}
+      <div className="doodle-border" style={{ backgroundColor: 'white', padding: '20px' }}>
+        <h3 style={{ marginTop: 0, color: 'var(--crayon-blue)' }}>📋 已設定放假及補假清單</h3>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', marginBottom: '20px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <label style={{ fontWeight: 'bold' }}>查詢年度：</label>
+            <select className="doodle-input" value={filterYear} onChange={e => {setFilterYear(e.target.value); setCurrentPage(1);}}>
+              <option value="all">全部</option>
+              {availableYears.map(y => <option key={y} value={y}>{y} 年</option>)}
+            </select>
+            
+            <label style={{ fontWeight: 'bold', marginLeft: '10px' }}>月份：</label>
+            <select className="doodle-input" value={filterMonth} onChange={e => {setFilterMonth(e.target.value); setCurrentPage(1);}}>
+              <option value="all">全部</option>
+              {Array.from({length: 12}, (_, i) => String(i + 1).padStart(2, '0')).map(m => (
+                <option key={m} value={m}>{m} 月</option>
+              ))}
+            </select>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+            <span style={{ fontWeight: 'bold', color: 'var(--crayon-dark)', backgroundColor: '#fff3e0', padding: '5px 10px', borderRadius: '5px' }}>
+              共 {filteredList.length} 筆設定
+            </span>
+            <div>
+              <label style={{ marginRight: '5px' }}>每頁顯示：</label>
+              <select className="doodle-input" value={itemsPerPage} onChange={e => {setItemsPerPage(Number(e.target.value)); setCurrentPage(1);}}>
+                {[10, 20, 30, 40, 50].map(v => <option key={v} value={v}>{v} 筆</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <table className="doodle-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+          <thead>
+            <tr>
+              <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'left' }}>日期</th>
+              <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'left' }}>類型</th>
+              <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'left' }}>目的 / 說明</th>
+              <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'center' }}>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {paginatedList.length === 0 ? (
+              <tr><td colSpan={4} style={{ textAlign: 'center', padding: '20px', color: '#666' }}>無符合條件的設定</td></tr>
+            ) : (
+              paginatedList.map(h => (
+                <tr key={h.id} style={{ borderBottom: '1px dashed #ccc' }}>
+                  <td style={{ padding: '12px', fontWeight: 'bold' }}>{h.date}</td>
+                  <td style={{ padding: '12px' }}>
+                    <span style={{ 
+                      padding: '4px 8px', borderRadius: '4px', fontSize: '0.9rem',
+                      backgroundColor: h.type === 'holiday' ? '#ffcdd2' : '#c8e6c9',
+                      color: h.type === 'holiday' ? '#c62828' : '#2e7d32',
+                      border: `1px solid ${h.type === 'holiday' ? '#c62828' : '#2e7d32'}`
+                    }}>
+                      {h.type === 'holiday' ? '🛑 放假' : '💼 補班'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '12px' }}>{h.description}</td>
+                  <td style={{ padding: '12px', textAlign: 'center' }}>
+                    <button className="doodle-button" style={{ padding: '5px 10px', fontSize: '0.9rem', marginRight: '5px' }} onClick={() => jumpToDateAndEdit(h.date)}>
+                      修改
+                    </button>
+                    <button className="doodle-button danger" style={{ padding: '5px 10px', fontSize: '0.9rem' }} onClick={() => handleDelete(h.id)}>
+                      刪除
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px' }}>
+            <button 
+              className="doodle-button secondary"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              上一頁
+            </button>
+            <span style={{ fontWeight: 'bold', color: 'var(--crayon-dark)' }}>
+              第 {currentPage} / {totalPages} 頁
+            </span>
+            <button 
+              className="doodle-button secondary"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              下一頁
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Modal for adding/editing holidays */}
       {isModalOpen && (
         <div style={{
@@ -254,6 +429,20 @@ const CalendarManagement: React.FC = () => {
           backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
           <div className="doodle-border" style={{ backgroundColor: 'white', padding: '30px', width: '400px', maxWidth: '90%' }}>
+            {hasFestivalInModal && (
+              <div style={{ 
+                backgroundColor: '#fff3e0', borderLeft: '5px solid var(--crayon-orange)', 
+                padding: '10px', marginBottom: '15px', borderRadius: '4px' 
+              }}>
+                <div style={{ fontWeight: 'bold', color: '#e65100', marginBottom: '5px' }}>💡 特殊節日提醒</div>
+                <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                  {selectedTaiwanInfo?.festivals.map((f, i) => (
+                    <span key={i} style={{ backgroundColor: 'var(--crayon-orange)', color: 'white', padding: '2px 8px', borderRadius: '10px', fontSize: '0.85rem' }}>{f}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <h3 style={{ marginTop: 0, color: 'var(--crayon-dark)' }}>
               設定日期：{selectedDateStr}
             </h3>
@@ -295,7 +484,7 @@ const CalendarManagement: React.FC = () => {
                 {existingSettingForModal && (
                   <button 
                     className="doodle-button danger" 
-                    onClick={handleDelete}
+                    onClick={() => handleDelete(selectedDateStr)}
                     disabled={saving}
                   >
                     刪除設定
