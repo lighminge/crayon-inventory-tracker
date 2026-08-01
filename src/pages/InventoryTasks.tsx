@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { InventoryTask, InventoryTicket, Personnel, HolidaySetting } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 import { getTasks, addTask, updateTask, deleteTask, getTickets, getPersonnel, getHolidays } from '../services/api';
@@ -10,6 +11,7 @@ const formatDateLocal = (timestamp: number) => {
 };
 
 export default function InventoryTasks() {
+  const navigate = useNavigate();
   const [tasks, setTasks] = useState<InventoryTask[]>([]);
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
@@ -574,6 +576,15 @@ export default function InventoryTasks() {
                 );
               })() : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '15px', minHeight: '340px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '5px' }}>
+                    <button 
+                      className="doodle-button" 
+                      style={{ backgroundColor: 'var(--crayon-blue)', color: 'white', padding: '5px 15px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                      onClick={() => navigate('/calendar', { state: { targetDate: task.startDate } })}
+                    >
+                      📅 在行事曆中查看
+                    </button>
+                  </div>
                   <div className="doodle-border" style={{ backgroundColor: '#fff9c4', padding: '10px', textAlign: 'center' }}>
                     <div style={{ fontWeight: 'bold', color: 'var(--crayon-orange)' }}>完成所有盤點項目的總花費天數</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginTop: '5px' }}>

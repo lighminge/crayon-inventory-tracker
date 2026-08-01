@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getHolidays, saveHoliday, deleteHoliday, getTasks, getTickets } from '../services/api';
 import type { HolidaySetting, InventoryTask } from '../types';
 import { getTaiwanDateInfo } from '../utils/taiwanFestivals';
@@ -22,7 +23,19 @@ const CalendarManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   
   // Calendar View State
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const location = useLocation();
+  const [currentDate, setCurrentDate] = useState(() => {
+    if (location.state?.targetDate) {
+      return new Date(location.state.targetDate);
+    }
+    return new Date();
+  });
+
+  useEffect(() => {
+    if (location.state?.targetDate) {
+      setCurrentDate(new Date(location.state.targetDate));
+    }
+  }, [location.state]);
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
