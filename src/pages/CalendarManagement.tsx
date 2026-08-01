@@ -399,6 +399,18 @@ const CalendarManagement: React.FC = () => {
                           }
                         }
                         
+                        let isExpiredLastDay = false;
+                        if (!t.isCompleted) {
+                          const endDateObj = new Date(t.endDate);
+                          const isExpired = endDateObj.getTime() < new Date().setHours(0, 0, 0, 0);
+                          if (isExpired &&
+                              endDateObj.getFullYear() === currentDate.getFullYear() &&
+                              endDateObj.getMonth() === currentDate.getMonth() &&
+                              endDateObj.getDate() === day.date) {
+                            isExpiredLastDay = true;
+                          }
+                        }
+                        
                         const taskBgColor = TASK_COLORS[colorIndex];
                         return (
                         <div key={t.id} style={{ 
@@ -433,6 +445,26 @@ const CalendarManagement: React.FC = () => {
                               whiteSpace: 'nowrap'
                             }}>
                               ✔️ 已完成
+                            </div>
+                          )}
+                          {isExpiredLastDay && (
+                            <div style={{
+                              position: 'absolute',
+                              top: '-8px',
+                              right: '-5px',
+                              backgroundColor: 'var(--crayon-red)',
+                              color: 'white',
+                              padding: '2px 6px',
+                              borderRadius: '8px',
+                              transform: 'rotate(-5deg)',
+                              fontSize: '0.7rem',
+                              fontWeight: '900',
+                              border: '1px solid var(--crayon-dark)',
+                              boxShadow: '1px 1px 0px rgba(0,0,0,0.2)',
+                              zIndex: 2,
+                              whiteSpace: 'nowrap'
+                            }}>
+                              ❌ 未完成
                             </div>
                           )}
                         </div>
