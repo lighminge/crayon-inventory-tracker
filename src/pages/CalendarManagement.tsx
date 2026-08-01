@@ -352,7 +352,7 @@ const CalendarManagement: React.FC = () => {
         <h3 style={{ marginTop: 0, color: 'var(--crayon-blue)' }}>📋 已設定放假及補假清單</h3>
         
         <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#e3f2fd', borderRadius: '5px', fontSize: '0.9rem', color: '#1565c0' }}>
-          💡 <strong>顏色說明：</strong> 帶有 <span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#f5f5f5', border: '1px solid #ccc', margin: '0 4px', verticalAlign: 'middle' }}></span> 灰色背景的項目，代表該日期<strong>已經過去</strong>。
+          💡 <strong>顏色說明：</strong> 帶有 <span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#cfd8dc', border: '1px solid #90a4ae', margin: '0 4px', verticalAlign: 'middle' }}></span> 藍灰色背景的項目，代表該日期<strong>已經過去</strong>。
         </div>
         
         <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', marginBottom: '20px', alignItems: 'center' }}>
@@ -404,7 +404,7 @@ const CalendarManagement: React.FC = () => {
               paginatedList.map((h, idx) => {
                 const isPast = new Date(h.date).getTime() < new Date(new Date().toISOString().split('T')[0]).getTime();
                 return (
-                <tr key={h.id} style={{ borderBottom: '1px dashed #ccc', backgroundColor: isPast ? '#f5f5f5' : 'transparent' }}>
+                <tr key={h.id} style={{ borderBottom: '1px dashed #ccc', backgroundColor: isPast ? '#cfd8dc' : 'transparent' }}>
                   <td style={{ padding: '12px', textAlign: 'center', color: '#777' }}>
                     {(currentPage - 1) * itemsPerPage + idx + 1}
                   </td>
