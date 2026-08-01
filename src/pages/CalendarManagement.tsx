@@ -3,7 +3,7 @@ import { getHolidays, saveHoliday, deleteHoliday, getTasks, getTickets } from '.
 import type { HolidaySetting, InventoryTask } from '../types';
 import { getTaiwanDateInfo } from '../utils/taiwanFestivals';
 
-type TaskWithStatus = InventoryTask & { isCompleted?: boolean };
+type TaskWithStatus = InventoryTask & { isCompleted?: boolean, completedDate?: number };
 
 const TASK_COLORS = [
   'var(--crayon-blue)',
@@ -55,7 +55,8 @@ const CalendarManagement: React.FC = () => {
         const completedTickets = linkedTickets.filter(t => t.closeDate);
         const completedItems = completedTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
         const isCompleted = task.totalItemCount > 0 && completedItems >= task.totalItemCount;
-        return { ...task, isCompleted };
+        const completedDate = isCompleted && completedTickets.length > 0 ? Math.max(...completedTickets.map(t => t.closeDate || 0)) : undefined;
+        return { ...task, isCompleted, completedDate };
       });
 
       setHolidays(holidayData);
@@ -386,7 +387,18 @@ const CalendarManagement: React.FC = () => {
                     <div style={{ marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {day.overlappingTasks.map((t: TaskWithStatus) => {
                         const colorIndex = t.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % TASK_COLORS.length;
-                        const taskBgColor = t.isCompleted ? 'var(--crayon-green)' : TASK_COLORS[colorIndex];
+                        
+                        let isCompletedToday = false;
+                        if (t.isCompleted && t.completedDate) {
+                          const completedDateObj = new Date(t.completedDate);
+                          if (completedDateObj.getFullYear() === currentDate.getFullYear() && 
+                              completedDateObj.getMonth() === currentDate.getMonth() && 
+                              completedDateObj.getDate() === day.date) {
+                            isCompletedToday = true;
+                          }
+                        }
+                        
+                        const taskBgColor = isCompletedToday ? 'var(--crayon-green)' : TASK_COLORS[colorIndex];
                         return (
                         <div key={t.id} style={{ 
                           fontSize: '0.8rem', 
@@ -401,7 +413,7 @@ const CalendarManagement: React.FC = () => {
                           boxShadow: '1px 1px 0px rgba(0,0,0,0.2)'
                         }}>
                           📋 {t.name}
-                          {t.isCompleted && <div style={{ marginTop: '2px', color: '#ffffe0' }}>✔️ 已完成</div>}
+                          {isCompletedToday && <div style={{ marginTop: '2px', color: '#ffffe0' }}>✔️ 已完成</div>}
                         </div>
                         );
                       })}
