@@ -1,11 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { getHolidays, saveHoliday, deleteHoliday, getTasks } from '../services/api';
+import { getHolidays, saveHoliday, deleteHoliday, getTasks, getTickets } from '../services/api';
 import type { HolidaySetting, InventoryTask } from '../types';
 import { getTaiwanDateInfo } from '../utils/taiwanFestivals';
 
+type TaskWithStatus = InventoryTask & { isCompleted?: boolean };
+
+const TASK_COLORS = [
+  'var(--crayon-blue)',
+  'var(--crayon-purple)',
+  'var(--crayon-orange)',
+  '#00897b', // Teal
+  '#e53935', // Red
+  '#3949ab', // Indigo
+  '#8e24aa', // Purple variant
+  '#f06292'  // Pink
+];
+
 const CalendarManagement: React.FC = () => {
   const [holidays, setHolidays] = useState<HolidaySetting[]>([]);
-  const [tasks, setTasks] = useState<InventoryTask[]>([]);
+  const [tasks, setTasks] = useState<TaskWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Calendar View State
@@ -31,12 +44,22 @@ const CalendarManagement: React.FC = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [holidayData, taskData] = await Promise.all([
+      const [holidayData, taskData, ticketData] = await Promise.all([
         getHolidays(),
-        getTasks()
+        getTasks(),
+        getTickets()
       ]);
+
+      const tasksWithStats = taskData.map(task => {
+        const linkedTickets = ticketData.filter(t => t.taskId === task.id);
+        const completedTickets = linkedTickets.filter(t => t.closeDate);
+        const completedItems = completedTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+        const isCompleted = task.totalItemCount > 0 && completedItems >= task.totalItemCount;
+        return { ...task, isCompleted };
+      });
+
       setHolidays(holidayData);
-      setTasks(taskData);
+      setTasks(tasksWithStats);
     } catch (error: any) {
       alert('無法取得資料：' + error.message);
     } finally {
@@ -308,10 +331,10 @@ const CalendarManagement: React.FC = () => {
                   onClick={() => openModal(day.dateStr)}
                   className="doodle-border"
                   style={{ 
-                    border: day.isToday ? '4px solid var(--crayon-orange)' : day.overlappingTasks.length > 0 ? '3px solid var(--crayon-purple)' : '3px solid var(--crayon-dark)',
+                    border: day.isToday ? '4px solid var(--crayon-orange)' : day.overlappingTasks.length > 0 ? '3px solid #9fa8da' : '3px solid var(--crayon-dark)',
                     padding: '5px',
                     minHeight: '100px',
-                    backgroundColor: day.isToday ? '#fff8e1' : day.overlappingTasks.length > 0 ? '#f3e5f5' : day.isWeekend ? '#fefefe' : 'white',
+                    backgroundColor: day.isToday ? '#fff8e1' : day.overlappingTasks.length > 0 ? '#e8eaf6' : day.isWeekend ? '#fefefe' : 'white',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
@@ -360,23 +383,28 @@ const CalendarManagement: React.FC = () => {
 
                   {/* 盤點任務 */}
                   {day.overlappingTasks && day.overlappingTasks.length > 0 && (
-                    <div style={{ marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      {day.overlappingTasks.map((t: InventoryTask) => (
+                    <div style={{ marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {day.overlappingTasks.map((t: TaskWithStatus) => {
+                        const colorIndex = t.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % TASK_COLORS.length;
+                        const taskBgColor = t.isCompleted ? 'var(--crayon-green)' : TASK_COLORS[colorIndex];
+                        return (
                         <div key={t.id} style={{ 
                           fontSize: '0.8rem', 
-                          backgroundColor: 'var(--crayon-purple)', 
+                          backgroundColor: taskBgColor, 
                           color: 'white', 
                           padding: '4px 6px', 
                           borderRadius: '4px', 
                           fontWeight: 'bold',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
+                          whiteSpace: 'normal',
+                          wordBreak: 'break-word',
+                          lineHeight: '1.2',
                           boxShadow: '1px 1px 0px rgba(0,0,0,0.2)'
                         }}>
                           📋 {t.name}
+                          {t.isCompleted && <div style={{ marginTop: '2px', color: '#ffffe0' }}>✔️ 已完成</div>}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 
