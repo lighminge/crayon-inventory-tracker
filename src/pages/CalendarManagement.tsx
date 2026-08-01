@@ -25,13 +25,12 @@ const CalendarManagement: React.FC = () => {
   const [filterMonth, setFilterMonth] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   const fetchHolidays = async () => {
     setLoading(true);
     try {
       const data = await getHolidays();
-      // sort by date descending
-      data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setHolidays(data);
     } catch (error: any) {
       alert('無法取得行事曆設定：' + error.message);
@@ -183,13 +182,21 @@ const CalendarManagement: React.FC = () => {
 
   // List View logic
   const filteredList = useMemo(() => {
-    return holidays.filter(h => {
+    let list = holidays.filter(h => {
       const [y, m] = h.date.split('-');
       if (filterYear !== 'all' && y !== filterYear) return false;
       if (filterMonth !== 'all' && m !== filterMonth) return false;
       return true;
     });
-  }, [holidays, filterYear, filterMonth]);
+
+    list.sort((a, b) => {
+      const timeA = new Date(a.date).getTime();
+      const timeB = new Date(b.date).getTime();
+      return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+    });
+
+    return list;
+  }, [holidays, filterYear, filterMonth, sortOrder]);
 
   const paginatedList = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -344,6 +351,10 @@ const CalendarManagement: React.FC = () => {
       <div className="doodle-border" style={{ backgroundColor: 'white', padding: '20px' }}>
         <h3 style={{ marginTop: 0, color: 'var(--crayon-blue)' }}>📋 已設定放假及補假清單</h3>
         
+        <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#e3f2fd', borderRadius: '5px', fontSize: '0.9rem', color: '#1565c0' }}>
+          💡 <strong>顏色說明：</strong> 帶有 <span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: '#f5f5f5', border: '1px solid #ccc', margin: '0 4px', verticalAlign: 'middle' }}></span> 灰色背景的項目，代表該日期<strong>已經過去</strong>。
+        </div>
+        
         <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', marginBottom: '20px', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <label style={{ fontWeight: 'bold' }}>查詢年度：</label>
@@ -377,7 +388,10 @@ const CalendarManagement: React.FC = () => {
         <table className="doodle-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
           <thead>
             <tr>
-              <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'left' }}>日期</th>
+              <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'center', width: '60px' }}>序號</th>
+              <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'left', cursor: 'pointer' }} onClick={() => { setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc'); setCurrentPage(1); }}>
+                日期 {sortOrder === 'desc' ? '▼' : '▲'}
+              </th>
               <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'left' }}>類型</th>
               <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'left' }}>目的 / 說明</th>
               <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'center' }}>操作</th>
@@ -385,10 +399,15 @@ const CalendarManagement: React.FC = () => {
           </thead>
           <tbody>
             {paginatedList.length === 0 ? (
-              <tr><td colSpan={4} style={{ textAlign: 'center', padding: '20px', color: '#666' }}>無符合條件的設定</td></tr>
+              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '20px', color: '#666' }}>無符合條件的設定</td></tr>
             ) : (
-              paginatedList.map(h => (
-                <tr key={h.id} style={{ borderBottom: '1px dashed #ccc' }}>
+              paginatedList.map((h, idx) => {
+                const isPast = new Date(h.date).getTime() < new Date(new Date().toISOString().split('T')[0]).getTime();
+                return (
+                <tr key={h.id} style={{ borderBottom: '1px dashed #ccc', backgroundColor: isPast ? '#f5f5f5' : 'transparent' }}>
+                  <td style={{ padding: '12px', textAlign: 'center', color: '#777' }}>
+                    {(currentPage - 1) * itemsPerPage + idx + 1}
+                  </td>
                   <td style={{ padding: '12px', fontWeight: 'bold' }}>{h.date}</td>
                   <td style={{ padding: '12px' }}>
                     <span style={{ 
@@ -410,7 +429,8 @@ const CalendarManagement: React.FC = () => {
                     </button>
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>
