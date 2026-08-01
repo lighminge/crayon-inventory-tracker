@@ -16,6 +16,9 @@ const CalendarManagement: React.FC = () => {
   const [type, setType] = useState<'holiday' | 'workday'>('holiday');
   const [description, setDescription] = useState('');
   const [saving, setSaving] = useState(false);
+  
+  // Confirm Delete Modal State
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<string | null>(null);
 
   // List View State
   const [filterYear, setFilterYear] = useState<string>('all');
@@ -93,11 +96,16 @@ const CalendarManagement: React.FC = () => {
     }
   };
 
-  const handleDelete = async (dateStr: string = selectedDateStr) => {
-    if (!window.confirm('確定要刪除此設定嗎？')) return;
+  const promptDelete = (dateStr: string = selectedDateStr) => {
+    setDeleteConfirmTarget(dateStr);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmTarget) return;
     setSaving(true);
     try {
-      await deleteHoliday(dateStr);
+      await deleteHoliday(deleteConfirmTarget);
+      setDeleteConfirmTarget(null);
       setIsModalOpen(false);
       fetchHolidays();
     } catch (error: any) {
@@ -134,6 +142,7 @@ const CalendarManagement: React.FC = () => {
     let weekendCount = 0;
     let customHolidayCount = 0;
     let customWorkdayCount = 0;
+    let workdayCount = 0;
 
     // Fill actual days
     for (let i = 1; i <= daysInMonth; i++) {
@@ -149,6 +158,13 @@ const CalendarManagement: React.FC = () => {
       if (customSetting?.type === 'holiday') customHolidayCount++;
       if (customSetting?.type === 'workday') customWorkdayCount++;
 
+      let isWorkingDay = !isWeekend;
+      if (customSetting) {
+        if (customSetting.type === 'holiday') isWorkingDay = false;
+        if (customSetting.type === 'workday') isWorkingDay = true;
+      }
+      if (isWorkingDay) workdayCount++;
+
       days.push({
         date: i,
         dateStr,
@@ -158,7 +174,7 @@ const CalendarManagement: React.FC = () => {
         customSetting
       });
     }
-    return { calendarDays: days, monthStats: { weekendCount, customHolidayCount, customWorkdayCount } };
+    return { calendarDays: days, monthStats: { weekendCount, customHolidayCount, customWorkdayCount, workdayCount } };
   }, [currentDate, holidays]);
 
   const existingSettingForModal = holidays.find(h => h.date === selectedDateStr);
@@ -204,6 +220,7 @@ const CalendarManagement: React.FC = () => {
           <span style={{ color: '#555' }}>一般週末：{monthStats.weekendCount} 天</span>
           <span style={{ color: 'var(--crayon-red)' }}>設定放假：{monthStats.customHolidayCount} 天</span>
           <span style={{ color: 'var(--crayon-green)' }}>設定補班：{monthStats.customWorkdayCount} 天</span>
+          <span style={{ color: '#1976d2', fontWeight: 'bold' }}>工作天數：{monthStats.workdayCount} 天</span>
         </div>
 
         {/* Calendar Navigation & Quick Jump */}
@@ -388,7 +405,7 @@ const CalendarManagement: React.FC = () => {
                     <button className="doodle-button" style={{ padding: '5px 10px', fontSize: '0.9rem', marginRight: '5px' }} onClick={() => jumpToDateAndEdit(h.date)}>
                       修改
                     </button>
-                    <button className="doodle-button danger" style={{ padding: '5px 10px', fontSize: '0.9rem' }} onClick={() => handleDelete(h.id)}>
+                    <button className="doodle-button danger" style={{ padding: '5px 10px', fontSize: '0.9rem' }} onClick={() => promptDelete(h.id)}>
                       刪除
                     </button>
                   </td>
@@ -484,7 +501,7 @@ const CalendarManagement: React.FC = () => {
                 {existingSettingForModal && (
                   <button 
                     className="doodle-button danger" 
-                    onClick={() => handleDelete(selectedDateStr)}
+                    onClick={() => promptDelete(selectedDateStr)}
                     disabled={saving}
                   >
                     刪除設定
@@ -498,6 +515,34 @@ const CalendarManagement: React.FC = () => {
                   取消
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmTarget && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000
+        }}>
+          <div className="doodle-border" style={{ backgroundColor: 'white', padding: '30px', width: '350px', textAlign: 'center' }}>
+            <h3 style={{ marginTop: 0, color: 'var(--crayon-red)' }}>⚠️ 刪除確認</h3>
+            <p>確定要刪除 {deleteConfirmTarget} 的設定嗎？刪除後相關的處理天數將會重新計算。</p>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px', justifyContent: 'center' }}>
+              <button 
+                className="doodle-button danger" 
+                onClick={confirmDelete}
+                disabled={saving}
+              >
+                {saving ? '處理中...' : '確定刪除'}
+              </button>
+              <button 
+                className="doodle-button secondary" 
+                onClick={() => setDeleteConfirmTarget(null)}
+                disabled={saving}
+              >
+                取消
+              </button>
             </div>
           </div>
         </div>
