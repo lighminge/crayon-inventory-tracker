@@ -309,16 +309,42 @@ const CalendarManagement: React.FC = () => {
         </h2>
         
         {/* Month Stats */}
-        <div style={{ display: 'flex', gap: '15px', marginBottom: '15px', padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '8px', border: '1px solid #ddd', flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{currentDate.getMonth() + 1}月統計：</span>
-          <span style={{ color: '#555' }}>一般週末：{monthStats.weekendCount} 天</span>
-          <span style={{ color: 'var(--crayon-orange)' }}>自訂休假：{monthStats.customHolidayCount} 天</span>
-          <span style={{ color: 'var(--crayon-green)' }}>補班日：{monthStats.customWorkdayCount} 天</span>
-          <span style={{ color: 'var(--crayon-blue)', fontWeight: 'bold' }}>總工作日：{monthStats.workdayCount} 天</span>
-          
-          <span style={{ marginLeft: 'auto', borderLeft: '2px solid #ccc', paddingLeft: '15px', color: 'var(--crayon-blue)' }}>當月盤點任務：<span style={{ fontWeight: 'bold' }}>{monthStats.totalMonthTasks}</span> 筆</span>
-          <span style={{ color: 'var(--crayon-green)' }}>已完成：<span style={{ fontWeight: 'bold' }}>{monthStats.completedMonthTasks}</span> 筆</span>
-          <span style={{ color: 'var(--crayon-red)' }}>未完成：<span style={{ fontWeight: 'bold' }}>{monthStats.uncompletedMonthTasks}</span> 筆</span>
+        <div className="doodle-border" style={{ 
+          display: 'flex', flexDirection: 'column', gap: '10px', 
+          marginBottom: '20px', padding: '15px', 
+          backgroundColor: '#fff9c4', transform: 'rotate(0.5deg)'
+        }}>
+          {/* 第一行：工作日統計 */}
+          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontWeight: '900', fontSize: '1.2rem', color: 'var(--crayon-dark)' }}>
+              {currentDate.getMonth() + 1}月統計：
+            </span>
+            <span style={{ fontSize: '1.1rem', color: '#555' }}>
+              一般週末：<strong style={{ fontSize: '1.3rem', color: '#333' }}>{monthStats.weekendCount}</strong> 天
+            </span>
+            <span style={{ fontSize: '1.1rem', color: 'var(--crayon-orange)', fontWeight: 'bold' }}>
+              自訂休假：<strong style={{ fontSize: '1.3rem', color: 'var(--crayon-orange)' }}>{monthStats.customHolidayCount}</strong> 天
+            </span>
+            <span style={{ fontSize: '1.1rem', color: 'var(--crayon-green)', fontWeight: 'bold' }}>
+              補班日：<strong style={{ fontSize: '1.3rem', color: 'var(--crayon-green)' }}>{monthStats.customWorkdayCount}</strong> 天
+            </span>
+            <span style={{ fontSize: '1.1rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
+              總工作日：<strong style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--crayon-blue)' }}>{monthStats.workdayCount}</strong> 天
+            </span>
+          </div>
+
+          {/* 第二行：任務統計 */}
+          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center', borderTop: '2px dashed var(--crayon-dark)', paddingTop: '10px' }}>
+            <span style={{ fontSize: '1.1rem', color: 'var(--crayon-purple)', fontWeight: 'bold' }}>
+              當月盤點任務：<strong style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--crayon-purple)' }}>{monthStats.totalMonthTasks}</strong> 筆
+            </span>
+            <span style={{ fontSize: '1.1rem', color: 'var(--crayon-green)', fontWeight: 'bold' }}>
+              已完成：<strong style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--crayon-green)' }}>{monthStats.completedMonthTasks}</strong> 筆
+            </span>
+            <span style={{ fontSize: '1.1rem', color: 'var(--crayon-red)', fontWeight: 'bold' }}>
+              未完成：<strong style={{ fontSize: '1.6rem', fontWeight: '900', color: 'var(--crayon-red)' }}>{monthStats.uncompletedMonthTasks}</strong> 筆
+            </span>
+          </div>
         </div>
 
         {/* Calendar Navigation & Quick Jump */}
