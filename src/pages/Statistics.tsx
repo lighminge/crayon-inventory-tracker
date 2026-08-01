@@ -27,8 +27,15 @@ export default function Statistics() {
   const [startTicketId, setStartTicketId] = useState('');
   const [endTicketId, setEndTicketId] = useState('');
 
-  // Task filter state
-  const [selectedTaskId, setSelectedTaskId] = useState('');
+  // Filter Enable state
+  const [enableDateFilter, setEnableDateFilter] = useState(false);
+  const [enableTicketFilter, setEnableTicketFilter] = useState(false);
+  const [enableTaskFilter, setEnableTaskFilter] = useState(false);
+  const [enableTypeFilter, setEnableTypeFilter] = useState(false);
+
+  // Multi-select state
+  const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
 
   // Chart configuration state
   const [chartType, setChartType] = useState<'bar' | 'pie' | 'line' | 'composed'>('bar');
@@ -64,19 +71,30 @@ export default function Statistics() {
 
     return tickets.filter(t => {
       // Date filter
-      if (!t.dispatchDate) return false;
-      if (t.dispatchDate < startMs || t.dispatchDate > endMs) return false;
+      if (enableDateFilter) {
+        if (!t.dispatchDate) return false;
+        if (t.dispatchDate < startMs || t.dispatchDate > endMs) return false;
+      }
 
       // Ticket ID filter (string comparison)
-      if (startTicketId && t.id.localeCompare(startTicketId) < 0) return false;
-      if (endTicketId && t.id.localeCompare(endTicketId) > 0) return false;
+      if (enableTicketFilter) {
+        if (startTicketId && t.id.localeCompare(startTicketId) < 0) return false;
+        if (endTicketId && t.id.localeCompare(endTicketId) > 0) return false;
+      }
 
       // Task filter
-      if (selectedTaskId && t.taskId !== selectedTaskId) return false;
+      if (enableTaskFilter && selectedTaskIds.length > 0) {
+        if (!t.taskId || !selectedTaskIds.includes(t.taskId)) return false;
+      }
+
+      // Type filter
+      if (enableTypeFilter && selectedTypes.length > 0) {
+        if (!t.ticketType || !selectedTypes.includes(t.ticketType)) return false;
+      }
 
       return true;
     });
-  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskId]);
+  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskIds, selectedTypes, enableDateFilter, enableTicketFilter, enableTaskFilter, enableTypeFilter]);
 
   const getFirstStageDate = (t: InventoryTicket) => {
     if (t.stageDates && Object.keys(t.stageDates).length > 0) {
@@ -284,19 +302,23 @@ export default function Statistics() {
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '30px', backgroundColor: '#f9f9f9' }}>
         <h3 style={{ margin: 0, marginBottom: '15px', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>📅 設定統計條件</h3>
         
-        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
           {/* 日期區間卡片 */}
           <div className="doodle-border" style={{ 
-            flex: 1, minWidth: '250px', backgroundColor: '#fff3e0', 
-            padding: '15px', transform: 'rotate(-1deg)', position: 'relative', zIndex: 10 
+            backgroundColor: '#fff3e0', 
+            padding: '15px', transform: 'rotate(-1deg)', position: 'relative', zIndex: 10,
+            opacity: enableDateFilter ? 1 : 0.6
           }}>
-            <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-orange)' }}>📌 依日期區間</h4>
-            <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <div style={{ width: '150px' }}>
+            <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-orange)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <input type="checkbox" checked={enableDateFilter} onChange={e => setEnableDateFilter(e.target.checked)} style={{ transform: 'scale(1.5)', cursor: 'pointer' }} />
+              📌 依日期區間
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', pointerEvents: enableDateFilter ? 'auto' : 'none' }}>
+              <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>起始日期：</label>
                 <CrayonDatePicker value={startDate} onChange={setStartDate} />
               </div>
-              <div style={{ width: '150px' }}>
+              <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>結束日期：</label>
                 <CrayonDatePicker value={endDate} onChange={setEndDate} />
               </div>
@@ -305,34 +327,89 @@ export default function Statistics() {
 
           {/* 單號區間卡片 */}
           <div className="doodle-border" style={{ 
-            flex: 1, minWidth: '250px', backgroundColor: '#e8f5e9', 
-            padding: '15px', transform: 'rotate(1deg)' 
+            backgroundColor: '#e8f5e9', 
+            padding: '15px', transform: 'rotate(1deg)',
+            opacity: enableTicketFilter ? 1 : 0.6
           }}>
-            <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-green)' }}>📌 依盤點單號區間</h4>
-            <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-green)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <input type="checkbox" checked={enableTicketFilter} onChange={e => setEnableTicketFilter(e.target.checked)} style={{ transform: 'scale(1.5)', cursor: 'pointer' }} />
+              📌 依單號區間
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', pointerEvents: enableTicketFilter ? 'auto' : 'none' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>單號起：</label>
-                <input className="doodle-input" placeholder="例如: 260101" value={startTicketId} onChange={e => setStartTicketId(e.target.value)} />
+                <input className="doodle-input" style={{ width: '100%' }} placeholder="例如: 260101" value={startTicketId} onChange={e => setStartTicketId(e.target.value)} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>單號迄：</label>
-                <input className="doodle-input" placeholder="例如: 261299" value={endTicketId} onChange={e => setEndTicketId(e.target.value)} />
+                <input className="doodle-input" style={{ width: '100%' }} placeholder="例如: 261299" value={endTicketId} onChange={e => setEndTicketId(e.target.value)} />
               </div>
             </div>
           </div>
 
           {/* 盤點任務區塊 */}
           <div className="doodle-border" style={{ 
-            flex: 1, minWidth: '250px', backgroundColor: '#e1bee7', 
-            padding: '15px', transform: 'rotate(-0.5deg)' 
+            backgroundColor: '#e1bee7', 
+            padding: '15px', transform: 'rotate(-0.5deg)',
+            opacity: enableTaskFilter ? 1 : 0.6
           }}>
-            <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-purple)' }}>📌 依盤點任務</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              <label style={{ display: 'block', fontWeight: 'bold' }}>選取任務 (過濾該任務單據)：</label>
-              <select className="doodle-input" value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
-                <option value="">-- 全域資料 (不指定) --</option>
-                {tasks.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
+            <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-purple)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <input type="checkbox" checked={enableTaskFilter} onChange={e => setEnableTaskFilter(e.target.checked)} style={{ transform: 'scale(1.5)', cursor: 'pointer' }} />
+              📌 依盤點任務
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: enableTaskFilter ? 'auto' : 'none', maxHeight: '150px', overflowY: 'auto' }}>
+              {tasks.length === 0 ? <div style={{ color: '#888' }}>目前無任務</div> : tasks.map(t => (
+                <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                  <input 
+                    type="checkbox" 
+                    style={{ transform: 'scale(1.2)' }}
+                    checked={selectedTaskIds.includes(t.id)} 
+                    onChange={e => {
+                      if (e.target.checked) setSelectedTaskIds(prev => [...prev, t.id]);
+                      else setSelectedTaskIds(prev => prev.filter(id => id !== t.id));
+                    }} 
+                  />
+                  {t.name}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* 盤點類型區塊 */}
+          <div className="doodle-border" style={{ 
+            backgroundColor: '#ffccbc', 
+            padding: '15px', transform: 'rotate(0.5deg)',
+            opacity: enableTypeFilter ? 1 : 0.6
+          }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#d84315', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <input type="checkbox" checked={enableTypeFilter} onChange={e => setEnableTypeFilter(e.target.checked)} style={{ transform: 'scale(1.5)', cursor: 'pointer' }} />
+              📌 依盤點類型
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: enableTypeFilter ? 'auto' : 'none' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                <input 
+                  type="checkbox" 
+                  style={{ transform: 'scale(1.2)' }}
+                  checked={selectedTypes.includes('夾鉗')} 
+                  onChange={e => {
+                    if (e.target.checked) setSelectedTypes(prev => [...prev, '夾鉗']);
+                    else setSelectedTypes(prev => prev.filter(v => v !== '夾鉗'));
+                  }} 
+                />
+                夾鉗
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                <input 
+                  type="checkbox" 
+                  style={{ transform: 'scale(1.2)' }}
+                  checked={selectedTypes.includes('TKW')} 
+                  onChange={e => {
+                    if (e.target.checked) setSelectedTypes(prev => [...prev, 'TKW']);
+                    else setSelectedTypes(prev => prev.filter(v => v !== 'TKW'));
+                  }} 
+                />
+                TKW
+              </label>
             </div>
           </div>
         </div>
