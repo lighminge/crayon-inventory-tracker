@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { getHolidays, saveHoliday, deleteHoliday } from '../services/api';
-import type { HolidaySetting } from '../types';
+import { getHolidays, saveHoliday, deleteHoliday, getTasks } from '../services/api';
+import type { HolidaySetting, InventoryTask } from '../types';
 import { getTaiwanDateInfo } from '../utils/taiwanFestivals';
 
 const CalendarManagement: React.FC = () => {
   const [holidays, setHolidays] = useState<HolidaySetting[]>([]);
+  const [tasks, setTasks] = useState<InventoryTask[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Calendar View State
@@ -27,20 +28,24 @@ const CalendarManagement: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
-  const fetchHolidays = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const data = await getHolidays();
-      setHolidays(data);
+      const [holidayData, taskData] = await Promise.all([
+        getHolidays(),
+        getTasks()
+      ]);
+      setHolidays(holidayData);
+      setTasks(taskData);
     } catch (error: any) {
-      alert('無法取得行事曆設定：' + error.message);
+      alert('無法取得資料：' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchHolidays();
+    fetchData();
   }, []);
 
   const handlePrevMonth = () => {
@@ -87,7 +92,7 @@ const CalendarManagement: React.FC = () => {
       };
       await saveHoliday(newSetting);
       setIsModalOpen(false);
-      fetchHolidays();
+      fetchData();
     } catch (error: any) {
       alert('儲存失敗：' + error.message);
     } finally {
@@ -106,7 +111,7 @@ const CalendarManagement: React.FC = () => {
       await deleteHoliday(deleteConfirmTarget);
       setDeleteConfirmTarget(null);
       setIsModalOpen(false);
-      fetchHolidays();
+      fetchData();
     } catch (error: any) {
       alert('刪除失敗：' + error.message);
     } finally {
@@ -164,17 +169,22 @@ const CalendarManagement: React.FC = () => {
       }
       if (isWorkingDay) workdayCount++;
 
+      const startOfDay = dateObj.getTime();
+      const endOfDay = startOfDay + 24 * 60 * 60 * 1000 - 1;
+      const overlappingTasks = tasks.filter(t => t.startDate <= endOfDay && t.endDate >= startOfDay);
+
       days.push({
         date: i,
         dateStr,
         isToday,
         isWeekend,
         festivals: taiwanInfo.festivals,
-        customSetting
+        customSetting,
+        overlappingTasks
       });
     }
     return { calendarDays: days, monthStats: { weekendCount, customHolidayCount, customWorkdayCount, workdayCount } };
-  }, [currentDate, holidays]);
+  }, [currentDate, holidays, tasks]);
 
   const existingSettingForModal = holidays.find(h => h.date === selectedDateStr);
   const selectedTaiwanInfo = selectedDateStr ? getTaiwanDateInfo(new Date(selectedDateStr)) : null;
@@ -298,10 +308,10 @@ const CalendarManagement: React.FC = () => {
                   onClick={() => openModal(day.dateStr)}
                   className="doodle-border"
                   style={{ 
-                    border: day.isToday ? '4px solid var(--crayon-orange)' : '3px solid var(--crayon-dark)',
+                    border: day.isToday ? '4px solid var(--crayon-orange)' : day.overlappingTasks.length > 0 ? '3px solid var(--crayon-purple)' : '3px solid var(--crayon-dark)',
                     padding: '5px',
                     minHeight: '100px',
-                    backgroundColor: day.isToday ? '#fff8e1' : day.isWeekend ? '#fefefe' : 'white',
+                    backgroundColor: day.isToday ? '#fff8e1' : day.overlappingTasks.length > 0 ? '#f3e5f5' : day.isWeekend ? '#fefefe' : 'white',
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
@@ -347,6 +357,28 @@ const CalendarManagement: React.FC = () => {
                       </span>
                     ))}
                   </div>
+
+                  {/* 盤點任務 */}
+                  {day.overlappingTasks && day.overlappingTasks.length > 0 && (
+                    <div style={{ marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      {day.overlappingTasks.map((t: InventoryTask) => (
+                        <div key={t.id} style={{ 
+                          fontSize: '0.8rem', 
+                          backgroundColor: 'var(--crayon-purple)', 
+                          color: 'white', 
+                          padding: '4px 6px', 
+                          borderRadius: '4px', 
+                          fontWeight: 'bold',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          boxShadow: '1px 1px 0px rgba(0,0,0,0.2)'
+                        }}>
+                          📋 {t.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* 自訂設定 (放假/補班) */}
                   {hasCustom && (
