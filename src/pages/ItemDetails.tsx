@@ -32,6 +32,10 @@ export default function ItemDetails() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<InventoryItemDetail>>({});
 
+  // Add New State
+  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [newData, setNewData] = useState<Partial<InventoryItemDetail>>({});
+
   // Pagination & Sort state
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -141,21 +145,71 @@ export default function ItemDetails() {
 
   const handleEditChange = (field: keyof InventoryItemDetail, value: any) => {
     setEditData(prev => {
-      const newData = { ...prev, [field]: value };
+      const data = { ...prev, [field]: value };
       if (['grossWeight', 'containerCount', 'containerUnitWeight', 'materialUnitWeight'].includes(field as string)) {
-        const gW = Number(newData.grossWeight || 0);
-        const cC = Number(newData.containerCount || 0);
-        const cUW = Number(newData.containerUnitWeight || 0);
-        const mUW = Number(newData.materialUnitWeight || 0);
-        newData.netWeight = Number((gW - (cC * cUW)).toFixed(2));
+        const gW = Number(data.grossWeight || 0);
+        const cC = Number(data.containerCount || 0);
+        const cUW = Number(data.containerUnitWeight || 0);
+        const mUW = Number(data.materialUnitWeight || 0);
+        data.netWeight = Number((gW - (cC * cUW)).toFixed(2));
         if (mUW > 0) {
-          newData.totalItemCount = Math.floor((newData.netWeight * 1000) / mUW);
-        } else {
-          newData.totalItemCount = 0;
+          data.totalItemCount = Math.floor((data.netWeight * 1000) / mUW);
         }
       }
-      return newData;
+      return data;
     });
+  };
+
+  const startAddNew = () => {
+    setIsAddingNew(true);
+    setNewData({ 
+      ticketId: selectedTicketId!,
+      itemSeq: filterItemSeq !== 'all' ? filterItemSeq : (availableItemSeqs[0] || '001'),
+      subItemSeq: '1',
+      date: new Date().toISOString().split('T')[0],
+      containerType: 'T',
+      grossWeight: 0,
+      containerCount: 0,
+      containerUnitWeight: 0,
+      materialUnitWeight: 0,
+      netWeight: 0,
+      totalItemCount: 0
+    });
+  };
+
+  const handleNewChange = (field: keyof InventoryItemDetail, value: any) => {
+    setNewData(prev => {
+      const data = { ...prev, [field]: value };
+      if (['grossWeight', 'containerCount', 'containerUnitWeight', 'materialUnitWeight'].includes(field as string)) {
+        const gW = Number(data.grossWeight || 0);
+        const cC = Number(data.containerCount || 0);
+        const cUW = Number(data.containerUnitWeight || 0);
+        const mUW = Number(data.materialUnitWeight || 0);
+        data.netWeight = Number((gW - (cC * cUW)).toFixed(2));
+        if (mUW > 0) {
+          data.totalItemCount = Math.floor((data.netWeight * 1000) / mUW);
+        }
+      }
+      return data;
+    });
+  };
+
+  const saveNew = async () => {
+    if (!newData.itemSeq) return alert('請填寫項目序號');
+    if (!newData.totalItemCount || newData.totalItemCount <= 0) return alert('請填寫物料總數');
+    try {
+      const detailToSave = {
+        ...newData,
+        ticketId: selectedTicketId!,
+        createdAt: new Date().getTime(),
+      };
+      await saveItemDetail(detailToSave as any);
+      setIsAddingNew(false);
+      loadData();
+    } catch (e) {
+      console.error(e);
+      alert('新增失敗');
+    }
   };
 
   const saveEdit = async () => {
@@ -325,6 +379,10 @@ export default function ItemDetails() {
                   <button className="doodle-button" style={{ padding: '5px 15px', minHeight: 'auto' }} disabled={detailCurrentPage === detailTotalPages} onClick={() => setDetailCurrentPage(p => p + 1)}>下一頁</button>
                 </div>
               )}
+              
+              <button className="doodle-button" style={{ marginLeft: 'auto', backgroundColor: 'var(--crayon-purple)', color: 'white' }} onClick={startAddNew}>
+                ＋ 手動新增明細
+              </button>
             </div>
 
             <div style={{ overflowX: 'auto' }}>
@@ -344,6 +402,54 @@ export default function ItemDetails() {
                 </tr>
               </thead>
               <tbody>
+                {isAddingNew && (
+                  <tr style={{ backgroundColor: '#e8f5e9', borderBottom: '2px solid var(--crayon-green)' }}>
+                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                        <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', minHeight: 'auto', backgroundColor: 'var(--crayon-green)', color: 'white' }} onClick={saveNew}>儲存</button>
+                        <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', minHeight: 'auto' }} onClick={() => setIsAddingNew(false)}>取消</button>
+                      </div>
+                    </td>
+                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>
+                      <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+                        <input type="text" className="doodle-input" style={{ width: '40px', padding: '2px', textAlign: 'center' }} placeholder="序號" value={newData.itemSeq || ''} onChange={e => handleNewChange('itemSeq', e.target.value)} />
+                        -
+                        <input type="text" className="doodle-input" style={{ width: '30px', padding: '2px', textAlign: 'center' }} placeholder="子項" value={newData.subItemSeq || ''} onChange={e => handleNewChange('subItemSeq', e.target.value)} />
+                      </div>
+                    </td>
+                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                      <div style={{ width: '130px' }}>
+                        <CrayonDatePicker value={newData.date || ''} onChange={val => handleNewChange('date', val)} />
+                      </div>
+                    </td>
+                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                      <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={newData.grossWeight || ''} onChange={e => handleNewChange('grossWeight', Number(e.target.value))} />
+                    </td>
+                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                      <select className="doodle-input" style={{ width: '80px', padding: '2px' }} value={newData.containerType || ''} onChange={e => handleNewChange('containerType', e.target.value)}>
+                        <option value="">無</option>
+                        <option value="T">鐵桶</option>
+                        <option value="P">塑膠箱</option>
+                        <option value="B">紙箱</option>
+                      </select>
+                    </td>
+                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                      <input type="number" className="doodle-input" style={{ width: '50px', padding: '2px' }} value={newData.containerCount || ''} onChange={e => handleNewChange('containerCount', Number(e.target.value))} />
+                    </td>
+                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                      <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={newData.containerUnitWeight || ''} onChange={e => handleNewChange('containerUnitWeight', Number(e.target.value))} />
+                    </td>
+                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                      <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={newData.netWeight || ''} onChange={e => handleNewChange('netWeight', Number(e.target.value))} />
+                    </td>
+                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                      <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={newData.materialUnitWeight || ''} onChange={e => handleNewChange('materialUnitWeight', Number(e.target.value))} />
+                    </td>
+                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                      <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={newData.totalItemCount || ''} onChange={e => handleNewChange('totalItemCount', Number(e.target.value))} />
+                    </td>
+                  </tr>
+                )}
                 {currentSeqList.map(itemSeq => {
                   const group = groupedDetails[itemSeq];
                   const sortedGroup = [...group].sort((a, b) => {

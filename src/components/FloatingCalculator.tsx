@@ -134,7 +134,7 @@ export default function FloatingCalculator() {
     if (netWeight <= 0 || materialUnitWeight === '' || materialUnitWeight <= 0) return 0;
     const muw = Number(materialUnitWeight);
     const netWeightInGrams = netWeight * 1000;
-    return Math.ceil(netWeightInGrams / muw);
+    return Math.floor(netWeightInGrams / muw);
   }, [netWeight, materialUnitWeight]);
 
   const handleImport = async () => {
