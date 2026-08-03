@@ -346,11 +346,11 @@ export default function FloatingCalculator() {
                 value={containerType} 
                 onChange={e => setContainerType(e.target.value)}
               >
-                <option value="T">T</option>
-                <option value="P">P</option>
-                <option value="B">B</option>
-                <option value="L">L</option>
-                <option value="J">J</option>
+                <option value="T">鐵桶 (T)</option>
+                <option value="P">塑膠箱 (P)</option>
+                <option value="B">紙箱 (B)</option>
+                <option value="L">摺疊籠 (L)</option>
+                <option value="J">鐵架 (J)</option>
               </select>
             </div>
             

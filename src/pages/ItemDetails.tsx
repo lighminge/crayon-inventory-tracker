@@ -55,6 +55,7 @@ export default function ItemDetails() {
   useEffect(() => {
     setDetailCurrentPage(1);
     setFilterItemSeq('all');
+    setIsAddingNew(false);
   }, [selectedTicketId, detailItemsPerPage]);
 
   // Reset page when filters change
@@ -128,7 +129,10 @@ export default function ItemDetails() {
     return (a.subItemSeq || '').localeCompare(b.subItemSeq || '');
   });
   
-  const availableItemSeqs = Array.from(new Set(baseDetails.map(d => d.itemSeq))).sort();
+  const currentTicket = tickets.find(t => t.id === selectedTicketId);
+  const allTicketItemSeqs = currentTicket?.itemCount 
+    ? Array.from({ length: currentTicket.itemCount }, (_, i) => (i + 1).toString().padStart(3, '0'))
+    : Array.from(new Set(baseDetails.map(d => d.itemSeq))).sort();
   
   const currentDetails = baseDetails.filter(d => filterItemSeq === 'all' || d.itemSeq === filterItemSeq);
 
@@ -165,11 +169,18 @@ export default function ItemDetails() {
   };
 
   const startAddNew = () => {
+    const initialItemSeq = filterItemSeq !== 'all' ? filterItemSeq : (allTicketItemSeqs[0] || '001');
+    const existingSubSeqs = baseDetails
+      .filter(d => d.itemSeq === initialItemSeq)
+      .map(d => parseInt(d.subItemSeq || '', 10))
+      .filter(n => !isNaN(n));
+    const nextSubSeq = existingSubSeqs.length > 0 ? Math.max(...existingSubSeqs) + 1 : 1;
+
     setIsAddingNew(true);
     setNewData({ 
       ticketId: selectedTicketId!,
-      itemSeq: filterItemSeq !== 'all' ? filterItemSeq : (availableItemSeqs[0] || '001'),
-      subItemSeq: '1',
+      itemSeq: initialItemSeq,
+      subItemSeq: nextSubSeq.toString(),
       date: new Date().toISOString().split('T')[0],
       containerType: 'T',
       grossWeight: 0,
@@ -184,6 +195,16 @@ export default function ItemDetails() {
   const handleNewChange = (field: keyof InventoryItemDetail, value: any) => {
     setNewData(prev => {
       const data = { ...prev, [field]: value };
+      
+      if (field === 'itemSeq') {
+        const existingSubSeqs = baseDetails
+          .filter(d => d.itemSeq === value)
+          .map(d => parseInt(d.subItemSeq || '', 10))
+          .filter(n => !isNaN(n));
+        const nextSubSeq = existingSubSeqs.length > 0 ? Math.max(...existingSubSeqs) + 1 : 1;
+        data.subItemSeq = nextSubSeq.toString();
+      }
+
       if (['grossWeight', 'containerCount', 'containerUnitWeight', 'materialUnitWeight'].includes(field as string)) {
         const gW = Number(data.grossWeight || 0);
         const cC = Number(data.containerCount || 0);
@@ -291,8 +312,8 @@ export default function ItemDetails() {
             <div style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <label style={{ fontWeight: 'bold', color: 'var(--crayon-purple)' }}>🔍 篩選單一項目：</label>
               <select className="doodle-input" style={{ width: 'auto', padding: '5px' }} value={filterItemSeq} onChange={e => setFilterItemSeq(e.target.value)}>
-                <option value="all">顯示全部項目 ({availableItemSeqs.length} 項)</option>
-                {availableItemSeqs.map(seq => (
+                <option value="all">顯示全部項目 ({allTicketItemSeqs.length} 項)</option>
+                {allTicketItemSeqs.map(seq => (
                   <option key={seq} value={seq}>項目 {seq}</option>
                 ))}
               </select>
@@ -434,7 +455,7 @@ export default function ItemDetails() {
                     <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>
                       <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
                         <select className="doodle-input" style={{ width: '60px', padding: '2px', textAlign: 'center' }} value={newData.itemSeq || ''} onChange={e => handleNewChange('itemSeq', e.target.value)}>
-                          {availableItemSeqs.map(seq => (
+                          {allTicketItemSeqs.map(seq => (
                             <option key={seq} value={seq}>{seq}</option>
                           ))}
                         </select>
@@ -451,13 +472,13 @@ export default function ItemDetails() {
                       <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={newData.grossWeight || ''} onChange={e => handleNewChange('grossWeight', Number(e.target.value))} />
                     </td>
                     <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                      <select className="doodle-input" style={{ width: '80px', padding: '2px' }} value={newData.containerType || ''} onChange={e => handleNewChange('containerType', e.target.value)}>
+                      <select className="doodle-input" style={{ width: '90px', padding: '2px' }} value={newData.containerType || ''} onChange={e => handleNewChange('containerType', e.target.value)}>
                         <option value="">無</option>
-                        <option value="T">T</option>
-                        <option value="P">P</option>
-                        <option value="B">B</option>
-                        <option value="L">L</option>
-                        <option value="J">J</option>
+                        <option value="T">鐵桶 (T)</option>
+                        <option value="P">塑膠箱 (P)</option>
+                        <option value="B">紙箱 (B)</option>
+                        <option value="L">摺疊籠 (L)</option>
+                        <option value="J">鐵架 (J)</option>
                       </select>
                     </td>
                     <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
@@ -537,12 +558,12 @@ export default function ItemDetails() {
                                 <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={editData.grossWeight || ''} onChange={e => handleEditChange('grossWeight', Number(e.target.value))} />
                               </td>
                               <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                                <select className="doodle-input" style={{ width: '80px', padding: '2px' }} value={editData.containerType || 'T'} onChange={e => handleEditChange('containerType', e.target.value)}>
-                                  <option value="T">T</option>
-                                  <option value="P">P</option>
-                                  <option value="B">B</option>
-                                  <option value="L">L</option>
-                                  <option value="J">J</option>
+                                <select className="doodle-input" style={{ width: '90px', padding: '2px' }} value={editData.containerType || 'T'} onChange={e => handleEditChange('containerType', e.target.value)}>
+                                  <option value="T">鐵桶 (T)</option>
+                                  <option value="P">塑膠箱 (P)</option>
+                                  <option value="B">紙箱 (B)</option>
+                                  <option value="L">摺疊籠 (L)</option>
+                                  <option value="J">鐵架 (J)</option>
                                   <option value={editData.containerType || ''}>{editData.containerType}</option>
                                 </select>
                               </td>
