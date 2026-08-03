@@ -346,11 +346,11 @@ export default function FloatingCalculator() {
                 value={containerType} 
                 onChange={e => setContainerType(e.target.value)}
               >
-                <option value="T">鐵桶 (T)</option>
-                <option value="P">塑膠箱 (P)</option>
-                <option value="B">紙箱 (B)</option>
-                <option value="L">摺疊籠 (L)</option>
-                <option value="J">鐵架 (J)</option>
+                <option value="T">T</option>
+                <option value="P">P</option>
+                <option value="B">B</option>
+                <option value="L">L</option>
+                <option value="J">J</option>
               </select>
             </div>
             
@@ -418,7 +418,7 @@ export default function FloatingCalculator() {
               </div>
               
               <div style={{ backgroundColor: 'white', padding: '10px', borderRadius: '5px', border: '2px dashed var(--crayon-red)', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.9rem', color: '#555' }}>物料總數 (系統無條件進位)</span>
+                <span style={{ fontSize: '0.9rem', color: '#555' }}>物料總數 (系統無條件捨去)</span>
                 <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>
                   {totalItemCount} <span style={{fontSize: '1rem'}}>個 (PCS)</span>
                 </div>

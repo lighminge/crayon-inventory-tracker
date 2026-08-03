@@ -35,6 +35,10 @@ export default function ItemDetails() {
   // Add New State
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newData, setNewData] = useState<Partial<InventoryItemDetail>>({});
+  
+  // Custom Modals
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
+  const [duplicateConfirm, setDuplicateConfirm] = useState<Partial<InventoryItemDetail> | null>(null);
 
   // Pagination & Sort state
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -195,20 +199,37 @@ export default function ItemDetails() {
   };
 
   const saveNew = async () => {
-    if (!newData.itemSeq) return alert('請填寫項目序號');
-    if (!newData.totalItemCount || newData.totalItemCount <= 0) return alert('請填寫物料總數');
+    if (!newData.itemSeq) {
+      setAlertMessage('請填寫項目序號');
+      return;
+    }
+    if (!newData.totalItemCount || newData.totalItemCount <= 0) {
+      setAlertMessage('請填寫物料總數');
+      return;
+    }
+    
+    const isDuplicate = currentDetails.some(d => d.itemSeq === newData.itemSeq && d.subItemSeq === newData.subItemSeq);
+    if (isDuplicate) {
+      setDuplicateConfirm(newData);
+    } else {
+      executeSaveNew(newData);
+    }
+  };
+
+  const executeSaveNew = async (data: Partial<InventoryItemDetail>) => {
     try {
       const detailToSave = {
-        ...newData,
+        ...data,
         ticketId: selectedTicketId!,
         createdAt: new Date().getTime(),
       };
       await saveItemDetail(detailToSave as any);
       setIsAddingNew(false);
+      setDuplicateConfirm(null);
       loadData();
     } catch (e) {
       console.error(e);
-      alert('新增失敗');
+      setAlertMessage('新增失敗');
     }
   };
 
@@ -224,7 +245,7 @@ export default function ItemDetails() {
     }
   };
 
-  const mapContainerType = (type: string) => type === 'T' ? '鐵桶' : type === 'P' ? '塑膠箱' : type === 'B' ? '紙箱' : type;
+  const mapContainerType = (type: string) => type || '無';
 
   // Group by itemSeq for subtotals
   const groupedDetails: { [key: string]: InventoryItemDetail[] } = {};
@@ -412,7 +433,11 @@ export default function ItemDetails() {
                     </td>
                     <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>
                       <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
-                        <input type="text" className="doodle-input" style={{ width: '40px', padding: '2px', textAlign: 'center' }} placeholder="序號" value={newData.itemSeq || ''} onChange={e => handleNewChange('itemSeq', e.target.value)} />
+                        <select className="doodle-input" style={{ width: '60px', padding: '2px', textAlign: 'center' }} value={newData.itemSeq || ''} onChange={e => handleNewChange('itemSeq', e.target.value)}>
+                          {availableItemSeqs.map(seq => (
+                            <option key={seq} value={seq}>{seq}</option>
+                          ))}
+                        </select>
                         -
                         <input type="text" className="doodle-input" style={{ width: '30px', padding: '2px', textAlign: 'center' }} placeholder="子項" value={newData.subItemSeq || ''} onChange={e => handleNewChange('subItemSeq', e.target.value)} />
                       </div>
@@ -428,9 +453,11 @@ export default function ItemDetails() {
                     <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
                       <select className="doodle-input" style={{ width: '80px', padding: '2px' }} value={newData.containerType || ''} onChange={e => handleNewChange('containerType', e.target.value)}>
                         <option value="">無</option>
-                        <option value="T">鐵桶</option>
-                        <option value="P">塑膠箱</option>
-                        <option value="B">紙箱</option>
+                        <option value="T">T</option>
+                        <option value="P">P</option>
+                        <option value="B">B</option>
+                        <option value="L">L</option>
+                        <option value="J">J</option>
                       </select>
                     </td>
                     <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
@@ -511,9 +538,11 @@ export default function ItemDetails() {
                               </td>
                               <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
                                 <select className="doodle-input" style={{ width: '80px', padding: '2px' }} value={editData.containerType || 'T'} onChange={e => handleEditChange('containerType', e.target.value)}>
-                                  <option value="T">鐵桶</option>
-                                  <option value="P">塑膠箱</option>
-                                  <option value="B">紙箱</option>
+                                  <option value="T">T</option>
+                                  <option value="P">P</option>
+                                  <option value="B">B</option>
+                                  <option value="L">L</option>
+                                  <option value="J">J</option>
                                   <option value={editData.containerType || ''}>{editData.containerType}</option>
                                 </select>
                               </td>
@@ -639,6 +668,47 @@ export default function ItemDetails() {
                 <button className="doodle-button" onClick={() => setDeleteConfirmId(null)}>取消</button>
                 <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-red)', color: 'white' }} onClick={() => handleDelete(deleteConfirmId)}>確定刪除</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {duplicateConfirm && (
+          <div style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 10001
+          }}>
+            <div className="doodle-border" style={{ backgroundColor: 'white', padding: '30px', maxWidth: '400px', textAlign: 'center' }}>
+              <h3 style={{ color: 'var(--crayon-orange)', marginTop: 0 }}>⚠️ 序號已存在</h3>
+              <p style={{ fontSize: '1.1rem', marginBottom: '20px' }}>
+                項目序號 {duplicateConfirm.itemSeq} - {duplicateConfirm.subItemSeq} 已經存在於本盤點單。您確定要繼續新增嗎？
+              </p>
+              <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+                <button className="doodle-button" onClick={() => setDuplicateConfirm(null)}>取消</button>
+                <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-orange)', color: 'white' }} onClick={() => executeSaveNew(duplicateConfirm)}>確定新增</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {alertMessage && (
+          <div style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 10001
+          }}>
+            <div className="doodle-border" style={{ backgroundColor: 'white', padding: '30px', maxWidth: '350px', textAlign: 'center' }}>
+              <h3 style={{ color: 'var(--crayon-purple)', marginTop: 0 }}>提示</h3>
+              <p style={{ fontSize: '1.1rem', marginBottom: '20px' }}>{alertMessage}</p>
+              <button className="doodle-button" style={{ width: '100%' }} onClick={() => setAlertMessage(null)}>確定</button>
             </div>
           </div>
         )}
