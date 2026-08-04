@@ -51,6 +51,11 @@ export default function Statistics() {
   // Local task list filter & pagination
   const [taskFilterType, setTaskFilterType] = useState('');
   const [taskPage, setTaskPage] = useState(1);
+  
+  // Year Filter
+  const [globalYear, setGlobalYear] = useState<number | ''>(new Date().getFullYear());
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({length: 5}, (_, i) => currentYear - 2 + i);
 
   useEffect(() => {
     loadData();
@@ -83,6 +88,12 @@ export default function Statistics() {
     const endMs = endDate ? new Date(endDate).getTime() + 24 * 60 * 60 * 1000 - 1 : Infinity;
 
     return tickets.filter(t => {
+      // Global Year Filter
+      if (globalYear !== '') {
+        const d = t.dispatchDate ? new Date(t.dispatchDate) : null;
+        if (!d || d.getFullYear() !== globalYear) return false;
+      }
+
       // Date filter
       if (enableDateFilter) {
         if (!t.dispatchDate) return false;
@@ -121,7 +132,7 @@ export default function Statistics() {
 
       return true;
     });
-  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskIds, selectedTypes, selectedDaysFilter, enableDateFilter, enableTicketFilter, enableTaskFilter, enableTypeFilter, enableDaysFilter, holidays]);
+  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskIds, selectedTypes, selectedDaysFilter, enableDateFilter, enableTicketFilter, enableTaskFilter, enableTypeFilter, enableDaysFilter, holidays, globalYear]);
 
   // Derive tasks to show in the "依盤點任務" list
   const filteredTasksList = useMemo(() => {
@@ -337,7 +348,16 @@ export default function Statistics() {
 
       {mainTab === 'overview' && (
         <div>
-          <h2 style={{ marginTop: 0 }}>📈 統計作業</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+            <h2 style={{ margin: 0 }}>📈 統計作業</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <label style={{ fontWeight: 'bold' }}>西元年度：</label>
+              <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e8f5e9' }} value={globalYear} onChange={e => setGlobalYear(e.target.value === '' ? '' : Number(e.target.value))}>
+                <option value="">全部年度</option>
+                {yearOptions.map(y => <option key={y} value={y}>{y} 年</option>)}
+              </select>
+            </div>
+          </div>
 
       {/* 條件篩選 */}
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '30px', backgroundColor: '#f9f9f9' }}>
