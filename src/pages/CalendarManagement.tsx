@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { getHolidays, saveHoliday, deleteHoliday, getTasks, getTickets } from '../services/api';
 import type { HolidaySetting, InventoryTask } from '../types';
 import { getTaiwanDateInfo } from '../utils/taiwanFestivals';
+import { useAuth } from '../contexts/AuthContext';
 
 type TaskWithStatus = InventoryTask & { isCompleted?: boolean, completedDate?: number };
 
@@ -21,6 +22,9 @@ const CalendarManagement: React.FC = () => {
   const [holidays, setHolidays] = useState<HolidaySetting[]>([]);
   const [tasks, setTasks] = useState<TaskWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission('calendar', 'edit');
   
   // Calendar View State
   const location = useLocation();
@@ -102,6 +106,7 @@ const CalendarManagement: React.FC = () => {
   };
 
   const openModal = (dateStr: string) => {
+    if (!canEdit) return;
     const existing = holidays.find(h => h.date === dateStr);
     setSelectedDateStr(dateStr);
     if (existing) {
@@ -613,12 +618,12 @@ const CalendarManagement: React.FC = () => {
               </th>
               <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'left' }}>類型</th>
               <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'left' }}>目的 / 說明</th>
-              <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'center' }}>操作</th>
+              {canEdit && <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'center' }}>操作</th>}
             </tr>
           </thead>
           <tbody>
             {paginatedList.length === 0 ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '20px', color: '#666' }}>無符合條件的設定</td></tr>
+              <tr><td colSpan={canEdit ? 5 : 4} style={{ textAlign: 'center', padding: '20px', color: '#666' }}>無符合條件的設定</td></tr>
             ) : (
               paginatedList.map((h, idx) => {
                 const isPast = new Date(h.date).getTime() < new Date(new Date().toISOString().split('T')[0]).getTime();
@@ -639,14 +644,16 @@ const CalendarManagement: React.FC = () => {
                     </span>
                   </td>
                   <td style={{ padding: '12px' }}>{h.description}</td>
-                  <td style={{ padding: '12px', textAlign: 'center' }}>
-                    <button className="doodle-button" style={{ padding: '5px 10px', fontSize: '0.9rem', marginRight: '5px' }} onClick={() => jumpToDateAndEdit(h.date)}>
-                      修改
-                    </button>
-                    <button className="doodle-button danger" style={{ padding: '5px 10px', fontSize: '0.9rem' }} onClick={() => promptDelete(h.id)}>
-                      刪除
-                    </button>
-                  </td>
+                  {canEdit && (
+                    <td style={{ padding: '12px', textAlign: 'center' }}>
+                      <button className="doodle-button" style={{ padding: '5px 10px', fontSize: '0.9rem', marginRight: '5px' }} onClick={() => jumpToDateAndEdit(h.date)}>
+                        修改
+                      </button>
+                      <button className="doodle-button danger" style={{ padding: '5px 10px', fontSize: '0.9rem' }} onClick={() => promptDelete(h.id)}>
+                        刪除
+                      </button>
+                    </td>
+                  )}
                 </tr>
                 );
               })
