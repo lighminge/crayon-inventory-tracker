@@ -36,6 +36,7 @@ export default function SystemManagement() {
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingUser, setEditingUser] = useState<Partial<SystemUser>>({});
+  const [userToDelete, setUserToDelete] = useState<{ id: string, username: string } | null>(null);
   
   // We check if current user can edit system
   const canEdit = hasPermission('system', 'edit');
@@ -96,12 +97,20 @@ export default function SystemManagement() {
   };
 
   const handleDelete = async (id: string, username: string) => {
+    if (username === 'admin') {
+      return alert('無法刪除預設 admin 帳號！');
+    }
     if (currentUser?.id === id || currentUser?.username === username) {
       return alert('無法刪除目前登入的帳號！');
     }
-    if (confirm(`確定要刪除帳號 [${username}] 嗎？`)) {
+    setUserToDelete({ id, username });
+  };
+
+  const confirmDelete = async () => {
+    if (userToDelete) {
       try {
-        await deleteSystemUser(id);
+        await deleteSystemUser(userToDelete.id);
+        setUserToDelete(null);
         loadUsers();
       } catch (err) {
         console.error(err);
@@ -123,10 +132,10 @@ export default function SystemManagement() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={{ margin: 0 }}>⚙️ 系統管理 (權限與帳號)</h2>
+        <h2 style={{ margin: 0 }}>⚙️ 系統管理 (權限與帳號) <span style={{ fontSize: '1.2rem', color: '#666' }}>共 {users.length} 筆</span></h2>
         {canEdit && !isEditing && (
           <button className="doodle-button success" onClick={handleAddNew}>
-            ＋ 新增管理員帳號
+            ＋ 新增帳號
           </button>
         )}
       </div>
@@ -202,6 +211,7 @@ export default function SystemManagement() {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ backgroundColor: 'var(--crayon-dark)', color: 'white' }}>
+                <th style={{ padding: '15px', width: '60px', textAlign: 'center' }}>序號</th>
                 <th style={{ padding: '15px' }}>帳號</th>
                 <th style={{ padding: '15px' }}>名稱</th>
                 <th style={{ padding: '15px' }}>完整權限模組數</th>
@@ -209,10 +219,11 @@ export default function SystemManagement() {
               </tr>
             </thead>
             <tbody>
-              {users.map(u => {
+              {users.map((u, index) => {
                 const editCount = Object.values(u.permissions).filter(p => p === 'edit').length;
                 return (
                   <tr key={u.id} style={{ borderBottom: '1px dashed #ccc' }}>
+                    <td style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', color: '#555' }}>{index + 1}</td>
                     <td style={{ padding: '15px', fontWeight: 'bold' }}>{u.username}</td>
                     <td style={{ padding: '15px' }}>{u.name}</td>
                     <td style={{ padding: '15px' }}>{editCount} 個功能</td>
@@ -220,7 +231,18 @@ export default function SystemManagement() {
                       {canEdit && (
                         <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
                           <button className="doodle-button" style={{ padding: '5px 10px' }} onClick={() => handleEdit(u)}>編輯</button>
-                          <button className="doodle-button danger" style={{ padding: '5px 10px' }} onClick={() => handleDelete(u.id, u.username)}>刪除</button>
+                          <button 
+                            className="doodle-button danger" 
+                            style={{ 
+                              padding: '5px 10px', 
+                              opacity: u.username === 'admin' ? 0.5 : 1, 
+                              cursor: u.username === 'admin' ? 'not-allowed' : 'pointer' 
+                            }} 
+                            disabled={u.username === 'admin'}
+                            onClick={() => handleDelete(u.id, u.username)}
+                          >
+                            刪除
+                          </button>
                         </div>
                       )}
                     </td>
@@ -229,11 +251,26 @@ export default function SystemManagement() {
               })}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ padding: '20px', textAlign: 'center', color: '#666' }}>尚無任何帳號資料</td>
+                  <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: '#666' }}>尚無任何帳號資料</td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* 刪除確認視窗 */}
+      {userToDelete && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '400px', backgroundColor: 'white', textAlign: 'center' }}>
+            <h3 style={{ color: 'var(--crayon-red)', fontSize: '1.8rem', marginTop: 0 }}>⚠️ 刪除確認</h3>
+            <p style={{ fontSize: '1.2rem', margin: '20px 0' }}>確定要刪除帳號 <strong>[{userToDelete.username}]</strong> 嗎？</p>
+            <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '20px' }}>此動作無法復原！</p>
+            <div style={{ display: 'flex', gap: '15px' }}>
+              <button type="button" className="doodle-button" style={{ flex: 1 }} onClick={() => setUserToDelete(null)}>取消</button>
+              <button type="button" className="doodle-button danger" style={{ flex: 1 }} onClick={confirmDelete}>確認刪除</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

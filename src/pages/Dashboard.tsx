@@ -389,16 +389,20 @@ export default function Dashboard() {
 
       {/* 核心指標區塊 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
-        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#fff3e0' }}>
-          <h3>處理中單據</h3>
-          <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--crayon-orange)' }}>{stats.inProgress}</div>
-          <div style={{ fontSize: '1rem', color: '#666', marginTop: '10px' }}>總開立單據數: <strong>{stats.total}</strong></div>
+        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#fff3e0', gridColumn: '1 / -1' }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+            <span style={{ color: 'var(--crayon-orange)' }}>處理中單據 <span style={{ fontSize: '2.5rem' }}>{stats.inProgress}</span></span>
+            <span style={{ color: '#555', fontSize: '2rem' }}>/</span> 
+            <span style={{ color: 'var(--crayon-purple)' }}>總開立單據數 <span style={{ fontSize: '2.5rem' }}>{stats.total}</span></span>
+          </div>
         </div>
         
-        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#e8f5e9' }}>
-          <h3>處理中項目數</h3>
-          <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--crayon-green)' }}>{stats.inProgressItems}</div>
-          <div style={{ fontSize: '1rem', color: '#666', marginTop: '10px' }}>總開立項目數: <strong>{stats.totalItems}</strong></div>
+        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#e8f5e9', gridColumn: '1 / -1' }}>
+          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+            <span style={{ color: 'var(--crayon-green)' }}>處理中項目數 <span style={{ fontSize: '2.5rem' }}>{stats.inProgressItems}</span></span>
+            <span style={{ color: '#555', fontSize: '2rem' }}>/</span> 
+            <span style={{ color: 'var(--crayon-purple)' }}>總開立項目數 <span style={{ fontSize: '2.5rem' }}>{stats.totalItems}</span></span>
+          </div>
         </div>
         
         <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#e3f2fd' }}>

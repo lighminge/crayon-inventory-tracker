@@ -28,8 +28,35 @@ export default function Layout() {
       }}>
         <h1 style={{ margin: 0 }}>🖍️ 塗鴉風盤點派發管理系統</h1>
         
-        {dateInfo && (
-          <div 
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginLeft: 'auto' }}>
+          {currentUser && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <div style={{ 
+                fontSize: '1.4rem', 
+                fontWeight: 'bold', 
+                color: 'var(--crayon-purple)',
+                border: '2px dashed var(--crayon-purple)',
+                padding: '5px 15px',
+                borderRadius: '20px',
+                backgroundColor: '#f3e5f5'
+              }}>
+                👋 登入人員：{currentUser.name} ({currentUser.username})
+              </div>
+              <button 
+                className="doodle-button danger" 
+                style={{ padding: '8px 20px', fontSize: '1.1rem', fontWeight: 'bold' }}
+                onClick={() => {
+                  logout();
+                  navigate('/login');
+                }}
+              >
+                登出
+              </button>
+            </div>
+          )}
+
+          {dateInfo && (
+            <div 
             onClick={() => navigate('/calendar')}
             style={{ 
             display: 'flex', 
@@ -101,6 +128,7 @@ export default function Layout() {
             )}
           </div>
         )}
+        </div>
       </header>
       
       <div className="layout">
@@ -157,15 +185,6 @@ export default function Layout() {
               </NavLink>
             )}
           </nav>
-          <div style={{ marginTop: 'auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: '10px', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>
-              👋 您好，{currentUser?.name || '管理員'}
-            </div>
-            <button className="doodle-button danger" style={{ width: '100%' }} onClick={() => {
-              logout();
-              navigate('/login');
-            }}>登出</button>
-          </div>
         </aside>
         
         <main className="main-content doodle-border">

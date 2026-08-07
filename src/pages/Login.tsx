@@ -83,7 +83,7 @@ export default function Login() {
           <input 
             className="doodle-input" 
             type="text" 
-            placeholder="帳號 (預設為 admin)" 
+            placeholder="輸入帳號" 
             value={username}
             onChange={e => setUsername(e.target.value)}
             required
@@ -91,7 +91,7 @@ export default function Login() {
           <input 
             className="doodle-input" 
             type="password" 
-            placeholder="密碼 (預設為 admin)" 
+            placeholder="輸入密碼" 
             value={password}
             onChange={e => setPassword(e.target.value)}
             required
