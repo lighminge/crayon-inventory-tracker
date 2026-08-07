@@ -867,12 +867,10 @@ export default function ItemDetails() {
               return (
                 <tr key={t.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: rowBgColor }}>
                   <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
-                    {canEdit && (
-                      <button className="doodle-button" style={{ padding: '5px 10px', minHeight: 'auto', fontSize: '0.85rem' }} onClick={() => {
-                        setSelectedTicketId(t.id);
-                        setViewMode('detail');
-                      }}>項目明細</button>
-                    )}
+                    <button className="doodle-button" style={{ padding: '5px 10px', minHeight: 'auto', fontSize: '0.85rem' }} onClick={() => {
+                      setSelectedTicketId(t.id);
+                      setViewMode('detail');
+                    }}>項目明細</button>
                   </td>
                   <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
                     <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-dark)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-dark)', fontWeight: 'bold' }}>

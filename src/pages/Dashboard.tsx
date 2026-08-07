@@ -11,6 +11,7 @@ export default function Dashboard() {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [holidays, setHolidays] = useState<HolidaySetting[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState('');
+  const [taskStatusFilter, setTaskStatusFilter] = useState<'all' | 'active' | 'expired'>('all');
   const [personnelTicketType, setPersonnelTicketType] = useState('');
   const [globalYear, setGlobalYear] = useState<number | ''>(new Date().getFullYear());
   
@@ -328,27 +329,34 @@ export default function Dashboard() {
             </select>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label style={{ fontWeight: 'bold' }}>切換盤點任務 (簡單比對)：</label>
+            <label style={{ fontWeight: 'bold' }}>盤點任務狀態：</label>
+            <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#fff3e0' }} value={taskStatusFilter} onChange={e => setTaskStatusFilter(e.target.value as 'all' | 'active' | 'expired')}>
+              <option value="all">全部</option>
+              <option value="active">未過期</option>
+              <option value="expired">已過期</option>
+            </select>
+            <label style={{ fontWeight: 'bold', marginLeft: '10px' }}>切換盤點任務：</label>
             <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e3f2fd' }} value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
               <option value="">-- 全域資料 (不指定任務) --</option>
             {tasks.filter(t => {
-              if (!t.startDate || !t.endDate) return true;
+              if (taskStatusFilter === 'all') return true;
               
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              const todayTime = today.getTime();
-              
-              const start = new Date(t.startDate);
-              if (!isNaN(start.getTime())) start.setHours(0, 0, 0, 0);
-              const startTime = start.getTime();
-              
-              const end = new Date(t.endDate);
-              if (!isNaN(end.getTime())) end.setHours(23, 59, 59, 999);
-              const endTime = end.getTime();
-              
-              if (isNaN(startTime) || isNaN(endTime)) return true;
-              
-              return todayTime >= startTime && todayTime <= endTime;
+              let isExpired = false;
+              if (t.endDate) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const end = new Date(t.endDate);
+                if (!isNaN(end.getTime())) {
+                  end.setHours(23, 59, 59, 999);
+                  if (today.getTime() > end.getTime()) {
+                    isExpired = true;
+                  }
+                }
+              }
+
+              if (taskStatusFilter === 'active') return !isExpired;
+              if (taskStatusFilter === 'expired') return isExpired;
+              return true;
             }).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
@@ -388,29 +396,29 @@ export default function Dashboard() {
       )}
 
       {/* 核心指標區塊 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
-        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#fff3e0', gridColumn: '1 / -1' }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', marginBottom: '30px' }}>
+        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#fff3e0', flex: 1, minWidth: '250px' }}>
+          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
             <span style={{ color: 'var(--crayon-orange)' }}>處理中單據 <span style={{ fontSize: '2.5rem' }}>{stats.inProgress}</span></span>
-            <span style={{ color: '#555', fontSize: '2rem' }}>/</span> 
-            <span style={{ color: 'var(--crayon-purple)' }}>總開立單據數 <span style={{ fontSize: '2.5rem' }}>{stats.total}</span></span>
+            <span style={{ color: '#555', fontSize: '1.2rem', margin: '5px 0' }}>/</span> 
+            <span style={{ color: 'var(--crayon-purple)' }}>總開立單據數 <span style={{ fontSize: '1.8rem' }}>{stats.total}</span></span>
           </div>
         </div>
         
-        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#e8f5e9', gridColumn: '1 / -1' }}>
-          <div style={{ fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#e8f5e9', flex: 1, minWidth: '250px' }}>
+          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
             <span style={{ color: 'var(--crayon-green)' }}>處理中項目數 <span style={{ fontSize: '2.5rem' }}>{stats.inProgressItems}</span></span>
-            <span style={{ color: '#555', fontSize: '2rem' }}>/</span> 
-            <span style={{ color: 'var(--crayon-purple)' }}>總開立項目數 <span style={{ fontSize: '2.5rem' }}>{stats.totalItems}</span></span>
+            <span style={{ color: '#555', fontSize: '1.2rem', margin: '5px 0' }}>/</span> 
+            <span style={{ color: 'var(--crayon-purple)' }}>總開立項目數 <span style={{ fontSize: '1.8rem' }}>{stats.totalItems}</span></span>
           </div>
         </div>
         
-        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#e3f2fd' }}>
+        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#e3f2fd', flex: 1, minWidth: '200px' }}>
           <h3>整體完成率</h3>
           <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{stats.completionRate}%</div>
         </div>
         
-        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#f3e5f5' }}>
+        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#f3e5f5', flex: 1, minWidth: '200px' }}>
           <h3>平均處理天數</h3>
           <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--crayon-purple)' }}>{stats.avgDays.toFixed(2)} <span style={{fontSize:'1rem'}}>天</span></div>
         </div>
