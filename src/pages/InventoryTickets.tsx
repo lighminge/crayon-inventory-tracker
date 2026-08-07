@@ -4,8 +4,12 @@ import { getTickets, updateTicket, deleteTicket, getPersonnel, getWorkflows, add
 import { calculateBusinessDays } from '../utils/dateUtils';
 import type { HolidaySetting } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function InventoryTicketsPage() {
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission('tickets', 'edit');
+
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -514,7 +518,7 @@ export default function InventoryTicketsPage() {
                   </div>
                   
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: '300px' }}>
-                    {!isFinished && nextStage && (() => {
+                    {canEdit && !isFinished && nextStage && (() => {
                       const cIdx = workflows.findIndex(w => w.id === nextStage.id);
                       const nNext = cIdx !== -1 && cIdx + 1 < workflows.length ? workflows[cIdx + 1] : null;
                       const btnText = nNext ? `推進至 ${nNext.name}` : '結案';
@@ -524,17 +528,21 @@ export default function InventoryTicketsPage() {
                         </button>
                       );
                     })()}
-                    {!isFinished && isPendingApproval && (
+                    {canEdit && !isFinished && isPendingApproval && (
                       <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-orange)' }} onClick={() => handleOpenManagerForm(t)}>主管核准結案</button>
                     )}
-                    <button className="doodle-button" onClick={() => openEditModal(t)}>修改</button>
-                    <button 
-                      className={`doodle-button ${t.closeDate ? '' : 'danger'}`} 
-                      style={{ opacity: t.closeDate ? 0.5 : 1, cursor: t.closeDate ? 'not-allowed' : 'pointer', border: t.closeDate ? '2px dashed #999' : undefined, color: t.closeDate ? '#666' : undefined }}
-                      onClick={() => !t.closeDate && setDeletingId(t.id)}
-                      disabled={!!t.closeDate}
-                      title={t.closeDate ? '已結案的盤點單無法刪除' : ''}
-                    >刪除</button>
+                    {canEdit && (
+                      <>
+                        <button className="doodle-button" onClick={() => openEditModal(t)}>修改</button>
+                        <button 
+                          className={`doodle-button ${t.closeDate ? '' : 'danger'}`} 
+                          style={{ opacity: t.closeDate ? 0.5 : 1, cursor: t.closeDate ? 'not-allowed' : 'pointer', border: t.closeDate ? '2px dashed #999' : undefined, color: t.closeDate ? '#666' : undefined }}
+                          onClick={() => !t.closeDate && setDeletingId(t.id)}
+                          disabled={!!t.closeDate}
+                          title={t.closeDate ? '已結案的盤點單無法刪除' : ''}
+                        >刪除</button>
+                      </>
+                    )}
                   </div>
                 </div>
 

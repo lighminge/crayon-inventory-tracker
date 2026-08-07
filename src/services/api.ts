@@ -1,6 +1,6 @@
 import { collection, getDocs, setDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
-import type { Personnel, InventoryTicket, Workflow, InventoryTask } from '../types';
+import type { Personnel, InventoryTicket, Workflow, InventoryTask, SystemUser } from '../types';
 
 // Feature Flag to use local storage if Firebase is not configured properly
 export const USE_MOCK = false;
@@ -168,4 +168,24 @@ export const saveHoliday = async (holiday: HolidaySetting): Promise<void> => {
 
 export const deleteHoliday = async (id: string): Promise<void> => {
   await deleteDoc(doc(db, 'holidays', id));
+};
+
+// --- System Users API ---
+export const getSystemUsers = async (): Promise<SystemUser[]> => {
+  const snapshot = await getDocs(collection(db, 'system_users'));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SystemUser));
+};
+
+export const addSystemUser = async (user: Omit<SystemUser, 'id'>): Promise<SystemUser> => {
+  const newRef = doc(collection(db, 'system_users'));
+  await setDoc(newRef, user);
+  return { id: newRef.id, ...user };
+};
+
+export const updateSystemUser = async (id: string, user: Partial<SystemUser>): Promise<void> => {
+  await updateDoc(doc(db, 'system_users', id), user);
+};
+
+export const deleteSystemUser = async (id: string): Promise<void> => {
+  await deleteDoc(doc(db, 'system_users', id));
 };

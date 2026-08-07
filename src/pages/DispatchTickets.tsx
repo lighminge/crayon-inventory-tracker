@@ -2,8 +2,12 @@ import { useState, useEffect } from 'react';
 import { getPersonnel, addTicket, getWorkflows, getTickets, getTasks } from '../services/api';
 import type { Personnel, Workflow, InventoryTicket, InventoryTask } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function DispatchTickets() {
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission('dispatch', 'edit');
+
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
@@ -255,13 +259,15 @@ export default function DispatchTickets() {
                 </div>
               </div>
 
-              <button 
-                className="doodle-button success" 
-                style={{ width: '100%', fontSize: '1.2rem', padding: '10px' }}
-                onClick={() => handleOpenDispatchModal(p)}
-              >
-                📤 派送盤點單
-              </button>
+              {canEdit && (
+                <button 
+                  className="doodle-button success" 
+                  style={{ width: '100%', fontSize: '1.2rem', padding: '10px' }}
+                  onClick={() => handleOpenDispatchModal(p)}
+                >
+                  📤 派送盤點單
+                </button>
+              )}
             </div>
           )
         })}

@@ -3,9 +3,11 @@ import { useEffect, useState } from 'react';
 import { getTaiwanDateInfo } from '../utils/taiwanFestivals';
 import type { TaiwanDateInfo } from '../utils/taiwanFestivals';
 import FloatingCalculator from './FloatingCalculator';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Layout() {
   const navigate = useNavigate();
+  const { hasPermission, logout, currentUser } = useAuth();
   const [dateInfo, setDateInfo] = useState<TaiwanDateInfo | null>(null);
 
   useEffect(() => {
@@ -104,36 +106,65 @@ export default function Layout() {
       <div className="layout">
         <aside className="sidebar doodle-border">
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <NavLink to="/" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
-              📊 儀表板
-            </NavLink>
-            <NavLink to="/dispatch" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
-              📤 盤點單派送
-            </NavLink>
-            <NavLink to="/tickets" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
-              📝 盤點單管理
-            </NavLink>
-            <NavLink to="/workflow-tickets" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
-              🔄 盤點單流程
-            </NavLink>
-            <NavLink to="/tasks" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
-              🎯 盤點任務
-            </NavLink>
-            <NavLink to="/workflow" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
-              ⚙️ 流程管理
-            </NavLink>
-            <NavLink to="/item-details" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
-              📑 盤點項目明細
-            </NavLink>
-            <NavLink to="/personnel" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
-              👥 人員管理
-            </NavLink>
-            <NavLink to="/statistics" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
-              📈 統計作業
-            </NavLink>
+            {hasPermission('dashboard', 'view') && (
+              <NavLink to="/" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+                📊 儀表板
+              </NavLink>
+            )}
+            {hasPermission('dispatch', 'view') && (
+              <NavLink to="/dispatch" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+                📤 盤點單派送
+              </NavLink>
+            )}
+            {hasPermission('tickets', 'view') && (
+              <NavLink to="/tickets" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+                📝 盤點單管理
+              </NavLink>
+            )}
+            {hasPermission('workflowTickets', 'view') && (
+              <NavLink to="/workflow-tickets" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+                🔄 盤點單流程
+              </NavLink>
+            )}
+            {hasPermission('tasks', 'view') && (
+              <NavLink to="/tasks" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+                🎯 盤點任務
+              </NavLink>
+            )}
+            {hasPermission('workflow', 'view') && (
+              <NavLink to="/workflow" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+                ⚙️ 流程管理
+              </NavLink>
+            )}
+            {hasPermission('itemDetails', 'view') && (
+              <NavLink to="/item-details" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+                📑 盤點項目明細
+              </NavLink>
+            )}
+            {hasPermission('personnel', 'view') && (
+              <NavLink to="/personnel" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+                👥 人員管理
+              </NavLink>
+            )}
+            {hasPermission('statistics', 'view') && (
+              <NavLink to="/statistics" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+                📈 統計作業
+              </NavLink>
+            )}
+            {hasPermission('system', 'view') && (
+              <NavLink to="/system" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+                ⚙️ 系統管理
+              </NavLink>
+            )}
           </nav>
           <div style={{ marginTop: 'auto' }}>
-            <button className="doodle-button danger" style={{ width: '100%' }}>登出</button>
+            <div style={{ textAlign: 'center', marginBottom: '10px', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>
+              👋 您好，{currentUser?.name || '管理員'}
+            </div>
+            <button className="doodle-button danger" style={{ width: '100%' }} onClick={() => {
+              logout();
+              navigate('/login');
+            }}>登出</button>
           </div>
         </aside>
         

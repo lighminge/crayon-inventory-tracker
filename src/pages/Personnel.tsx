@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getPersonnel, addPersonnel, updatePersonnel, deletePersonnel } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import type { Personnel } from '../types';
 
 const ROLES_LIST = ['備料', '收料', '盤點', '行政', '生管', '採購', '主管'];
@@ -27,6 +28,8 @@ const OtherIcon = () => (
 );
 
 export default function PersonnelPage() {
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission('personnel', 'edit');
   const [personnelList, setPersonnelList] = useState<Personnel[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPerson, setEditingPerson] = useState<Personnel | null>(null);
@@ -146,7 +149,9 @@ export default function PersonnelPage() {
               <option value={20}>20</option>
             </select>
           </div>
-          <button className="doodle-button success" onClick={() => handleOpenForm()}>＋ 新增人員</button>
+          {canEdit && (
+            <button className="doodle-button success" onClick={() => handleOpenForm()}>＋ 新增人員</button>
+          )}
         </div>
       </div>
 
@@ -210,10 +215,12 @@ export default function PersonnelPage() {
 
               <p style={{ margin: '5px 0', fontSize: '0.9rem', color: '#555' }}>備註：{person.notes || '無'}</p>
               
-              <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-                <button className="doodle-button success" style={{ flex: 1 }} onClick={() => handleOpenForm(person)}>編輯</button>
-                <button className="doodle-button danger" style={{ flex: 1 }} onClick={() => handleDelete(person.id)}>刪除</button>
-              </div>
+              {canEdit && (
+                <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                  <button className="doodle-button success" style={{ flex: 1 }} onClick={() => handleOpenForm(person)}>編輯</button>
+                  <button className="doodle-button danger" style={{ flex: 1 }} onClick={() => handleDelete(person.id)}>刪除</button>
+                </div>
+              )}
             </div>
           );
         })}

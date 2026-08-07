@@ -59,3 +59,27 @@ export interface HolidaySetting {
   type: 'holiday' | 'workday'; // holiday (skip calculation) or workday (make-up workday)
   description: string;
 }
+
+export type PermissionLevel = 'none' | 'view' | 'edit';
+
+export interface ModulePermissions {
+  dashboard: PermissionLevel;
+  dispatch: PermissionLevel;
+  tickets: PermissionLevel;
+  workflowTickets: PermissionLevel;
+  tasks: PermissionLevel;
+  workflow: PermissionLevel;
+  itemDetails: PermissionLevel;
+  personnel: PermissionLevel;
+  statistics: PermissionLevel;
+  system: PermissionLevel; // usually only 'edit' for admin
+  calendar: PermissionLevel;
+}
+
+export interface SystemUser {
+  id: string; // document id (can be same as username or auto-generated)
+  username: string;
+  password?: string; // Optional because we might not send it to client if unnecessary, though for this mock we will
+  name: string;
+  permissions: ModulePermissions;
+}

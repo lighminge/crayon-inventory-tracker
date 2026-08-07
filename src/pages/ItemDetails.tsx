@@ -3,10 +3,13 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { getTickets, getAllItemDetails, deleteItemDetail, saveItemDetail } from '../services/api';
 import type { InventoryTicket, InventoryItemDetail } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function ItemDetails() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission('itemDetails', 'edit');
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
   const [details, setDetails] = useState<InventoryItemDetail[]>([]);
   
@@ -421,17 +424,18 @@ export default function ItemDetails() {
                   <button className="doodle-button" style={{ padding: '5px 15px', minHeight: 'auto' }} disabled={detailCurrentPage === detailTotalPages} onClick={() => setDetailCurrentPage(p => p + 1)}>下一頁</button>
                 </div>
               )}
-              
-              <button className="doodle-button" style={{ marginLeft: 'auto', backgroundColor: 'var(--crayon-purple)', color: 'white' }} onClick={startAddNew}>
-                ＋ 手動新增明細
-              </button>
+              {canEdit && (
+                <button className="doodle-button" style={{ marginLeft: 'auto', backgroundColor: 'var(--crayon-purple)', color: 'white' }} onClick={startAddNew}>
+                  ＋ 手動新增明細
+                </button>
+              )}
             </div>
 
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
               <thead>
                 <tr style={{ backgroundColor: 'var(--crayon-dark)', color: 'white' }}>
-                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)', width: '120px', textAlign: 'center' }}>功能</th>
+                  {canEdit && <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)', width: '120px', textAlign: 'center' }}>功能</th>}
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>序號</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>日期</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>物料總重量</th>
@@ -588,12 +592,14 @@ export default function ItemDetails() {
 
                         return (
                           <tr key={d.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
-                            <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                                <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', backgroundColor: 'var(--crayon-purple)', color: 'white', minHeight: 'auto' }} onClick={() => startEdit(d)}>修改</button>
-                                <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', backgroundColor: 'var(--crayon-red)', color: 'white', minHeight: 'auto' }} onClick={() => setDeleteConfirmId(d.id)}>刪除</button>
-                              </div>
-                            </td>
+                            {canEdit && (
+                              <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
+                                <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                                  <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', backgroundColor: 'var(--crayon-purple)', color: 'white', minHeight: 'auto' }} onClick={() => startEdit(d)}>修改</button>
+                                  <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', backgroundColor: 'var(--crayon-red)', color: 'white', minHeight: 'auto' }} onClick={() => setDeleteConfirmId(d.id)}>刪除</button>
+                                </div>
+                              </td>
+                            )}
                           <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
                             <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-green)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-dark)', fontWeight: 'bold' }}>
                               {d.itemSeq} {d.subItemSeq ? `- ${d.subItemSeq}` : ''}
@@ -861,10 +867,12 @@ export default function ItemDetails() {
               return (
                 <tr key={t.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: rowBgColor }}>
                   <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
-                    <button className="doodle-button" style={{ padding: '5px 10px', minHeight: 'auto', fontSize: '0.85rem' }} onClick={() => {
-                      setSelectedTicketId(t.id);
-                      setViewMode('detail');
-                    }}>項目明細</button>
+                    {canEdit && (
+                      <button className="doodle-button" style={{ padding: '5px 10px', minHeight: 'auto', fontSize: '0.85rem' }} onClick={() => {
+                        setSelectedTicketId(t.id);
+                        setViewMode('detail');
+                      }}>項目明細</button>
+                    )}
                   </td>
                   <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
                     <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-dark)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-dark)', fontWeight: 'bold' }}>

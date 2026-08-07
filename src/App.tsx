@@ -10,14 +10,25 @@ import Statistics from './pages/Statistics';
 import Login from './pages/Login';
 import InventoryTasks from './pages/InventoryTasks';
 import ItemDetails from './pages/ItemDetails';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import SystemManagement from './pages/SystemManagement';
 import CalendarManagement from './pages/CalendarManagement';
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { currentUser } = useAuth();
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Layout />}>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           <Route index element={<Dashboard />} />
           <Route path="tasks" element={<InventoryTasks />} />
           <Route path="dispatch" element={<DispatchTickets />} />
@@ -28,10 +39,12 @@ function App() {
           <Route path="personnel" element={<Personnel />} />
           <Route path="statistics" element={<Statistics />} />
           <Route path="calendar" element={<CalendarManagement />} />
+          <Route path="system" element={<SystemManagement />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
+    </AuthProvider>
   );
 }
 

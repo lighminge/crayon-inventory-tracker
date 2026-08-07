@@ -4,9 +4,10 @@ interface CrayonDatePickerProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
-export default function CrayonDatePicker({ value, onChange, placeholder = '選擇日期' }: CrayonDatePickerProps) {
+export default function CrayonDatePicker({ value, onChange, placeholder = '選擇日期', disabled = false }: CrayonDatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(() => {
     const d = value ? new Date(value) : new Date();
@@ -69,14 +70,20 @@ export default function CrayonDatePicker({ value, onChange, placeholder = '選�
       <div 
         className="doodle-input" 
         style={{ 
-          cursor: 'pointer', 
-          width: '100%', 
-          display: 'flex', 
+          display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          backgroundColor: 'white'
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          padding: '8px 12px',
+          border: '2px solid var(--crayon-dark)',
+          borderRadius: '10px',
+          backgroundColor: disabled ? '#f0f0f0' : 'white',
+          opacity: disabled ? 0.7 : 1,
+          boxShadow: disabled ? 'none' : '3px 3px 0 var(--crayon-dark)',
+          fontFamily: "'Caveat', 'Noto Sans TC', sans-serif",
+          fontSize: '1.1rem'
         }}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
       >
         <span style={{ color: value ? '#000' : '#888' }}>{value || placeholder}</span>
         <span>📅</span>

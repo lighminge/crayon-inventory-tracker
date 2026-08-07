@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import type { Workflow, Personnel } from '../types';
 import { getWorkflows, addWorkflow, updateWorkflow, deleteWorkflow, getPersonnel } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function WorkflowManagement() {
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission('workflow', 'edit');
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -104,8 +107,9 @@ export default function WorkflowManagement() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>⚙️ 流程管理</h2>
-        <button className="doodle-button" onClick={() => handleOpenForm()}>＋ 新增流程</button>
+        {canEdit && (
+          <button className="doodle-button" onClick={() => handleOpenForm()}>＋ 新增流程</button>
+        )}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -136,13 +140,16 @@ export default function WorkflowManagement() {
                   <p style={{ margin: '5px 0 0 0', color: '#555' }}>預設負責人：{getPersonnelName(w.assigneeId)}</p>
                 </div>
               </div>
-
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="doodle-button" onClick={() => moveOrder(index, 'up')} disabled={index <= 1 || isLast}>↑</button>
-                <button className="doodle-button" onClick={() => moveOrder(index, 'down')} disabled={isFirst || index >= workflows.length - 2}>↓</button>
-                <button className="doodle-button success" onClick={() => handleOpenForm(w)}>編輯</button>
-                {!isLocked && (
-                  <button className="doodle-button danger" onClick={() => handleDelete(w.id)}>刪除</button>
+                {canEdit && (
+                  <>
+                    <button className="doodle-button" onClick={() => moveOrder(index, 'up')} disabled={index <= 1 || isLast}>⬆️</button>
+                    <button className="doodle-button" onClick={() => moveOrder(index, 'down')} disabled={isFirst || index >= workflows.length - 2}>⬇️</button>
+                    <button className="doodle-button success" onClick={() => handleOpenForm(w)}>編輯</button>
+                    {!isLocked && (
+                      <button className="doodle-button danger" onClick={() => handleDelete(w.id)}>刪除</button>
+                    )}
+                  </>
                 )}
               </div>
             </div>

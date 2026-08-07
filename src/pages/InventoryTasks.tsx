@@ -8,6 +8,7 @@ import type { InventoryTask, InventoryTicket, Personnel, HolidaySetting } from '
 import CrayonDatePicker from '../components/CrayonDatePicker';
 import { getTasks, addTask, updateTask, deleteTask, getTickets, getPersonnel, getHolidays } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
+import { useAuth } from '../contexts/AuthContext';
 
 const formatDateLocal = (timestamp: number) => {
   const d = new Date(timestamp);
@@ -16,6 +17,8 @@ const formatDateLocal = (timestamp: number) => {
 
 export default function InventoryTasks() {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission('tasks', 'edit');
   const [tasks, setTasks] = useState<InventoryTask[]>([]);
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
@@ -311,7 +314,9 @@ export default function InventoryTasks() {
             總任務數量：{filteredTasks.length} 筆
           </div>
         </div>
-        <button className="doodle-button" onClick={() => handleOpenForm()}>＋ 新增盤點任務</button>
+        {canEdit && (
+          <button className="doodle-button" onClick={() => handleOpenForm()}>＋ 新增盤點任務</button>
+        )}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '10px', backgroundColor: '#f0f8ff', borderRadius: '10px', border: '1px dashed var(--crayon-blue)', flexWrap: 'wrap', gap: '10px' }}>
@@ -811,16 +816,20 @@ export default function InventoryTasks() {
               )}
 
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button className="doodle-button success" style={{ flex: 1 }} onClick={() => handleOpenForm(task)}>編輯</button>
-                <button 
-                  className="doodle-button danger" 
-                  style={{ flex: 1, opacity: task.mappedTickets.length > 0 ? 0.5 : 1, cursor: task.mappedTickets.length > 0 ? 'not-allowed' : 'pointer' }} 
-                  disabled={task.mappedTickets.length > 0} 
-                  title={task.mappedTickets.length > 0 ? "已有派送單據，無法刪除" : ""}
-                  onClick={() => setTaskToDelete(task.id)}
-                >
-                  刪除
-                </button>
+                {canEdit && (
+                  <>
+                    <button className="doodle-button success" style={{ flex: 1 }} onClick={() => handleOpenForm(task)}>編輯</button>
+                    <button 
+                      className="doodle-button danger" 
+                      style={{ flex: 1, opacity: task.mappedTickets.length > 0 ? 0.5 : 1, cursor: task.mappedTickets.length > 0 ? 'not-allowed' : 'pointer' }} 
+                      disabled={task.mappedTickets.length > 0} 
+                      title={task.mappedTickets.length > 0 ? "已有派送單據，無法刪除" : ""}
+                      onClick={() => setTaskToDelete(task.id)}
+                    >
+                      刪除
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           );

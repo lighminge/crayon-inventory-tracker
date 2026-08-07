@@ -4,8 +4,11 @@ import { getTickets, updateTicket, getPersonnel, getWorkflows, getTasks, getHoli
 import { calculateBusinessDays } from '../utils/dateUtils';
 import type { HolidaySetting } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function WorkflowTickets() {
+  const { hasPermission } = useAuth();
+  const canEdit = hasPermission('workflowTickets', 'edit');
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
@@ -18,6 +21,7 @@ export default function WorkflowTickets() {
 
   // Search & Filter State
   const [searchId, setSearchId] = useState('');
+  const [fastQueryId, setFastQueryId] = useState('');
   const [filterTicketType, setFilterTicketType] = useState('');
   const [filterTaskId, setFilterTaskId] = useState('');
 
@@ -63,8 +67,9 @@ export default function WorkflowTickets() {
     let result = [...tickets];
     if (filterTicketType) result = result.filter(t => t.ticketType === filterTicketType);
     if (filterTaskId) result = result.filter(t => t.taskId === filterTaskId);
+    if (fastQueryId) result = result.filter(t => t.id.includes(fastQueryId));
     return result.sort((a, b) => a.id.localeCompare(b.id));
-  }, [tickets, filterTicketType, filterTaskId]);
+  }, [tickets, filterTicketType, filterTaskId, fastQueryId]);
 
   // Pagination Logic
   const totalPages = Math.ceil(activeTickets.length / itemsPerPage);
@@ -294,9 +299,9 @@ export default function WorkflowTickets() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
           <label style={{ fontWeight: 'bold' }}>統一設定日期：</label>
           <div style={{ display: 'inline-block', width: '150px' }}>
-            <CrayonDatePicker value={batchDate} onChange={setBatchDate} />
+            <CrayonDatePicker value={batchDate} onChange={setBatchDate} disabled={!canEdit} />
           </div>
-          <button className="doodle-button success" onClick={openBatchConfirm}>批次推進至下一關</button>
+          {canEdit && <button className="doodle-button success" onClick={openBatchConfirm}>批次推進至下一關</button>}
         </div>
       </div>
 
@@ -343,11 +348,17 @@ export default function WorkflowTickets() {
             ))}
           </select>
         </div>
-        <form onSubmit={handleSearchAndOpen} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>🚀 快速處理：</label>
-          <input className="doodle-input" style={{ width: '250px', textAlign: 'center', fontSize: '1.2rem' }} required value={searchId} onChange={e => setSearchId(e.target.value)} placeholder="輸入單號快速推進..." />
-          <button type="submit" className="doodle-button" style={{ fontSize: '1.1rem' }}>🔍 快查推進</button>
-        </form>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>🔍 快速查詢：</label>
+          <input className="doodle-input" style={{ width: '150px', textAlign: 'center', fontSize: '1.2rem' }} value={fastQueryId} onChange={e => setFastQueryId(e.target.value)} placeholder="查詢單號..." />
+        </div>
+        {canEdit && (
+          <form onSubmit={handleSearchAndOpen} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>🚀 快速處理：</label>
+            <input className="doodle-input" style={{ width: '250px', textAlign: 'center', fontSize: '1.2rem' }} required value={searchId} onChange={e => setSearchId(e.target.value)} placeholder="輸入單號快速推進..." />
+            <button type="submit" className="doodle-button" style={{ fontSize: '1.1rem' }}>🔍 快查推進</button>
+          </form>
+        )}
       </div>
 
       <div className="doodle-border" style={{ overflowX: 'auto', backgroundColor: 'white' }}>
@@ -407,8 +418,8 @@ export default function WorkflowTickets() {
                       </span>
                     </td>
                     <td style={{ padding: '15px' }}>
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        {nextStage && (() => {
+                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        {canEdit && nextStage && (() => {
                           const cIdx = workflows.findIndex(w => w.id === nextStage.id);
                           const nNext = cIdx !== -1 && cIdx + 1 < workflows.length ? workflows[cIdx + 1] : null;
                           const btnText = nNext ? `推進至 ${nNext.name}` : '結案';
@@ -418,12 +429,12 @@ export default function WorkflowTickets() {
                             </button>
                           );
                         })()}
-                        {isPendingApproval && (
+                        {canEdit && isPendingApproval && (
                           <button className="doodle-button" style={{ backgroundColor: 'var(--crayon-orange)', padding: '10px 20px', fontSize: '1.3rem', fontWeight: 'bold' }} onClick={() => handleOpenManagerForm(t)}>
                             主管核准結案
                           </button>
                         )}
-                        {t.stageDates && Object.keys(t.stageDates).length > 0 && (
+                        {canEdit && t.stageDates && Object.keys(t.stageDates).length > 0 && (
                           <button className="doodle-button danger" style={{ padding: '10px 20px', fontSize: '1.3rem', fontWeight: 'bold' }} onClick={() => confirmRevertStage(t)}>
                             退回上一關
                           </button>
