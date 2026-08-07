@@ -396,31 +396,31 @@ export default function Dashboard() {
       )}
 
       {/* 核心指標區塊 */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', marginBottom: '30px' }}>
-        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#fff3e0', flex: 1, minWidth: '250px' }}>
-          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-            <span style={{ color: 'var(--crayon-orange)' }}>處理中單據 <span style={{ fontSize: '2.5rem' }}>{stats.inProgress}</span></span>
-            <span style={{ color: '#555', fontSize: '1.2rem', margin: '5px 0' }}>/</span> 
-            <span style={{ color: 'var(--crayon-purple)' }}>總開立單據數 <span style={{ fontSize: '1.8rem' }}>{stats.total}</span></span>
+      <div style={{ display: 'flex', gap: '15px', marginBottom: '30px' }}>
+        <div className="doodle-border" style={{ padding: '15px', textAlign: 'center', backgroundColor: '#fff3e0', flex: 1 }}>
+          <div style={{ fontSize: '1rem', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+            <span style={{ color: 'var(--crayon-orange)' }}>處理中單據 <br/><span style={{ fontSize: '2rem' }}>{stats.inProgress}</span></span>
+            <span style={{ color: '#555', fontSize: '1rem' }}>/</span> 
+            <span style={{ color: 'var(--crayon-purple)' }}>總開立單據 <br/><span style={{ fontSize: '1.5rem' }}>{stats.total}</span></span>
           </div>
         </div>
         
-        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#e8f5e9', flex: 1, minWidth: '250px' }}>
-          <div style={{ fontSize: '1.2rem', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-            <span style={{ color: 'var(--crayon-green)' }}>處理中項目數 <span style={{ fontSize: '2.5rem' }}>{stats.inProgressItems}</span></span>
-            <span style={{ color: '#555', fontSize: '1.2rem', margin: '5px 0' }}>/</span> 
-            <span style={{ color: 'var(--crayon-purple)' }}>總開立項目數 <span style={{ fontSize: '1.8rem' }}>{stats.totalItems}</span></span>
+        <div className="doodle-border" style={{ padding: '15px', textAlign: 'center', backgroundColor: '#e8f5e9', flex: 1 }}>
+          <div style={{ fontSize: '1rem', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
+            <span style={{ color: 'var(--crayon-green)' }}>處理中項目 <br/><span style={{ fontSize: '2rem' }}>{stats.inProgressItems}</span></span>
+            <span style={{ color: '#555', fontSize: '1rem' }}>/</span> 
+            <span style={{ color: 'var(--crayon-purple)' }}>總開立項目 <br/><span style={{ fontSize: '1.5rem' }}>{stats.totalItems}</span></span>
           </div>
         </div>
         
-        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#e3f2fd', flex: 1, minWidth: '200px' }}>
-          <h3>整體完成率</h3>
-          <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{stats.completionRate}%</div>
+        <div className="doodle-border" style={{ padding: '15px', textAlign: 'center', backgroundColor: '#e3f2fd', flex: 1 }}>
+          <h3 style={{ margin: '0 0 10px 0', fontSize: '1.1rem' }}>整體完成率</h3>
+          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{stats.completionRate}%</div>
         </div>
         
-        <div className="doodle-border" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#f3e5f5', flex: 1, minWidth: '200px' }}>
-          <h3>平均處理天數</h3>
-          <div style={{ fontSize: '3rem', fontWeight: 'bold', color: 'var(--crayon-purple)' }}>{stats.avgDays.toFixed(2)} <span style={{fontSize:'1rem'}}>天</span></div>
+        <div className="doodle-border" style={{ padding: '15px', textAlign: 'center', backgroundColor: '#f3e5f5', flex: 1 }}>
+          <h3 style={{ margin: '0 0 10px 0', fontSize: '1.1rem' }}>平均處理天數</h3>
+          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-purple)' }}>{stats.avgDays.toFixed(1)} <span style={{fontSize:'1rem'}}>天</span></div>
         </div>
       </div>
 

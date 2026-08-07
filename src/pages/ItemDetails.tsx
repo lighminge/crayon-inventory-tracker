@@ -650,7 +650,7 @@ export default function ItemDetails() {
                       })}
                       {/* Subtotal row */}
                         <tr style={{ backgroundColor: '#fff0f5', border: '3px solid var(--crayon-purple)', boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)' }}>
-                          <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)' }}></td>
+                          {canEdit && <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)' }}></td>}
                           <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.2rem', fontWeight: '900', color: 'var(--crayon-purple)' }}>
                             小計 ({itemSeq})
                             <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>共 {group.length} 項</div>
