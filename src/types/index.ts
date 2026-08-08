@@ -81,5 +81,15 @@ export interface SystemUser {
   username: string;
   password?: string; // Optional because we might not send it to client if unnecessary, though for this mock we will
   name: string;
+  personnelId?: string; // 對應的人員ID
   permissions: ModulePermissions;
+}
+
+export interface SystemLoginRecord {
+  id: string;
+  userId: string;
+  username: string;
+  loginTime: number;
+  logoutTime?: number;
+  ip?: string;
 }

@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { getSystemUsers, addSystemUser, updateSystemUser, deleteSystemUser } from '../services/api';
+import React, { useState, useEffect, useMemo } from 'react';
+import { getSystemUsers, addSystemUser, updateSystemUser, deleteSystemUser, getPersonnel, getLoginRecords } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import type { SystemUser, ModulePermissions, PermissionLevel } from '../types';
+import type { SystemUser, ModulePermissions, PermissionLevel, Personnel, SystemLoginRecord } from '../types';
+import * as XLSX from 'xlsx';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+
 
 const defaultPermissions: ModulePermissions = {
   dashboard: 'view',
@@ -33,13 +36,95 @@ const moduleNames: Record<keyof ModulePermissions, string> = {
 
 export default function SystemManagement() {
   const { hasPermission, currentUser } = useAuth();
+  const canEdit = hasPermission('system', 'edit');
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingUser, setEditingUser] = useState<Partial<SystemUser>>({});
   const [userToDelete, setUserToDelete] = useState<{ id: string, username: string } | null>(null);
   
   // We check if current user can edit system
-  const canEdit = hasPermission('system', 'edit');
+  
+  // Tabs: 'accounts' | 'logins'
+  const [activeTab, setActiveTab] = useState<'accounts' | 'logins'>('accounts');
+  
+  // Personnel for linkage
+  const [personnelList, setPersonnelList] = useState<Personnel[]>([]);
+  
+  // Login Records
+  const [loginRecords, setLoginRecords] = useState<SystemLoginRecord[]>([]);
+  const [loginPage, setLoginPage] = useState(1);
+  const [loginPerPage, setLoginPerPage] = useState(10);
+  const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
+  
+  useEffect(() => {
+    loadPersonnel();
+    if (activeTab === 'logins') {
+      loadLoginRecords();
+    }
+  }, [activeTab]);
+
+  const loadPersonnel = async () => {
+    try {
+      const p = await getPersonnel();
+      setPersonnelList(p);
+    } catch (e) {
+      console.error('Failed to load personnel', e);
+    }
+  };
+
+  const loadLoginRecords = async () => {
+    try {
+      const records = await getLoginRecords();
+      setLoginRecords(records);
+    } catch (e) {
+      console.error('Failed to load login records', e);
+    }
+  };
+
+  // Login Records Derived Data
+  const paginatedLogins = useMemo(() => {
+    const start = (loginPage - 1) * loginPerPage;
+    return loginRecords.slice(start, start + loginPerPage);
+  }, [loginRecords, loginPage, loginPerPage]);
+
+  const loginChartData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const today = new Date();
+    // Initialize last 14 days to 0
+    for(let i = 13; i >= 0; i--) {
+      const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
+      counts[d.toLocaleDateString('zh-TW')] = 0;
+    }
+    
+    loginRecords.forEach(r => {
+      const dStr = new Date(r.loginTime).toLocaleDateString('zh-TW');
+      if (counts[dStr] !== undefined) {
+        counts[dStr]++;
+      }
+    });
+    
+    return Object.keys(counts).map(date => ({
+      date,
+      count: counts[date]
+    }));
+  }, [loginRecords]);
+
+  const handleExportExcel = () => {
+    const exportData = loginRecords.map((r, i) => ({
+      '序號': i + 1,
+      '帳號': r.username,
+      'IP': r.ip || '未知',
+      '登入時間': new Date(r.loginTime).toLocaleString('zh-TW'),
+      '登出時間': r.logoutTime ? new Date(r.logoutTime).toLocaleString('zh-TW') : '未登出/異常'
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "登入記錄");
+    
+    const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    XLSX.writeFile(wb, `系統登入記錄_${dateStr}.xlsx`);
+  };
 
   useEffect(() => {
     loadUsers();
@@ -130,7 +215,46 @@ export default function SystemManagement() {
   };
 
   return (
+
     <div>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid var(--crayon-dark)' }}>
+        <button 
+          onClick={() => setActiveTab('accounts')}
+          style={{
+            padding: '10px 20px',
+            fontSize: '1.2rem',
+            fontWeight: 'bold',
+            backgroundColor: activeTab === 'accounts' ? 'var(--crayon-dark)' : '#f0f0f0',
+            color: activeTab === 'accounts' ? 'white' : '#666',
+            border: '2px solid var(--crayon-dark)',
+            borderBottom: 'none',
+            borderRadius: '10px 10px 0 0',
+            cursor: 'pointer'
+          }}
+        >
+          帳號管理
+        </button>
+        <button 
+          onClick={() => setActiveTab('logins')}
+          style={{
+            padding: '10px 20px',
+            fontSize: '1.2rem',
+            fontWeight: 'bold',
+            backgroundColor: activeTab === 'logins' ? 'var(--crayon-dark)' : '#f0f0f0',
+            color: activeTab === 'logins' ? 'white' : '#666',
+            border: '2px solid var(--crayon-dark)',
+            borderBottom: 'none',
+            borderRadius: '10px 10px 0 0',
+            cursor: 'pointer'
+          }}
+        >
+          系統登入記錄
+        </button>
+      </div>
+
+      {activeTab === 'accounts' && (
+        <>
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2 style={{ margin: 0 }}>⚙️ 系統管理 (權限與帳號) <span style={{ fontSize: '1.2rem', color: '#666' }}>共 {users.length} 筆</span></h2>
         {canEdit && !isEditing && (
@@ -167,6 +291,20 @@ export default function SystemManagement() {
                 onChange={e => setEditingUser({...editingUser, name: e.target.value})} 
                 placeholder="例如: 廠長" 
               />
+            </div>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>對應人員連結：</label>
+              <select
+                className="doodle-input"
+                style={{ width: '100%' }}
+                value={editingUser.personnelId || ''}
+                onChange={e => setEditingUser(prev => ({ ...prev, personnelId: e.target.value }))}
+              >
+                <option value="">-- 無對應 --</option>
+                {personnelList.map(p => (
+                  <option key={p.id} value={p.id}>{p.name} ({p.title})</option>
+                ))}
+              </select>
             </div>
             <div>
               <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>登入密碼：</label>
@@ -214,6 +352,7 @@ export default function SystemManagement() {
                 <th style={{ padding: '15px', width: '60px', textAlign: 'center' }}>序號</th>
                 <th style={{ padding: '15px' }}>帳號</th>
                 <th style={{ padding: '15px' }}>名稱</th>
+                <th style={{ padding: '15px' }}>人員連結</th>
                 <th style={{ padding: '15px' }}>完整權限模組數</th>
                 <th style={{ padding: '15px', textAlign: 'center' }}>操作</th>
               </tr>
@@ -226,6 +365,7 @@ export default function SystemManagement() {
                     <td style={{ padding: '15px', textAlign: 'center', fontWeight: 'bold', color: '#555' }}>{index + 1}</td>
                     <td style={{ padding: '15px', fontWeight: 'bold' }}>{u.username}</td>
                     <td style={{ padding: '15px' }}>{u.name}</td>
+                    <td style={{ padding: '15px' }}>{u.personnelId ? personnelList.find(p => p.id === u.personnelId)?.name || '未知人員' : '-'}</td>
                     <td style={{ padding: '15px' }}>{editCount} 個功能</td>
                     <td style={{ padding: '15px', textAlign: 'center' }}>
                       {canEdit && (
@@ -258,6 +398,94 @@ export default function SystemManagement() {
           </table>
         </div>
       )}
+
+      </>
+      )}
+
+      {activeTab === 'logins' && (
+        <div className="doodle-border" style={{ padding: '20px', backgroundColor: 'white' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ margin: 0 }}>📊 登入記錄分析 <span style={{ fontSize: '1.2rem', color: '#666' }}>總計：{loginRecords.length} 筆</span></h2>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <select className="doodle-input" value={chartType} onChange={e => setChartType(e.target.value as 'bar'|'line')}>
+                <option value="bar">長條圖</option>
+                <option value="line">折線圖</option>
+              </select>
+              <button className="doodle-button success" onClick={handleExportExcel}>
+                📥 匯出 Excel
+              </button>
+            </div>
+          </div>
+
+          <div style={{ height: '300px', marginBottom: '30px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              {chartType === 'bar' ? (
+                <BarChart data={loginChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="var(--crayon-blue)" name="登入次數" />
+                </BarChart>
+              ) : (
+                <LineChart data={loginChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="count" stroke="var(--crayon-purple)" strokeWidth={3} name="登入次數" />
+                </LineChart>
+              )}
+            </ResponsiveContainer>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <div>
+              每頁顯示：
+              <select className="doodle-input" style={{ width: '80px', padding: '5px' }} value={loginPerPage} onChange={e => {setLoginPerPage(Number(e.target.value)); setLoginPage(1);}}>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+              筆
+            </div>
+            <div>
+              <button className="doodle-button" style={{ padding: '5px 15px', marginRight: '10px' }} disabled={loginPage === 1} onClick={() => setLoginPage(p => p - 1)}>上一頁</button>
+              <span style={{ fontWeight: 'bold' }}>第 {loginPage} 頁 / 共 {Math.ceil(loginRecords.length / loginPerPage) || 1} 頁</span>
+              <button className="doodle-button" style={{ padding: '5px 15px', marginLeft: '10px' }} disabled={loginPage >= Math.ceil(loginRecords.length / loginPerPage)} onClick={() => setLoginPage(p => p + 1)}>下一頁</button>
+            </div>
+          </div>
+
+          <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: '#fff', border: '3px solid var(--crayon-dark)' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f0f0f0' }}>
+                <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'center' }}>序號</th>
+                <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'left' }}>帳號</th>
+                <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'center' }}>IP</th>
+                <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'center' }}>登入時間</th>
+                <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'center' }}>登出時間</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedLogins.map((r, idx) => (
+                <tr key={r.id} style={{ borderBottom: '1px dashed #ccc' }}>
+                  <td style={{ padding: '12px', textAlign: 'center', color: '#666' }}>{(loginPage - 1) * loginPerPage + idx + 1}</td>
+                  <td style={{ padding: '12px', fontWeight: 'bold' }}>{r.username}</td>
+                  <td style={{ padding: '12px', textAlign: 'center' }}>{r.ip || '-'}</td>
+                  <td style={{ padding: '12px', textAlign: 'center' }}>{new Date(r.loginTime).toLocaleString('zh-TW')}</td>
+                  <td style={{ padding: '12px', textAlign: 'center' }}>{r.logoutTime ? new Date(r.logoutTime).toLocaleString('zh-TW') : '-'}</td>
+                </tr>
+              ))}
+              {paginatedLogins.length === 0 && (
+                <tr>
+                  <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: '#666' }}>暫無登入記錄</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
 
       {/* 刪除確認視窗 */}
       {userToDelete && (

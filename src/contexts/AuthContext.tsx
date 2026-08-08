@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { SystemUser, ModulePermissions } from '../types';
+import { addLoginRecord, updateLoginRecord } from '../services/api';
 
 interface AuthContextType {
   currentUser: SystemUser | null;
-  login: (user: SystemUser) => void;
-  logout: () => void;
+  login: (user: SystemUser) => Promise<void>;
+  logout: () => Promise<void>;
   hasPermission: (module: keyof ModulePermissions, level: 'view' | 'edit') => boolean;
 }
 
@@ -24,12 +25,47 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
-  const login = (user: SystemUser) => {
+  const login = async (user: SystemUser) => {
     setCurrentUser(user);
     localStorage.setItem('currentUser', JSON.stringify(user));
+    
+    // Fetch IP and create login record
+    let ip = 'Unknown';
+    try {
+      const res = await fetch('https://api.ipify.org?format=json');
+      const data = await res.json();
+      ip = data.ip;
+    } catch (e) {
+      console.warn('Failed to fetch IP', e);
+    }
+    
+    try {
+      const loginTime = Date.now();
+      const record = await addLoginRecord({
+        userId: user.id,
+        username: user.username,
+        loginTime,
+        ip
+      });
+      localStorage.setItem('currentLoginRecordId', record.id);
+      localStorage.setItem('currentLoginTime', loginTime.toString());
+    } catch (e) {
+      console.error('Failed to save login record', e);
+    }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    const recordId = localStorage.getItem('currentLoginRecordId');
+    if (recordId) {
+      try {
+        await updateLoginRecord(recordId, { logoutTime: Date.now() });
+      } catch (e) {
+        console.error('Failed to update logout time', e);
+      }
+      localStorage.removeItem('currentLoginRecordId');
+      localStorage.removeItem('currentLoginTime');
+    }
+    
     setCurrentUser(null);
     localStorage.removeItem('currentUser');
   };

@@ -1,6 +1,6 @@
 import { collection, getDocs, setDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
-import type { Personnel, InventoryTicket, Workflow, InventoryTask, SystemUser } from '../types';
+import type { Personnel, InventoryTicket, Workflow, InventoryTask, SystemUser, SystemLoginRecord } from '../types';
 
 // Feature Flag to use local storage if Firebase is not configured properly
 export const USE_MOCK = false;
@@ -188,4 +188,22 @@ export const updateSystemUser = async (id: string, user: Partial<SystemUser>): P
 
 export const deleteSystemUser = async (id: string): Promise<void> => {
   await deleteDoc(doc(db, 'system_users', id));
+};
+
+// --- Login Records API ---
+export const getLoginRecords = async (): Promise<SystemLoginRecord[]> => {
+  const q = query(collection(db, 'system_login_records'), orderBy('loginTime', 'desc'));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SystemLoginRecord));
+};
+
+export const addLoginRecord = async (record: Omit<SystemLoginRecord, 'id'>): Promise<SystemLoginRecord> => {
+  const newRef = doc(collection(db, 'system_login_records'));
+  const fullRecord = { id: newRef.id, ...record };
+  await setDoc(newRef, fullRecord);
+  return fullRecord;
+};
+
+export const updateLoginRecord = async (id: string, record: Partial<SystemLoginRecord>): Promise<void> => {
+  await updateDoc(doc(db, 'system_login_records', id), record);
 };

@@ -31,16 +31,33 @@ export default function Layout() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginLeft: 'auto' }}>
           {currentUser && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{ 
-                fontSize: '1.4rem', 
-                fontWeight: 'bold', 
-                color: 'var(--crayon-purple)',
-                border: '2px dashed var(--crayon-purple)',
-                padding: '5px 15px',
-                borderRadius: '20px',
-                backgroundColor: '#f3e5f5'
-              }}>
-                👋 登入人員：{currentUser.name} ({currentUser.username})
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                <div style={{ 
+                  fontSize: '1.4rem', 
+                  fontWeight: 'bold', 
+                  color: 'var(--crayon-purple)',
+                  border: '2px dashed var(--crayon-purple)',
+                  padding: '5px 15px',
+                  borderRadius: '20px',
+                  backgroundColor: '#f3e5f5',
+                  textAlign: 'center'
+                }}>
+                  👋 登入人員：{currentUser.name} ({currentUser.username})
+                </div>
+                {localStorage.getItem('currentLoginTime') && (
+                  <div style={{
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    color: 'white',
+                    backgroundColor: 'var(--crayon-orange)',
+                    padding: '3px 10px',
+                    borderRadius: '10px',
+                    textAlign: 'center',
+                    border: '2px dashed #e65100'
+                  }}>
+                    🕒 登入時間：{new Date(parseInt(localStorage.getItem('currentLoginTime')!)).toLocaleString('zh-TW')}
+                  </div>
+                )}
               </div>
               <button 
                 className="doodle-button danger" 
