@@ -178,7 +178,7 @@ export default function Layout() {
             )}
             {hasPermission('workflow', 'view') && (
               <NavLink to="/workflow" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
-                🔄 流程管理
+                🔀 流程管理
               </NavLink>
             )}
             {hasPermission('itemDetails', 'view') && (
