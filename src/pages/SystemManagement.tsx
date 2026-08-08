@@ -67,17 +67,17 @@ export default function SystemManagement() {
   const [filterStartMonth, setFilterStartMonth] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
-    return (d.getMonth() + 1).toString().padStart(2, '0');
+    return (d.getMonth() + 1).toString();
   });
   const [filterStartDay, setFilterStartDay] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
-    return d.getDate().toString().padStart(2, '0');
+    return d.getDate().toString();
   });
   
   const [filterEndYear, setFilterEndYear] = useState(() => new Date().getFullYear().toString());
-  const [filterEndMonth, setFilterEndMonth] = useState(() => (new Date().getMonth() + 1).toString().padStart(2, '0'));
-  const [filterEndDay, setFilterEndDay] = useState(() => new Date().getDate().toString().padStart(2, '0'));
+  const [filterEndMonth, setFilterEndMonth] = useState(() => (new Date().getMonth() + 1).toString());
+  const [filterEndDay, setFilterEndDay] = useState(() => new Date().getDate().toString());
 
   const [filterUsername, setFilterUsername] = useState('');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
@@ -193,6 +193,7 @@ export default function SystemManagement() {
       '序號': i + 1,
       '帳號': r.username,
       'IP': r.ip || '未知',
+      '登入地點': r.location || '未知',
       '登入時間': new Date(r.loginTime).toLocaleString('zh-TW'),
       '登出時間': r.logoutTime ? new Date(r.logoutTime).toLocaleString('zh-TW') : '未登出/異常'
     }));
@@ -546,13 +547,13 @@ export default function SystemManagement() {
               const d = new Date();
               d.setDate(d.getDate() - 30);
               setFilterStartYear(d.getFullYear().toString()); 
-              setFilterStartMonth((d.getMonth() + 1).toString().padStart(2, '0')); 
-              setFilterStartDay(d.getDate().toString().padStart(2, '0')); 
+              setFilterStartMonth((d.getMonth() + 1).toString()); 
+              setFilterStartDay(d.getDate().toString()); 
               
               const now = new Date();
               setFilterEndYear(now.getFullYear().toString()); 
-              setFilterEndMonth((now.getMonth() + 1).toString().padStart(2, '0')); 
-              setFilterEndDay(now.getDate().toString().padStart(2, '0')); 
+              setFilterEndMonth((now.getMonth() + 1).toString()); 
+              setFilterEndDay(now.getDate().toString()); 
               
               setFilterUsername(''); 
               setSortOrder('desc'); 
