@@ -531,14 +531,14 @@ export default function SystemManagement() {
             <h2 style={{ margin: 0 }}>📊 登入記錄分析 <span style={{ fontSize: '1.2rem', color: '#666' }}>總計：{filteredLogins.length} 筆</span></h2>
             
             <div style={{ display: 'flex', gap: '10px' }}>
-              <select className="doodle-input" style={{ padding: '4px 10px', height: '34px', fontSize: '1rem', borderRadius: '8px', minWidth: '100px' }} value={chartType} onChange={e => setChartType(e.target.value as 'bar'|'line')}>
+              <select className="doodle-input" style={{ padding: '6px 10px', fontSize: '1rem', borderRadius: '8px', minWidth: '100px' }} value={chartType} onChange={e => setChartType(e.target.value as 'bar'|'line')}>
                 <option value="bar">長條圖</option>
                 <option value="line">折線圖</option>
               </select>
-              <button className="doodle-button" style={{ padding: '4px 15px', height: '34px', fontSize: '1rem', borderRadius: '8px', backgroundColor: '#fff', color: 'var(--crayon-dark)', border: '2px solid var(--crayon-dark)' }} onClick={handleExportImage}>
+              <button className="doodle-button" style={{ padding: '6px 15px', whiteSpace: 'nowrap', fontSize: '1rem', borderRadius: '8px', backgroundColor: '#fff', color: 'var(--crayon-dark)', border: '2px solid var(--crayon-dark)' }} onClick={handleExportImage}>
                 🖼️ 匯出圖檔
               </button>
-              <button className="doodle-button success" style={{ padding: '4px 15px', height: '34px', fontSize: '1rem', borderRadius: '8px' }} onClick={handleExportExcel}>
+              <button className="doodle-button success" style={{ padding: '6px 15px', whiteSpace: 'nowrap', fontSize: '1rem', borderRadius: '8px' }} onClick={handleExportExcel}>
                 📥 匯出 Excel
               </button>
             </div>
@@ -548,20 +548,24 @@ export default function SystemManagement() {
           <div id="login-chart-container" style={{ height: '300px', marginBottom: '30px', padding: '10px', backgroundColor: '#fff', borderRadius: '10px', border: '1px solid #eee' }}>
             <ResponsiveContainer width="100%" height="100%">
               {chartType === 'bar' ? (
-                <BarChart data={loginChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <BarChart data={loginChartData} margin={{ top: 35, right: 30, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="count" fill="var(--crayon-blue)" name="登入次數"><LabelList dataKey="count" position="top" /></Bar>
+                  <Bar dataKey="count" fill="var(--crayon-blue)" name="登入次數">
+                    <LabelList dataKey="count" position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                  </Bar>
                 </BarChart>
               ) : (
-                <LineChart data={loginChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <LineChart data={loginChartData} margin={{ top: 35, right: 30, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip />
-                  <Line type="monotone" dataKey="count" stroke="var(--crayon-purple)" strokeWidth={3} name="登入次數"><LabelList dataKey="count" position="top" /></Line>
+                  <Line type="monotone" dataKey="count" stroke="var(--crayon-purple)" strokeWidth={3} name="登入次數">
+                    <LabelList dataKey="count" position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                  </Line>
                 </LineChart>
               )}
             </ResponsiveContainer>
