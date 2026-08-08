@@ -530,7 +530,21 @@ export default function SystemManagement() {
                 <option value="asc">由舊到新 (小到大)</option>
               </select>
             </div>
-            <button className="doodle-button" style={{ padding: '4px 15px', height: '34px', fontSize: '1rem' }} onClick={() => { setFilterStartYear(''); setFilterStartMonth(''); setFilterStartDay(''); setFilterEndYear(''); setFilterEndMonth(''); setFilterEndDay(''); setFilterUsername(''); setSortOrder('desc'); }}>清除條件</button>
+            <button className="doodle-button" style={{ padding: '4px 15px', height: '34px', fontSize: '1rem' }} onClick={() => { 
+              const d = new Date();
+              d.setDate(d.getDate() - 30);
+              setFilterStartYear(d.getFullYear().toString()); 
+              setFilterStartMonth((d.getMonth() + 1).toString()); 
+              setFilterStartDay(d.getDate().toString()); 
+              
+              const now = new Date();
+              setFilterEndYear(now.getFullYear().toString()); 
+              setFilterEndMonth((now.getMonth() + 1).toString()); 
+              setFilterEndDay(now.getDate().toString()); 
+              
+              setFilterUsername(''); 
+              setSortOrder('desc'); 
+            }}>清除條件</button>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -607,6 +621,7 @@ export default function SystemManagement() {
                 <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'center' }}>序號</th>
                 <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'left' }}>帳號</th>
                 <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'center' }}>IP</th>
+                  <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'center' }}>地點</th>
                 <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'center' }}>登入時間</th>
                 <th style={{ padding: '12px', borderBottom: '3px solid var(--crayon-dark)', textAlign: 'center' }}>登出時間</th>
               </tr>
@@ -617,6 +632,7 @@ export default function SystemManagement() {
                   <td style={{ padding: '12px', textAlign: 'center', color: '#666' }}>{(loginPage - 1) * loginPerPage + idx + 1}</td>
                   <td style={{ padding: '12px', fontWeight: 'bold' }}>{r.username}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>{r.ip || '-'}</td>
+                    <td style={{ padding: '12px', textAlign: 'center', fontSize: '0.9rem' }}>{r.location || '-'}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>{new Date(r.loginTime).toLocaleString('zh-TW')}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>{r.logoutTime ? new Date(r.logoutTime).toLocaleString('zh-TW') : '-'}</td>
                 </tr>

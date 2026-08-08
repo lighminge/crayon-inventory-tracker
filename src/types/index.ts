@@ -92,4 +92,5 @@ export interface SystemLoginRecord {
   loginTime: number;
   logoutTime?: number;
   ip?: string;
+  location?: string;
 }
