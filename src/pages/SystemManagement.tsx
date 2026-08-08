@@ -534,13 +534,13 @@ export default function SystemManagement() {
               const d = new Date();
               d.setDate(d.getDate() - 30);
               setFilterStartYear(d.getFullYear().toString()); 
-              setFilterStartMonth((d.getMonth() + 1).toString()); 
-              setFilterStartDay(d.getDate().toString()); 
+              setFilterStartMonth((d.getMonth() + 1).toString().padStart(2, '0')); 
+              setFilterStartDay(d.getDate().toString().padStart(2, '0')); 
               
               const now = new Date();
               setFilterEndYear(now.getFullYear().toString()); 
-              setFilterEndMonth((now.getMonth() + 1).toString()); 
-              setFilterEndDay(now.getDate().toString()); 
+              setFilterEndMonth((now.getMonth() + 1).toString().padStart(2, '0')); 
+              setFilterEndDay(now.getDate().toString().padStart(2, '0')); 
               
               setFilterUsername(''); 
               setSortOrder('desc'); 
