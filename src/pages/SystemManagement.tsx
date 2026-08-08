@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import type { SystemUser, ModulePermissions, PermissionLevel, Personnel, SystemLoginRecord } from '../types';
 import * as XLSX from 'xlsx';
 import html2canvas from 'html2canvas';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line , LabelList } from 'recharts';
 
 
 const defaultPermissions: ModulePermissions = {
@@ -58,8 +58,15 @@ export default function SystemManagement() {
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
 
   // Login Records Filters & Sort
-  const [filterStartDate, setFilterStartDate] = useState('');
-  const [filterEndDate, setFilterEndDate] = useState('');
+  
+  const [filterStartYear, setFilterStartYear] = useState('');
+  const [filterStartMonth, setFilterStartMonth] = useState('');
+  const [filterStartDay, setFilterStartDay] = useState('');
+  
+  const [filterEndYear, setFilterEndYear] = useState('');
+  const [filterEndMonth, setFilterEndMonth] = useState('');
+  const [filterEndDay, setFilterEndDay] = useState('');
+
   const [filterUsername, setFilterUsername] = useState('');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
@@ -91,16 +98,20 @@ export default function SystemManagement() {
 
   // Login Records Derived Data
   
+  
   const filteredLogins = useMemo(() => {
     let result = [...loginRecords];
-    if (filterStartDate) {
-      const start = new Date(filterStartDate).setHours(0, 0, 0, 0);
+    
+    if (filterStartYear && filterStartMonth && filterStartDay) {
+      const start = new Date(Number(filterStartYear), Number(filterStartMonth) - 1, Number(filterStartDay)).setHours(0, 0, 0, 0);
       result = result.filter(r => new Date(r.loginTime).getTime() >= start);
     }
-    if (filterEndDate) {
-      const end = new Date(filterEndDate).setHours(23, 59, 59, 999);
+    
+    if (filterEndYear && filterEndMonth && filterEndDay) {
+      const end = new Date(Number(filterEndYear), Number(filterEndMonth) - 1, Number(filterEndDay)).setHours(23, 59, 59, 999);
       result = result.filter(r => new Date(r.loginTime).getTime() <= end);
     }
+    
     if (filterUsername) {
       result = result.filter(r => r.username === filterUsername);
     }
@@ -111,7 +122,8 @@ export default function SystemManagement() {
     });
     
     return result;
-  }, [loginRecords, filterStartDate, filterEndDate, filterUsername, sortOrder]);
+  }, [loginRecords, filterStartYear, filterStartMonth, filterStartDay, filterEndYear, filterEndMonth, filterEndDay, filterUsername, sortOrder]);
+
 
   const paginatedLogins = useMemo(() => {
     const start = (loginPage - 1) * loginPerPage;
@@ -456,12 +468,46 @@ export default function SystemManagement() {
         <div className="doodle-border" style={{ padding: '20px', backgroundColor: 'white' }}>
           
           <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '15px', border: '2px dashed var(--crayon-dark)' }}>
+            
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <strong>日期區段：</strong>
-              <input type="date" className="doodle-input" style={{ padding: '4px 8px', height: '34px', fontSize: '1rem' }} value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} />
+              <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+                <select className="doodle-input" style={{ padding: '4px', height: '34px', fontSize: '1rem' }} value={filterStartYear} onChange={e => setFilterStartYear(e.target.value)}>
+                  <option value="">年</option>
+                  {[...Array(10)].map((_, i) => {
+                    const y = new Date().getFullYear() - 5 + i;
+                    return <option key={y} value={y}>{y}</option>;
+                  })}
+                </select>
+                <select className="doodle-input" style={{ padding: '4px', height: '34px', fontSize: '1rem' }} value={filterStartMonth} onChange={e => setFilterStartMonth(e.target.value)}>
+                  <option value="">月</option>
+                  {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
+                </select>
+                <select className="doodle-input" style={{ padding: '4px', height: '34px', fontSize: '1rem' }} value={filterStartDay} onChange={e => setFilterStartDay(e.target.value)}>
+                  <option value="">日</option>
+                  {[...Array(31)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
+                </select>
+              </div>
               <span>~</span>
-              <input type="date" className="doodle-input" style={{ padding: '4px 8px', height: '34px', fontSize: '1rem' }} value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} />
+              <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+                <select className="doodle-input" style={{ padding: '4px', height: '34px', fontSize: '1rem' }} value={filterEndYear} onChange={e => setFilterEndYear(e.target.value)}>
+                  <option value="">年</option>
+                  {[...Array(10)].map((_, i) => {
+                    const y = new Date().getFullYear() - 5 + i;
+                    return <option key={y} value={y}>{y}</option>;
+                  })}
+                </select>
+                <select className="doodle-input" style={{ padding: '4px', height: '34px', fontSize: '1rem' }} value={filterEndMonth} onChange={e => setFilterEndMonth(e.target.value)}>
+                  <option value="">月</option>
+                  {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
+                </select>
+                <select className="doodle-input" style={{ padding: '4px', height: '34px', fontSize: '1rem' }} value={filterEndDay} onChange={e => setFilterEndDay(e.target.value)}>
+                  <option value="">日</option>
+                  {[...Array(31)].map((_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
+                </select>
+              </div>
             </div>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
               <strong>登入人員：</strong>
               <select className="doodle-input" style={{ padding: '4px 8px', height: '34px', fontSize: '1rem' }} value={filterUsername} onChange={e => setFilterUsername(e.target.value)}>
@@ -478,23 +524,25 @@ export default function SystemManagement() {
                 <option value="asc">由舊到新 (小到大)</option>
               </select>
             </div>
-            <button className="doodle-button" style={{ padding: '4px 15px', height: '34px', fontSize: '1rem' }} onClick={() => { setFilterStartDate(''); setFilterEndDate(''); setFilterUsername(''); setSortOrder('desc'); }}>清除條件</button>
+            <button className="doodle-button" style={{ padding: '4px 15px', height: '34px', fontSize: '1rem' }} onClick={() => { setFilterStartYear(''); setFilterStartMonth(''); setFilterStartDay(''); setFilterEndYear(''); setFilterEndMonth(''); setFilterEndDay(''); setFilterUsername(''); setSortOrder('desc'); }}>清除條件</button>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h2 style={{ margin: 0 }}>📊 登入記錄分析 <span style={{ fontSize: '1.2rem', color: '#666' }}>總計：{filteredLogins.length} 筆</span></h2>
+            
             <div style={{ display: 'flex', gap: '10px' }}>
-              <select className="doodle-input" style={{ padding: '4px 10px', height: '36px', fontSize: '1rem', borderRadius: '8px' }} value={chartType} onChange={e => setChartType(e.target.value as 'bar'|'line')}>
+              <select className="doodle-input" style={{ padding: '4px 10px', height: '34px', fontSize: '1rem', borderRadius: '8px', minWidth: '100px' }} value={chartType} onChange={e => setChartType(e.target.value as 'bar'|'line')}>
                 <option value="bar">長條圖</option>
                 <option value="line">折線圖</option>
               </select>
-              <button className="doodle-button" style={{ padding: '4px 15px', height: '36px', fontSize: '1rem', borderRadius: '8px', backgroundColor: '#fff', color: 'var(--crayon-dark)', border: '2px solid var(--crayon-dark)' }} onClick={handleExportImage}>
+              <button className="doodle-button" style={{ padding: '4px 15px', height: '34px', fontSize: '1rem', borderRadius: '8px', backgroundColor: '#fff', color: 'var(--crayon-dark)', border: '2px solid var(--crayon-dark)' }} onClick={handleExportImage}>
                 🖼️ 匯出圖檔
               </button>
-              <button className="doodle-button success" style={{ padding: '4px 15px', height: '36px', fontSize: '1rem', borderRadius: '8px' }} onClick={handleExportExcel}>
+              <button className="doodle-button success" style={{ padding: '4px 15px', height: '34px', fontSize: '1rem', borderRadius: '8px' }} onClick={handleExportExcel}>
                 📥 匯出 Excel
               </button>
             </div>
+
           </div>
 
           <div id="login-chart-container" style={{ height: '300px', marginBottom: '30px', padding: '10px', backgroundColor: '#fff', borderRadius: '10px', border: '1px solid #eee' }}>
@@ -505,7 +553,7 @@ export default function SystemManagement() {
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="count" fill="var(--crayon-blue)" name="登入次數" />
+                  <Bar dataKey="count" fill="var(--crayon-blue)" name="登入次數"><LabelList dataKey="count" position="top" /></Bar>
                 </BarChart>
               ) : (
                 <LineChart data={loginChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -513,28 +561,35 @@ export default function SystemManagement() {
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip />
-                  <Line type="monotone" dataKey="count" stroke="var(--crayon-purple)" strokeWidth={3} name="登入次數" />
+                  <Line type="monotone" dataKey="count" stroke="var(--crayon-purple)" strokeWidth={3} name="登入次數"><LabelList dataKey="count" position="top" /></Line>
                 </LineChart>
               )}
             </ResponsiveContainer>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <div>
-              每頁顯示：
-              <select className="doodle-input" style={{ width: '80px', padding: '5px' }} value={loginPerPage} onChange={e => {setLoginPerPage(Number(e.target.value)); setLoginPage(1);}}>
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
-              筆
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', backgroundColor: '#f9f9f9', padding: '10px 15px', borderRadius: '10px', border: '2px dashed var(--crayon-dark)' }}>
+            <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--crayon-dark)' }}>
+              清單總計：{filteredLogins.length} 筆
             </div>
-            <div>
-              <button className="doodle-button" style={{ padding: '5px 15px', marginRight: '10px' }} disabled={loginPage === 1} onClick={() => setLoginPage(p => p - 1)}>上一頁</button>
-              <span style={{ fontWeight: 'bold' }}>第 {loginPage} 頁 / 共 {Math.ceil(filteredLogins.length / loginPerPage) || 1} 頁</span>
-              <button className="doodle-button" style={{ padding: '5px 15px', marginLeft: '10px' }} disabled={loginPage >= Math.ceil(filteredLogins.length / loginPerPage)} onClick={() => setLoginPage(p => p + 1)}>下一頁</button>
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+              <div>
+                每頁顯示：
+                <select className="doodle-input" style={{ width: '80px', padding: '5px' }} value={loginPerPage} onChange={e => {setLoginPerPage(Number(e.target.value)); setLoginPage(1);}}>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+                筆
+              </div>
+              <div>
+                <button className="doodle-button" style={{ padding: '5px 15px', marginRight: '10px' }} disabled={loginPage === 1} onClick={() => setLoginPage(p => p - 1)}>上一頁</button>
+                <span style={{ fontWeight: 'bold' }}>第 {loginPage} 頁 / 共 {Math.ceil(filteredLogins.length / loginPerPage) || 1} 頁</span>
+                <button className="doodle-button" style={{ padding: '5px 15px', marginLeft: '10px' }} disabled={loginPage >= Math.ceil(filteredLogins.length / loginPerPage)} onClick={() => setLoginPage(p => p + 1)}>下一頁</button>
+              </div>
             </div>
           </div>
+
 
           <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: '#fff', border: '3px solid var(--crayon-dark)' }}>
             <thead>
