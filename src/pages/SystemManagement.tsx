@@ -3,6 +3,7 @@ import { getSystemUsers, addSystemUser, updateSystemUser, deleteSystemUser, getP
 import { useAuth } from '../contexts/AuthContext';
 import type { SystemUser, ModulePermissions, PermissionLevel, Personnel, SystemLoginRecord } from '../types';
 import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 
@@ -55,6 +56,13 @@ export default function SystemManagement() {
   const [loginPage, setLoginPage] = useState(1);
   const [loginPerPage, setLoginPerPage] = useState(10);
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar');
+
+  // Login Records Filters & Sort
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+  const [filterUsername, setFilterUsername] = useState('');
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+
   
   useEffect(() => {
     loadPersonnel();
@@ -82,10 +90,33 @@ export default function SystemManagement() {
   };
 
   // Login Records Derived Data
+  
+  const filteredLogins = useMemo(() => {
+    let result = [...loginRecords];
+    if (filterStartDate) {
+      const start = new Date(filterStartDate).setHours(0, 0, 0, 0);
+      result = result.filter(r => new Date(r.loginTime).getTime() >= start);
+    }
+    if (filterEndDate) {
+      const end = new Date(filterEndDate).setHours(23, 59, 59, 999);
+      result = result.filter(r => new Date(r.loginTime).getTime() <= end);
+    }
+    if (filterUsername) {
+      result = result.filter(r => r.username === filterUsername);
+    }
+    
+    result.sort((a, b) => {
+      if (sortOrder === 'desc') return b.loginTime - a.loginTime;
+      return a.loginTime - b.loginTime;
+    });
+    
+    return result;
+  }, [loginRecords, filterStartDate, filterEndDate, filterUsername, sortOrder]);
+
   const paginatedLogins = useMemo(() => {
     const start = (loginPage - 1) * loginPerPage;
-    return loginRecords.slice(start, start + loginPerPage);
-  }, [loginRecords, loginPage, loginPerPage]);
+    return filteredLogins.slice(start, start + loginPerPage);
+  }, [filteredLogins, loginPage, loginPerPage]);
 
   const loginChartData = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -96,7 +127,7 @@ export default function SystemManagement() {
       counts[d.toLocaleDateString('zh-TW')] = 0;
     }
     
-    loginRecords.forEach(r => {
+    filteredLogins.forEach(r => {
       const dStr = new Date(r.loginTime).toLocaleDateString('zh-TW');
       if (counts[dStr] !== undefined) {
         counts[dStr]++;
@@ -107,10 +138,28 @@ export default function SystemManagement() {
       date,
       count: counts[date]
     }));
-  }, [loginRecords]);
+  }, [filteredLogins]);
+
+
+  
+  const handleExportImage = async () => {
+    const el = document.getElementById('login-chart-container');
+    if (!el) return;
+    try {
+      const canvas = await html2canvas(el, { backgroundColor: '#ffffff' });
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `系統登入記錄圖表_${new Date().getTime()}.png`;
+      a.click();
+    } catch (e) {
+      console.error(e);
+      alert('匯出圖檔失敗');
+    }
+  };
 
   const handleExportExcel = () => {
-    const exportData = loginRecords.map((r, i) => ({
+    const exportData = filteredLogins.map((r, i) => ({
       '序號': i + 1,
       '帳號': r.username,
       'IP': r.ip || '未知',
@@ -402,22 +451,53 @@ export default function SystemManagement() {
       </>
       )}
 
+      
       {activeTab === 'logins' && (
         <div className="doodle-border" style={{ padding: '20px', backgroundColor: 'white' }}>
+          
+          <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '15px', border: '2px dashed var(--crayon-dark)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <strong>日期區段：</strong>
+              <input type="date" className="doodle-input" style={{ padding: '4px 8px', height: '34px', fontSize: '1rem' }} value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} />
+              <span>~</span>
+              <input type="date" className="doodle-input" style={{ padding: '4px 8px', height: '34px', fontSize: '1rem' }} value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <strong>登入人員：</strong>
+              <select className="doodle-input" style={{ padding: '4px 8px', height: '34px', fontSize: '1rem' }} value={filterUsername} onChange={e => setFilterUsername(e.target.value)}>
+                <option value="">全部</option>
+                {Array.from(new Set(loginRecords.map(r => r.username))).map(u => (
+                   <option key={u} value={u}>{u}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <strong>排序方式：</strong>
+              <select className="doodle-input" style={{ padding: '4px 8px', height: '34px', fontSize: '1rem' }} value={sortOrder} onChange={e => setSortOrder(e.target.value as 'asc'|'desc')}>
+                <option value="desc">由新到舊 (大到小)</option>
+                <option value="asc">由舊到新 (小到大)</option>
+              </select>
+            </div>
+            <button className="doodle-button" style={{ padding: '4px 15px', height: '34px', fontSize: '1rem' }} onClick={() => { setFilterStartDate(''); setFilterEndDate(''); setFilterUsername(''); setSortOrder('desc'); }}>清除條件</button>
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ margin: 0 }}>📊 登入記錄分析 <span style={{ fontSize: '1.2rem', color: '#666' }}>總計：{loginRecords.length} 筆</span></h2>
+            <h2 style={{ margin: 0 }}>📊 登入記錄分析 <span style={{ fontSize: '1.2rem', color: '#666' }}>總計：{filteredLogins.length} 筆</span></h2>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <select className="doodle-input" value={chartType} onChange={e => setChartType(e.target.value as 'bar'|'line')}>
+              <select className="doodle-input" style={{ padding: '4px 10px', height: '36px', fontSize: '1rem', borderRadius: '8px' }} value={chartType} onChange={e => setChartType(e.target.value as 'bar'|'line')}>
                 <option value="bar">長條圖</option>
                 <option value="line">折線圖</option>
               </select>
-              <button className="doodle-button success" onClick={handleExportExcel}>
+              <button className="doodle-button" style={{ padding: '4px 15px', height: '36px', fontSize: '1rem', borderRadius: '8px', backgroundColor: '#fff', color: 'var(--crayon-dark)', border: '2px solid var(--crayon-dark)' }} onClick={handleExportImage}>
+                🖼️ 匯出圖檔
+              </button>
+              <button className="doodle-button success" style={{ padding: '4px 15px', height: '36px', fontSize: '1rem', borderRadius: '8px' }} onClick={handleExportExcel}>
                 📥 匯出 Excel
               </button>
             </div>
           </div>
 
-          <div style={{ height: '300px', marginBottom: '30px' }}>
+          <div id="login-chart-container" style={{ height: '300px', marginBottom: '30px', padding: '10px', backgroundColor: '#fff', borderRadius: '10px', border: '1px solid #eee' }}>
             <ResponsiveContainer width="100%" height="100%">
               {chartType === 'bar' ? (
                 <BarChart data={loginChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -451,8 +531,8 @@ export default function SystemManagement() {
             </div>
             <div>
               <button className="doodle-button" style={{ padding: '5px 15px', marginRight: '10px' }} disabled={loginPage === 1} onClick={() => setLoginPage(p => p - 1)}>上一頁</button>
-              <span style={{ fontWeight: 'bold' }}>第 {loginPage} 頁 / 共 {Math.ceil(loginRecords.length / loginPerPage) || 1} 頁</span>
-              <button className="doodle-button" style={{ padding: '5px 15px', marginLeft: '10px' }} disabled={loginPage >= Math.ceil(loginRecords.length / loginPerPage)} onClick={() => setLoginPage(p => p + 1)}>下一頁</button>
+              <span style={{ fontWeight: 'bold' }}>第 {loginPage} 頁 / 共 {Math.ceil(filteredLogins.length / loginPerPage) || 1} 頁</span>
+              <button className="doodle-button" style={{ padding: '5px 15px', marginLeft: '10px' }} disabled={loginPage >= Math.ceil(filteredLogins.length / loginPerPage)} onClick={() => setLoginPage(p => p + 1)}>下一頁</button>
             </div>
           </div>
 
@@ -485,6 +565,7 @@ export default function SystemManagement() {
           </table>
         </div>
       )}
+
 
 
       {/* 刪除確認視窗 */}
