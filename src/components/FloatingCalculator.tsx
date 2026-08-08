@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import CrayonDatePicker from './CrayonDatePicker';
 import { getPersonnel, checkItemDetailExists, saveItemDetail, getTickets, getExistingSubItems } from '../services/api';
 import type { Personnel, InventoryItemDetail, InventoryTicket } from '../types';
@@ -8,6 +9,8 @@ export default function FloatingCalculator() {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const canEditItemDetails = hasPermission('itemDetails', 'edit');
   
   // State for calculation
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -427,8 +430,9 @@ export default function FloatingCalculator() {
             
             <button 
               className="doodle-button" 
-              style={{ width: '100%', backgroundColor: 'var(--crayon-blue)', color: 'white', marginTop: '10px', padding: '12px', fontSize: '1.1rem' }}
+              style={{ width: '100%', backgroundColor: canEditItemDetails ? 'var(--crayon-blue)' : '#ccc', color: 'white', marginTop: '10px', padding: '12px', fontSize: '1.1rem', cursor: canEditItemDetails ? 'pointer' : 'not-allowed' }}
               onClick={handleImport}
+              disabled={!canEditItemDetails}
             >
               📥 匯入至此明細
             </button>

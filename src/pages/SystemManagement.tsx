@@ -78,6 +78,12 @@ export default function SystemManagement() {
     }
   }, [activeTab]);
 
+  
+  const handleTabChange = (tab: 'accounts' | 'logins') => {
+    setActiveTab(tab);
+    setIsEditing(false);
+  };
+
   const loadPersonnel = async () => {
     try {
       const p = await getPersonnel();
@@ -280,7 +286,7 @@ export default function SystemManagement() {
     <div>
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid var(--crayon-dark)' }}>
         <button 
-          onClick={() => setActiveTab('accounts')}
+          onClick={() => handleTabChange('accounts')}
           style={{
             padding: '10px 20px',
             fontSize: '1.2rem',
@@ -296,7 +302,7 @@ export default function SystemManagement() {
           帳號管理
         </button>
         <button 
-          onClick={() => setActiveTab('logins')}
+          onClick={() => handleTabChange('logins')}
           style={{
             padding: '10px 20px',
             fontSize: '1.2rem',
@@ -353,6 +359,18 @@ export default function SystemManagement() {
                 placeholder="例如: 廠長" 
               />
             </div>
+            <div>
+              <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>登入密碼：</label>
+              <input 
+                className="doodle-input" 
+                style={{ width: '100%' }}
+                required={!editingUser.id}
+                type="text"
+                value={editingUser.password || ''} 
+                onChange={e => setEditingUser({...editingUser, password: e.target.value})} 
+                placeholder={editingUser.id ? "留白代表不修改密碼" : "設定登入密碼"} 
+              />
+            </div>
             <div style={{ marginBottom: '15px' }}>
               <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>對應人員連結：</label>
               <select
@@ -366,18 +384,6 @@ export default function SystemManagement() {
                   <option key={p.id} value={p.id}>{p.name} ({p.title})</option>
                 ))}
               </select>
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>登入密碼：</label>
-              <input 
-                className="doodle-input" 
-                style={{ width: '100%' }}
-                required={!editingUser.id}
-                type="text"
-                value={editingUser.password || ''} 
-                onChange={e => setEditingUser({...editingUser, password: e.target.value})} 
-                placeholder={editingUser.id ? "留白代表不修改密碼" : "設定登入密碼"} 
-              />
             </div>
           </div>
 
