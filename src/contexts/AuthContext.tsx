@@ -31,12 +31,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     // Fetch IP and create login record
     let ip = 'Unknown';
+    let location = 'Unknown';
     try {
-      const res = await fetch('https://api.ipify.org?format=json');
+      const res = await fetch('https://get.geojs.io/v1/ip/geo.json');
       const data = await res.json();
-      ip = data.ip;
+      ip = data.ip || 'Unknown';
+      if (data.city) {
+        location = `${data.city}, ${data.country || ''}`.replace(/, $/, '');
+      } else if (data.country) {
+        location = data.country;
+      }
     } catch (e) {
-      console.warn('Failed to fetch IP', e);
+      console.warn('Failed to fetch IP/Location', e);
     }
     
     try {
@@ -45,7 +51,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         userId: user.id,
         username: user.username,
         loginTime,
-        ip
+        ip,
+        location
       });
       localStorage.setItem('currentLoginRecordId', record.id);
       localStorage.setItem('currentLoginTime', loginTime.toString());

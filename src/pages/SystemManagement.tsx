@@ -59,13 +59,25 @@ export default function SystemManagement() {
 
   // Login Records Filters & Sort
   
-  const [filterStartYear, setFilterStartYear] = useState('');
-  const [filterStartMonth, setFilterStartMonth] = useState('');
-  const [filterStartDay, setFilterStartDay] = useState('');
+  const [filterStartYear, setFilterStartYear] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.getFullYear().toString();
+  });
+  const [filterStartMonth, setFilterStartMonth] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return (d.getMonth() + 1).toString().padStart(2, '0');
+  });
+  const [filterStartDay, setFilterStartDay] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.getDate().toString().padStart(2, '0');
+  });
   
-  const [filterEndYear, setFilterEndYear] = useState('');
-  const [filterEndMonth, setFilterEndMonth] = useState('');
-  const [filterEndDay, setFilterEndDay] = useState('');
+  const [filterEndYear, setFilterEndYear] = useState(() => new Date().getFullYear().toString());
+  const [filterEndMonth, setFilterEndMonth] = useState(() => (new Date().getMonth() + 1).toString().padStart(2, '0'));
+  const [filterEndDay, setFilterEndDay] = useState(() => new Date().getDate().toString().padStart(2, '0'));
 
   const [filterUsername, setFilterUsername] = useState('');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
