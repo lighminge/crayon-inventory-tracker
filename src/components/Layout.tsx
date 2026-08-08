@@ -178,7 +178,7 @@ export default function Layout() {
             )}
             {hasPermission('workflow', 'view') && (
               <NavLink to="/workflow" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
-                ⚙️ 流程管理
+                🔄 流程管理
               </NavLink>
             )}
             {hasPermission('itemDetails', 'view') && (
@@ -186,14 +186,14 @@ export default function Layout() {
                 📑 盤點項目明細
               </NavLink>
             )}
-            {hasPermission('personnel', 'view') && (
-              <NavLink to="/personnel" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
-                👥 人員管理
-              </NavLink>
-            )}
             {hasPermission('statistics', 'view') && (
               <NavLink to="/statistics" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
                 📈 統計作業
+              </NavLink>
+            )}
+            {hasPermission('personnel', 'view') && (
+              <NavLink to="/personnel" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+                👥 人員管理
               </NavLink>
             )}
             {hasPermission('system', 'view') && (
