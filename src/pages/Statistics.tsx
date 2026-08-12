@@ -3,7 +3,9 @@ import type { InventoryTicket, Personnel, Workflow, InventoryTask } from '../typ
 import { getTickets, getPersonnel, getWorkflows, getTasks, getHolidays } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
 import type { HolidaySetting } from '../types';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid, LineChart, Line, ComposedChart } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid, LineChart, Line, ComposedChart, LabelList } from 'recharts';
+import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 import ExpeditingReport from '../components/ExpeditingReport';
 
@@ -14,6 +16,37 @@ export default function Statistics() {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [tasks, setTasks] = useState<InventoryTask[]>([]);
   const [holidays, setHolidays] = useState<HolidaySetting[]>([]);
+
+  const handleExportPersonExcel = (stat: any) => {
+    const exportData = stat.pTickets.map((t: any, i: number) => ({
+      '序號': i + 1,
+      '單號': t.ticketNumber,
+      '任務': tasks.find(tsk => tsk.id === t.taskId)?.name || '未知任務',
+      '盤點類型': t.ticketType,
+      '狀態': t.closeDate ? '已結案' : '處理中',
+      '項目數': t.itemCount || 0,
+      '開立時間': new Date(t.createdAt).toLocaleString('zh-TW'),
+      '結案時間': t.closeDate ? new Date(t.closeDate).toLocaleString('zh-TW') : '-'
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `${stat.name}盤點數據`);
+    
+    const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    XLSX.writeFile(wb, `${stat.name}_盤點數據_${dateStr}.xlsx`);
+  };
+
+  const handleExportPersonImage = async (statId: string, statName: string) => {
+    const el = document.getElementById(`person-card-${statId}`);
+    if (!el) return;
+    const canvas = await html2canvas(el, { scale: 2 });
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${statName}_統計數據.png`;
+    a.click();
+  };
   
   // Date range state
   const [startDate, setStartDate] = useState(() => {
@@ -166,6 +199,8 @@ export default function Statistics() {
       const avgDays = closedWithDays.length === 0 ? 0 : 
         Number((closedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!, holidays), 0) / closedWithDays.length).toFixed(2));
       const totalItems = pTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+      const closedItems = pTickets.filter(t => t.closeDate).reduce((sum, t) => sum + (t.itemCount || 0), 0);
+      const itemCompletionRate = totalItems === 0 ? 0 : Math.round((closedItems / totalItems) * 100);
         
       return {
         ...p,
@@ -174,6 +209,8 @@ export default function Statistics() {
         completionRate,
         avgDays,
         totalItems,
+        closedItems,
+        itemCompletionRate,
         pTickets
       };
     }).sort((a, b) => b.total - a.total);
@@ -189,8 +226,10 @@ export default function Statistics() {
       Number((globalClosedWithDays.reduce((sum, t) => sum + calculateBusinessDays(getFirstStageDate(t)!, t.closeDate!, holidays), 0) / globalClosedWithDays.length).toFixed(2));
       
     const totalItems = filteredTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+    const closedItems = filteredTickets.filter(t => t.closeDate).reduce((sum, t) => sum + (t.itemCount || 0), 0);
+    const itemCompletionRate = totalItems === 0 ? 0 : Math.round((closedItems / totalItems) * 100);
 
-    return { total, closed, completionRate, avgDays, totalItems };
+    return { total, closed, completionRate, avgDays, totalItems, closedItems, itemCompletionRate };
   }, [statsByPerson, filteredTickets, holidays]);
 
   const calculateDays = (startMs: number, endMs: number) => {
@@ -250,6 +289,7 @@ export default function Statistics() {
             />
             <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--crayon-dark)'}} />
             <Bar dataKey={dataKey} name={yAxisLabel} fill="var(--crayon-blue)" radius={[5, 5, 0, 0]} barSize={50}>
+              <LabelList dataKey={dataKey} position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
               {data.map((_, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
@@ -300,7 +340,9 @@ export default function Statistics() {
             <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 16, fontWeight: 'bold'}} />
             <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '2px solid var(--crayon-dark)', color: 'var(--crayon-dark)', fontWeight: 'bold', backgroundColor: '#ffffff'}} />
             <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--crayon-dark)'}} />
-            <Line type="monotone" dataKey={dataKey} name={yAxisLabel} stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{ r: 8 }} />
+            <Line type="monotone" dataKey={dataKey} name={yAxisLabel} stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{ r: 8 }}>
+              <LabelList dataKey={dataKey} position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+            </Line>
           </LineChart>
         </ResponsiveContainer>
       );
@@ -595,7 +637,15 @@ export default function Statistics() {
             <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold' }}>總項目數</div>
             <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-orange)' }}>{globalStats.totalItems}</div>
           </div>
+          <div className="doodle-border" style={{ backgroundColor: 'white', padding: '15px', transform: 'rotate(1deg)' }}>
+            <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold' }}>已完成單數</div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{globalStats.closed}</div>
+          </div>
           <div className="doodle-border" style={{ backgroundColor: 'white', padding: '15px', transform: 'rotate(-1deg)' }}>
+            <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold' }}>已完成項目</div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-green)' }}>{globalStats.closedItems}</div>
+          </div>
+          <div className="doodle-border" style={{ backgroundColor: 'white', padding: '15px', transform: 'rotate(1deg)' }}>
             <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold' }}>平均完成率</div>
             <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-green)' }}>{globalStats.completionRate}%</div>
           </div>
@@ -673,7 +723,7 @@ export default function Statistics() {
           }
 
           return (
-          <div key={stat.id} className="doodle-border" style={{ padding: '20px', backgroundColor: 'var(--crayon-paper)', display: 'flex', flexDirection: 'column' }}>
+          <div id={`person-card-${stat.id}`} key={stat.id} className="doodle-border" style={{ padding: '20px', backgroundColor: 'var(--crayon-paper)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px', marginBottom: '15px' }}>
               <h3 style={{ margin: 0 }}>
                 {stat.name} <span style={{ fontSize: '0.9rem', color: '#666' }}>({stat.title})</span>
@@ -721,16 +771,25 @@ export default function Statistics() {
 
                 <div style={{ marginTop: '20px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                    <span style={{ fontSize: '0.9rem' }}>完成率 ({stat.closed}/{stat.total})</span>
+                    <span style={{ fontSize: '0.9rem' }}>單據完成率 ({stat.closed}/{stat.total})</span>
                     <span style={{ fontWeight: 'bold' }}>{stat.completionRate}%</span>
                   </div>
                   <div style={{ width: '100%', height: '12px', backgroundColor: '#eee', borderRadius: '6px', overflow: 'hidden', border: '1px solid #ccc' }}>
-                    <div style={{ 
-                      width: `${stat.completionRate}%`, 
-                      height: '100%', 
-                      backgroundColor: stat.completionRate === 100 ? 'var(--crayon-green)' : 'var(--crayon-blue)' 
-                    }}></div>
+                    <div style={{ width: `${stat.completionRate}%`, height: '100%', backgroundColor: stat.completionRate === 100 ? 'var(--crayon-green)' : 'var(--crayon-blue)' }}></div>
                   </div>
+                </div>
+                <div style={{ marginTop: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                    <span style={{ fontSize: '0.9rem' }}>項目完成率 ({stat.closedItems}/{stat.totalItems})</span>
+                    <span style={{ fontWeight: 'bold' }}>{stat.itemCompletionRate}%</span>
+                  </div>
+                  <div style={{ width: '100%', height: '12px', backgroundColor: '#eee', borderRadius: '6px', overflow: 'hidden', border: '1px solid #ccc' }}>
+                    <div style={{ width: `${stat.itemCompletionRate}%`, height: '100%', backgroundColor: stat.itemCompletionRate === 100 ? 'var(--crayon-green)' : 'var(--crayon-blue)' }}></div>
+                  </div>
+                </div>
+                <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                  <button className="doodle-button" style={{ padding: '6px 15px', fontSize: '1rem', backgroundColor: '#e3f2fd' }} onClick={() => handleExportPersonExcel(stat)}>📥 匯出 Excel 檔</button>
+                  <button className="doodle-button" style={{ padding: '6px 15px', fontSize: '1rem', backgroundColor: '#f3e5f5' }} onClick={() => handleExportPersonImage(stat.id, stat.name)}>🖼️ 匯出圖檔</button>
                 </div>
               </div>
             ) : (

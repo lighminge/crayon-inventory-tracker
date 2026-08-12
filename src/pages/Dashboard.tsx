@@ -420,7 +420,7 @@ export default function Dashboard() {
         
         <div className="doodle-border" style={{ padding: '15px', textAlign: 'center', backgroundColor: '#f3e5f5', flex: 1 }}>
           <h3 style={{ margin: '0 0 10px 0', fontSize: '1.1rem' }}>平均處理天數</h3>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-purple)' }}>{stats.avgDays.toFixed(1)} <span style={{fontSize:'1rem'}}>天</span></div>
+          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-purple)' }}>{stats.avgDays.toFixed(2)} <span style={{fontSize:'1rem'}}>天</span></div>
         </div>
       </div>
 
