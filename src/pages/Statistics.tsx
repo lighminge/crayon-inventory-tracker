@@ -24,7 +24,7 @@ export default function Statistics() {
       if (stat.pTickets.length === 0) return;
       const exportData = stat.pTickets.map((t: any, i: number) => ({
         '序號': i + 1,
-        '單號': t.ticketNumber,
+        '單號': t.id,
         '任務': tasks.find(tsk => tsk.id === t.taskId)?.name || '未知任務',
         '盤點類型': t.ticketType,
         '狀態': t.closeDate ? '已結案' : '處理中',
@@ -59,7 +59,7 @@ export default function Statistics() {
   const handleExportPersonExcel = (stat: any) => {
     const exportData = stat.pTickets.map((t: any, i: number) => ({
       '序號': i + 1,
-      '單號': t.ticketNumber,
+      '單號': t.id,
       '任務': tasks.find(tsk => tsk.id === t.taskId)?.name || '未知任務',
       '盤點類型': t.ticketType,
       '狀態': t.closeDate ? '已結案' : '處理中',
@@ -685,9 +685,7 @@ export default function Statistics() {
           <div className="doodle-border" style={{ backgroundColor: 'white', padding: '15px', transform: 'rotate(1deg)' }}>
             <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold' }}>平均完成率</div>
             <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-green)' }}>{globalStats.completionRate}%</div>
-          </div>
-          <div className="doodle-border" style={{ backgroundColor: 'white', padding: '15px', transform: 'rotate(1deg)' }}>
-            <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold' }}>平均處理天數</div>
+            <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold', marginTop: '10px' }}>平均處理天數</div>
             <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>{globalStats.avgDays.toFixed(2)} <span style={{fontSize:'1rem'}}>天</span></div>
           </div>
         </div>
@@ -730,8 +728,8 @@ export default function Statistics() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '40px', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
         <h3 style={{ margin: 0 }}>👥 個人詳細數據</h3>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="doodle-button" style={{ padding: '6px 15px', fontSize: '1rem', backgroundColor: '#e3f2fd' }} onClick={handleExportAllExcel}>📥 匯出全部 Excel</button>
-          <button className="doodle-button" style={{ padding: '6px 15px', fontSize: '1rem', backgroundColor: '#f3e5f5' }} onClick={handleExportAllImage}>🖼️ 匯出全部圖檔</button>
+          <button className="doodle-button" style={{ padding: '6px 15px', fontSize: '1rem', backgroundColor: 'var(--crayon-blue)', color: 'white' }} onClick={handleExportAllExcel}>📥 匯出全部 Excel</button>
+          <button className="doodle-button" style={{ padding: '6px 15px', fontSize: '1rem', backgroundColor: 'var(--crayon-purple)', color: 'white' }} onClick={handleExportAllImage}>🖼️ 匯出全部圖檔</button>
         </div>
       </div>
       <div id="all-persons-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px', padding: '10px', backgroundColor: '#fff', borderRadius: '15px' }}>
@@ -835,8 +833,8 @@ export default function Statistics() {
                   </div>
                 </div>
                 <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                  <button className="doodle-button" style={{ padding: '6px 15px', fontSize: '1rem', backgroundColor: '#e3f2fd' }} onClick={() => handleExportPersonExcel(stat)}>📥 匯出 Excel 檔</button>
-                  <button className="doodle-button" style={{ padding: '6px 15px', fontSize: '1rem', backgroundColor: '#f3e5f5' }} onClick={() => handleExportPersonImage(stat.id, stat.name)}>🖼️ 匯出圖檔</button>
+                  <button className="doodle-button" style={{ padding: '6px 15px', fontSize: '1rem', backgroundColor: 'var(--crayon-blue)', color: 'white' }} onClick={() => handleExportPersonExcel(stat)}>📥 匯出 Excel 檔</button>
+                  <button className="doodle-button" style={{ padding: '6px 15px', fontSize: '1rem', backgroundColor: 'var(--crayon-purple)', color: 'white' }} onClick={() => handleExportPersonImage(stat.id, stat.name)}>🖼️ 匯出圖檔</button>
                 </div>
               </div>
             ) : (
