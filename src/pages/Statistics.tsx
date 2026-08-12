@@ -17,6 +17,45 @@ export default function Statistics() {
   const [tasks, setTasks] = useState<InventoryTask[]>([]);
   const [holidays, setHolidays] = useState<HolidaySetting[]>([]);
 
+
+  const handleExportAllExcel = () => {
+    const wb = XLSX.utils.book_new();
+    statsByPerson.forEach(stat => {
+      if (stat.pTickets.length === 0) return;
+      const exportData = stat.pTickets.map((t: any, i: number) => ({
+        '序號': i + 1,
+        '單號': t.ticketNumber,
+        '任務': tasks.find(tsk => tsk.id === t.taskId)?.name || '未知任務',
+        '盤點類型': t.ticketType,
+        '狀態': t.closeDate ? '已結案' : '處理中',
+        '項目數': t.itemCount || 0,
+        '開立時間': new Date(t.createdAt).toLocaleString('zh-TW'),
+        '結案時間': t.closeDate ? new Date(t.closeDate).toLocaleString('zh-TW') : '-'
+      }));
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      XLSX.utils.book_append_sheet(wb, ws, stat.name.substring(0, 31));
+    });
+    
+    if (wb.SheetNames.length === 0) {
+      alert('無盤點數據可匯出');
+      return;
+    }
+    
+    const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    XLSX.writeFile(wb, `全部人員_盤點數據_${dateStr}.xlsx`);
+  };
+
+  const handleExportAllImage = async () => {
+    const el = document.getElementById('all-persons-container');
+    if (!el) return;
+    const canvas = await html2canvas(el, { scale: 1.5 });
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `全部人員_統計數據.png`;
+    a.click();
+  };
+
   const handleExportPersonExcel = (stat: any) => {
     const exportData = stat.pTickets.map((t: any, i: number) => ({
       '序號': i + 1,
@@ -618,7 +657,9 @@ export default function Statistics() {
                   formatter={(value) => [`${value} 天`, '平均天數']}
                 />
                 <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
-                <Bar dataKey="avgDays" name="平均處理天數 (天)" fill="var(--crayon-orange)" radius={[5, 5, 0, 0]} barSize={50} />
+                <Bar dataKey="avgDays" name="平均處理天數 (天)" fill="var(--crayon-orange)" radius={[5, 5, 0, 0]} barSize={50}>
+                  <LabelList dataKey="avgDays" position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -632,17 +673,13 @@ export default function Statistics() {
           <div className="doodle-border" style={{ backgroundColor: 'white', padding: '15px', transform: 'rotate(-1deg)' }}>
             <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold' }}>總盤點數</div>
             <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{globalStats.total}</div>
+            <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold', marginTop: '10px' }}>已完成單數</div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{globalStats.closed}</div>
           </div>
           <div className="doodle-border" style={{ backgroundColor: 'white', padding: '15px', transform: 'rotate(1deg)' }}>
             <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold' }}>總項目數</div>
             <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-orange)' }}>{globalStats.totalItems}</div>
-          </div>
-          <div className="doodle-border" style={{ backgroundColor: 'white', padding: '15px', transform: 'rotate(1deg)' }}>
-            <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold' }}>已完成單數</div>
-            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{globalStats.closed}</div>
-          </div>
-          <div className="doodle-border" style={{ backgroundColor: 'white', padding: '15px', transform: 'rotate(-1deg)' }}>
-            <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold' }}>已完成項目</div>
+            <div style={{ fontSize: '1.1rem', color: '#555', fontWeight: 'bold', marginTop: '10px' }}>已完成項目</div>
             <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-green)' }}>{globalStats.closedItems}</div>
           </div>
           <div className="doodle-border" style={{ backgroundColor: 'white', padding: '15px', transform: 'rotate(1deg)' }}>
@@ -690,8 +727,14 @@ export default function Statistics() {
       </div>
 
       {/* 個人詳細數據列表 */}
-      <h3 style={{ marginTop: '40px', marginBottom: '20px' }}>👥 個人詳細數據</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '40px', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
+        <h3 style={{ margin: 0 }}>👥 個人詳細數據</h3>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="doodle-button" style={{ padding: '6px 15px', fontSize: '1rem', backgroundColor: '#e3f2fd' }} onClick={handleExportAllExcel}>📥 匯出全部 Excel</button>
+          <button className="doodle-button" style={{ padding: '6px 15px', fontSize: '1rem', backgroundColor: '#f3e5f5' }} onClick={handleExportAllImage}>🖼️ 匯出全部圖檔</button>
+        </div>
+      </div>
+      <div id="all-persons-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px', padding: '10px', backgroundColor: '#fff', borderRadius: '15px' }}>
         {statsByPerson.map(stat => {
           const tab = personChartTab[stat.id] || 'stats';
           const type = personChartType[stat.id] || 'bar';
@@ -754,13 +797,17 @@ export default function Statistics() {
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
                   <div style={{ textAlign: 'center', backgroundColor: '#f0f8ff', padding: '10px', borderRadius: '10px', border: '1px solid #ccc' }}>
-                    <div style={{ fontSize: '0.8rem', color: '#555' }}>盤點單數</div>
+                    <div style={{ fontSize: '0.8rem', color: '#555' }}>總單數</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{stat.total}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#555', marginTop: '5px' }}>已完成單數</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{stat.closed}</div>
                   </div>
                   
                   <div style={{ textAlign: 'center', backgroundColor: '#fff9c4', padding: '10px', borderRadius: '10px', border: '1px solid #ccc' }}>
-                    <div style={{ fontSize: '0.8rem', color: '#555' }}>項目數量</div>
+                    <div style={{ fontSize: '0.8rem', color: '#555' }}>總項目數</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-orange)' }}>{stat.totalItems}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#555', marginTop: '5px' }}>已完成項目數</div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-green)' }}>{stat.closedItems}</div>
                   </div>
                   
                   <div style={{ textAlign: 'center', backgroundColor: '#fff0f5', padding: '10px', borderRadius: '10px', border: '1px solid #ccc' }}>
