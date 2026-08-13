@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { InventoryTicket, Personnel, InventoryTask, Workflow, HolidaySetting } from '../types';
 import { getTickets, getPersonnel, getTasks, getWorkflows, getHolidays } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
-import { BarChart, Bar, LineChart, Line, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, LineChart, Line, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, PieChart, Pie, Cell, LabelList } from 'recharts';
 
 export default function Dashboard() {
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
@@ -182,6 +182,7 @@ export default function Dashboard() {
       // Completed Items calculation
       const completedTickets = pTickets.filter(t => t.closeDate);
       const totalCompletedItems = completedTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+      const monthCompletedItems = monthCompletedTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
 
       return {
         ...p,
@@ -193,7 +194,8 @@ export default function Dashboard() {
         monthCompleted,
         monthCompletionRate,
         avgDays,
-        totalCompletedItems
+        totalCompletedItems,
+        monthCompletedItems
       };
     }).sort((a, b) => b.incompleteCount - a.incompleteCount);
   }, [filteredTickets, personnel, selectedYear, selectedMonthNum, holidays]);
@@ -260,8 +262,12 @@ export default function Dashboard() {
           <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />
           <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#ffffff', color: 'var(--crayon-dark)', fontWeight: 'bold', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
           <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
-          {showTicket && <Line type="monotone" dataKey="count" name="盤點數量" stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />}
-          {showItem && <Line type="monotone" dataKey="itemCount" name="盤點項目數量" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />}
+          {showTicket && <Line type="monotone" dataKey="count" name="盤點數量" stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} >
+                  <LabelList dataKey="count" position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                </Line>}
+          {showItem && <Line type="monotone" dataKey="itemCount" name="盤點項目數量" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} >
+                  <LabelList dataKey="itemCount" position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                </Line>}
         </LineChart>
       );
     }
@@ -277,22 +283,34 @@ export default function Dashboard() {
           
           {showTicket && !showItem && (
             <>
-              <Bar yAxisId="left" dataKey="count" name="盤點數量 (長條)" fill="var(--crayon-green)" radius={[5, 5, 0, 0]} barSize={40} />
-              <Line yAxisId="left" type="monotone" dataKey="count" name="盤點數量 (折線)" stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />
+              <Bar yAxisId="left" dataKey="count" name="盤點數量 (長條)" fill="var(--crayon-green)" radius={[5, 5, 0, 0]} barSize={40} >
+                  <LabelList dataKey="count" position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                </Bar>
+              <Line yAxisId="left" type="monotone" dataKey="count" name="盤點數量 (折線)" stroke="var(--crayon-blue)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} >
+                  <LabelList dataKey="count" position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                </Line>
             </>
           )}
           
           {!showTicket && showItem && (
             <>
-              <Bar yAxisId="left" dataKey="itemCount" name="盤點項目數量 (長條)" fill="var(--crayon-green)" radius={[5, 5, 0, 0]} barSize={40} />
-              <Line yAxisId="left" type="monotone" dataKey="itemCount" name="盤點項目數量 (折線)" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />
+              <Bar yAxisId="left" dataKey="itemCount" name="盤點項目數量 (長條)" fill="var(--crayon-green)" radius={[5, 5, 0, 0]} barSize={40} >
+                  <LabelList dataKey="itemCount" position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                </Bar>
+              <Line yAxisId="left" type="monotone" dataKey="itemCount" name="盤點項目數量 (折線)" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} >
+                  <LabelList dataKey="itemCount" position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                </Line>
             </>
           )}
           
           {showTicket && showItem && (
             <>
-              <Bar yAxisId="left" dataKey="count" name="盤點數量 (長條)" fill="var(--crayon-green)" radius={[5, 5, 0, 0]} barSize={40} />
-              <Line yAxisId="right" type="monotone" dataKey="itemCount" name="盤點項目數量 (折線)" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} />
+              <Bar yAxisId="left" dataKey="count" name="盤點數量 (長條)" fill="var(--crayon-green)" radius={[5, 5, 0, 0]} barSize={40} >
+                  <LabelList dataKey="count" position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                </Bar>
+              <Line yAxisId="right" type="monotone" dataKey="itemCount" name="盤點項目數量 (折線)" stroke="var(--crayon-red)" strokeWidth={4} activeDot={{r: 8, stroke: 'var(--crayon-dark)', strokeWidth: 2}} >
+                  <LabelList dataKey="itemCount" position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                </Line>
             </>
           )}
         </ComposedChart>
@@ -306,8 +324,12 @@ export default function Dashboard() {
         <YAxis stroke="var(--crayon-dark)" tick={{fontFamily: 'Caveat, cursive', fontSize: 18, fontWeight: 'bold'}} allowDecimals={false} />
         <Tooltip contentStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', borderRadius: '10px', border: '3px solid var(--crayon-dark)', backgroundColor: '#ffffff', color: 'var(--crayon-dark)', fontWeight: 'bold', boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'}} />
         <Legend wrapperStyle={{fontFamily: 'Caveat, cursive', fontSize: '1.2rem', fontWeight: 'bold'}} />
-        {showTicket && <Bar dataKey="count" name="盤點數量" fill="var(--crayon-purple)" radius={[5, 5, 0, 0]} barSize={40} />}
-        {showItem && <Bar dataKey="itemCount" name="盤點項目數量" fill="var(--crayon-blue)" radius={[5, 5, 0, 0]} barSize={40} />}
+        {showTicket && <Bar dataKey="count" name="盤點數量" fill="var(--crayon-purple)" radius={[5, 5, 0, 0]} barSize={40} >
+                  <LabelList dataKey="count" position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                </Bar>}
+        {showItem && <Bar dataKey="itemCount" name="盤點項目數量" fill="var(--crayon-blue)" radius={[5, 5, 0, 0]} barSize={40} >
+                  <LabelList dataKey="itemCount" position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                </Bar>}
       </BarChart>
     );
   };
@@ -569,14 +591,25 @@ export default function Dashboard() {
                             </div>
                           </div>
                           
-                          <div style={{ 
-                            marginTop: '15px', backgroundColor: '#e8eaf6', padding: '10px', 
-                            borderRadius: '10px', textAlign: 'center', border: '1px dashed var(--crayon-blue)' 
-                          }}>
-                            <div style={{ fontSize: '0.9rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
-                              {selectedTaskId ? '此任務已盤點項目數' : '已完成總項目數'}
+                          <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                            <div style={{ 
+                              flex: 1, backgroundColor: '#e8eaf6', padding: '10px', 
+                              borderRadius: '10px', textAlign: 'center', border: '1px dashed var(--crayon-blue)' 
+                            }}>
+                              <div style={{ fontSize: '0.9rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
+                                本月完成項目數
+                              </div>
+                              <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{p.monthCompletedItems || 0}</div>
                             </div>
-                            <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{p.totalCompletedItems}</div>
+                            <div style={{ 
+                              flex: 1, backgroundColor: '#e8eaf6', padding: '10px', 
+                              borderRadius: '10px', textAlign: 'center', border: '1px dashed var(--crayon-blue)' 
+                            }}>
+                              <div style={{ fontSize: '0.9rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
+                                {selectedTaskId ? '此任務已盤點項目數' : '已完成總項目數'}
+                              </div>
+                              <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{p.totalCompletedItems}</div>
+                            </div>
                           </div>
 
                           <div style={{ marginTop: '15px' }}>
@@ -792,7 +825,12 @@ export default function Dashboard() {
                     <YAxis />
                     <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '10px', border: '2px solid var(--crayon-dark)' }} />
                     <Legend />
-                    <Bar dataKey="ticketCount" name="單據數量 (件)" fill="var(--crayon-blue)" radius={[10, 10, 0, 0]} barSize={40} />
+                    <Bar dataKey="ticketCount" name="單據數量 (件)" fill="var(--crayon-blue)" radius={[10, 10, 0, 0]} barSize={40}>
+                      <LabelList dataKey="ticketCount" position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                    </Bar>
+                    <Bar dataKey="itemCount" name="盤點項目數量 (項)" fill="var(--crayon-orange)" radius={[10, 10, 0, 0]} barSize={40}>
+                      <LabelList dataKey="itemCount" position="top" style={{ fontSize: '16px', fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                    </Bar>
                   </BarChart>
                 ) : (
                   <PieChart margin={{ top: 30, right: 30, bottom: 30, left: 30 }}>
