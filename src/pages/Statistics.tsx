@@ -22,21 +22,31 @@ export default function Statistics() {
     const wb = XLSX.utils.book_new();
     statsByPerson.forEach(stat => {
       if (stat.pTickets.length === 0) return;
-      const exportData: any[] = stat.pTickets.map((t: any, i: number) => ({
-        '序號': i + 1,
-        '單號': t.id,
-        '任務': t.taskId ? (tasks.find(tsk => tsk.id === t.taskId)?.name || '未知任務') : '無任務',
-        '盤點類型': t.ticketType,
-        '狀態': t.closeDate ? '已結案' : '處理中',
-        '項目數': t.itemCount || 0,
-        '派送日期': t.dispatchDate ? new Date(t.dispatchDate).toLocaleDateString('zh-TW') : '-',
-        '結案日期': t.closeDate ? new Date(t.closeDate).toLocaleDateString('zh-TW') : '-'
-      }));
+      const exportData: any[] = stat.pTickets.map((t: any, i: number) => {
+        const start = getFirstStageDate(t);
+        const processingDays = (t.closeDate && start) ? calculateBusinessDays(start, t.closeDate, holidays) : null;
+        return {
+          '序號': i + 1,
+          '單號': t.id,
+          '任務': t.taskId ? (tasks.find(tsk => tsk.id === t.taskId)?.name || '未知任務') : '無任務',
+          '盤點類型': t.ticketType,
+          '狀態': t.closeDate ? '已結案' : '處理中',
+          '項目數': t.itemCount || 0,
+          '派送日期': t.dispatchDate ? new Date(t.dispatchDate).toLocaleDateString('zh-TW') : '-',
+          '結案日期': t.closeDate ? new Date(t.closeDate).toLocaleDateString('zh-TW') : '-',
+          '處理天數': processingDays !== null ? processingDays : '-'
+        };
+      });
       
       const totalTickets = exportData.length;
       const totalItems = exportData.reduce((sum: number, row: any) => sum + (row['項目數'] || 0), 0);
+      const taskCount = exportData.filter((row: any) => row['任務'] !== '無任務').length;
+      const closedWithDays = exportData.filter((row: any) => row['處理天數'] !== '-');
+      const totalDays = closedWithDays.reduce((sum: number, row: any) => sum + row['處理天數'], 0);
+      const avgDaysStr = closedWithDays.length > 0 ? `平均 ${(totalDays / closedWithDays.length).toFixed(1)} 天` : '-';
+      
       exportData.push({
-        '序號': '', '單號': '總計', '任務': '', '盤點類型': '', '狀態': `共 ${totalTickets} 單`, '項目數': totalItems, '派送日期': '', '結案日期': ''
+        '序號': '', '單號': '總計', '任務': `共 ${taskCount} 筆`, '盤點類型': '', '狀態': `共 ${totalTickets} 單`, '項目數': `共 ${totalItems} 項`, '派送日期': '', '結案日期': '', '處理天數': avgDaysStr
       });
       const ws = XLSX.utils.json_to_sheet(exportData);
       XLSX.utils.book_append_sheet(wb, ws, stat.name.substring(0, 31));
@@ -63,22 +73,31 @@ export default function Statistics() {
   };
 
   const handleExportPersonExcel = (stat: any) => {
-    const exportData: any[] = stat.pTickets.map((t: any, i: number) => ({
-      '序號': i + 1,
-      '單號': t.id,
-      '任務': t.taskId ? (tasks.find(tsk => tsk.id === t.taskId)?.name || '未知任務') : '無任務',
-      '盤點類型': t.ticketType,
-      '狀態': t.closeDate ? '已結案' : '處理中',
-      '項目數': t.itemCount || 0,
-      '派送日期': t.dispatchDate ? new Date(t.dispatchDate).toLocaleDateString('zh-TW') : '-',
-      '結案日期': t.closeDate ? new Date(t.closeDate).toLocaleDateString('zh-TW') : '-'
-    }));
-    
-    
+    const exportData: any[] = stat.pTickets.map((t: any, i: number) => {
+        const start = getFirstStageDate(t);
+        const processingDays = (t.closeDate && start) ? calculateBusinessDays(start, t.closeDate, holidays) : null;
+        return {
+          '序號': i + 1,
+          '單號': t.id,
+          '任務': t.taskId ? (tasks.find(tsk => tsk.id === t.taskId)?.name || '未知任務') : '無任務',
+          '盤點類型': t.ticketType,
+          '狀態': t.closeDate ? '已結案' : '處理中',
+          '項目數': t.itemCount || 0,
+          '派送日期': t.dispatchDate ? new Date(t.dispatchDate).toLocaleDateString('zh-TW') : '-',
+          '結案日期': t.closeDate ? new Date(t.closeDate).toLocaleDateString('zh-TW') : '-',
+          '處理天數': processingDays !== null ? processingDays : '-'
+        };
+      });
+      
       const totalTickets = exportData.length;
       const totalItems = exportData.reduce((sum: number, row: any) => sum + (row['項目數'] || 0), 0);
+      const taskCount = exportData.filter((row: any) => row['任務'] !== '無任務').length;
+      const closedWithDays = exportData.filter((row: any) => row['處理天數'] !== '-');
+      const totalDays = closedWithDays.reduce((sum: number, row: any) => sum + row['處理天數'], 0);
+      const avgDaysStr = closedWithDays.length > 0 ? `平均 ${(totalDays / closedWithDays.length).toFixed(1)} 天` : '-';
+      
       exportData.push({
-        '序號': '', '單號': '總計', '任務': '', '盤點類型': '', '狀態': `共 ${totalTickets} 單`, '項目數': totalItems, '派送日期': '', '結案日期': ''
+        '序號': '', '單號': '總計', '任務': `共 ${taskCount} 筆`, '盤點類型': '', '狀態': `共 ${totalTickets} 單`, '項目數': `共 ${totalItems} 項`, '派送日期': '', '結案日期': '', '處理天數': avgDaysStr
       });
       const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
