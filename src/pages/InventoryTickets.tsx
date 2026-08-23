@@ -65,7 +65,7 @@ export default function InventoryTicketsPage() {
         getTasks(),
         getHolidays()
       ]);
-      setTickets(ticketsData);
+      setTickets(ticketsData.filter(t => !t.isAdditional));
       setPersonnel(personnelData);
       setWorkflows(workflowsData.sort((a, b) => a.order - b.order));
       setTasks(tasksData);

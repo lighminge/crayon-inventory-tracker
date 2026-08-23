@@ -176,6 +176,11 @@ export default function Layout() {
                 🎯 盤點任務
               </NavLink>
             )}
+            {hasPermission('tickets', 'view') && (
+              <NavLink to="/additional-tickets" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+                ➕ 追加盤點
+              </NavLink>
+            )}
             {hasPermission('workflow', 'view') && (
               <NavLink to="/workflow" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
                 🔀 流程管理

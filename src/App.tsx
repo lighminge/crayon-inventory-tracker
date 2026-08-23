@@ -3,6 +3,7 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Personnel from './pages/Personnel';
 import InventoryTickets from './pages/InventoryTickets';
+import AdditionalTickets from './pages/AdditionalTickets';
 import DispatchTickets from './pages/DispatchTickets';
 import WorkflowManagement from './pages/WorkflowManagement';
 import WorkflowTickets from './pages/WorkflowTickets';
@@ -33,6 +34,7 @@ function App() {
           <Route path="tasks" element={<InventoryTasks />} />
           <Route path="dispatch" element={<DispatchTickets />} />
           <Route path="tickets" element={<InventoryTickets />} />
+          <Route path="additional-tickets" element={<AdditionalTickets />} />
           <Route path="workflow-tickets" element={<WorkflowTickets />} />
           <Route path="workflow" element={<WorkflowManagement />} />
           <Route path="item-details" element={<ItemDetails />} />
