@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { InventoryTicket } from '../types';
 import { updateTicket } from '../services/api';
+import CrayonDatePicker from './CrayonDatePicker';
 
 interface Props {
   ticket: InventoryTicket;
@@ -11,25 +12,23 @@ interface Props {
 export default function RecountPanel({ ticket, onUpdate, canEdit }: Props) {
   const [hasRecount, setHasRecount] = useState(!!ticket.hasRecount);
   const [recountItems, setRecountItems] = useState<Record<string, string>>(ticket.recountItems || {});
-  const [defaultDate, setDefaultDate] = useState<string>(ticket.defaultRecountDate || new Date().toISOString().split('T')[0]);
+  const [totalRecountDate, setTotalRecountDate] = useState<string>(ticket.totalRecountCompletionDate || '');
   const [isSaving, setIsSaving] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(!!ticket.hasRecount);
 
   useEffect(() => {
     setHasRecount(!!ticket.hasRecount);
     setRecountItems(ticket.recountItems || {});
-    setDefaultDate(ticket.defaultRecountDate || new Date().toISOString().split('T')[0]);
-    if (ticket.hasRecount) setIsExpanded(true);
+    setTotalRecountDate(ticket.totalRecountCompletionDate || '');
   }, [ticket]);
 
-  const handleSave = async (newHasRecount: boolean, newItems: Record<string, string>, newDefaultDate: string) => {
+  const handleSave = async (newHasRecount: boolean, newItems: Record<string, string>, newTotalDate: string) => {
     if (!canEdit) return;
     setIsSaving(true);
     try {
       await updateTicket(ticket.id, {
         hasRecount: newHasRecount,
         recountItems: newItems,
-        defaultRecountDate: newDefaultDate
+        totalRecountCompletionDate: newTotalDate,
       });
       onUpdate();
     } catch (e) {
@@ -43,8 +42,7 @@ export default function RecountPanel({ ticket, onUpdate, canEdit }: Props) {
   const toggleHasRecount = (e: React.ChangeEvent<HTMLInputElement>) => {
     const checked = e.target.checked;
     setHasRecount(checked);
-    setIsExpanded(checked);
-    handleSave(checked, recountItems, defaultDate);
+    handleSave(checked, recountItems, totalRecountDate);
   };
 
   const toggleItem = (itemNum: number) => {
@@ -53,28 +51,29 @@ export default function RecountPanel({ ticket, onUpdate, canEdit }: Props) {
     if (newItems[key] !== undefined) {
       delete newItems[key];
     } else {
-      newItems[key] = ''; // Checked, but no specific date yet
+      newItems[key] = ''; // Check, empty date
     }
     setRecountItems(newItems);
-    handleSave(hasRecount, newItems, defaultDate);
+    handleSave(hasRecount, newItems, totalRecountDate);
   };
 
   const handleDateChange = (itemNum: number, date: string) => {
     const key = String(itemNum);
     const newItems = { ...recountItems, [key]: date };
     setRecountItems(newItems);
-    handleSave(hasRecount, newItems, defaultDate);
+    handleSave(hasRecount, newItems, totalRecountDate);
   };
 
-  const handleDefaultDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setDefaultDate(val);
-    handleSave(hasRecount, recountItems, val);
+  const handleTotalDateChange = (date: string) => {
+    setTotalRecountDate(date);
+    handleSave(hasRecount, recountItems, date);
   };
 
   if (!canEdit && !ticket.hasRecount) return null;
 
   const itemCount = ticket.itemCount || 0;
+  const checkedKeys = Object.keys(recountItems);
+  const allCheckedCompleted = checkedKeys.length > 0 && checkedKeys.every(k => !!recountItems[k]);
 
   return (
     <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fff8e1', borderRadius: '10px', border: '2px dashed var(--crayon-orange)' }}>
@@ -84,26 +83,13 @@ export default function RecountPanel({ ticket, onUpdate, canEdit }: Props) {
           checked={hasRecount} 
           onChange={toggleHasRecount} 
           disabled={!canEdit || isSaving}
-          style={{ width: '20px', height: '20px', marginRight: '10px' }}
+          style={{ width: '20px', height: '20px', marginRight: '10px', accentColor: 'var(--crayon-orange)' }}
         />
         🔍 複盤項目 {isSaving && <span style={{ fontSize: '0.9rem', color: '#888', marginLeft: '10px', fontWeight: 'normal' }}>(儲存中...)</span>}
       </label>
 
-      {isExpanded && (
+      {hasRecount && (
         <div style={{ marginTop: '15px' }}>
-          <div style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontWeight: 'bold' }}>預設複盤完成日：</span>
-            <input 
-              type="date" 
-              className="doodle-input" 
-              style={{ padding: '5px', width: 'auto' }}
-              value={defaultDate}
-              onChange={handleDefaultDateChange}
-              disabled={!canEdit || isSaving}
-            />
-            <span style={{ fontSize: '0.85rem', color: '#666' }}>(所有勾選的項目預設將套用此日期)</span>
-          </div>
-
           {itemCount === 0 ? (
             <div style={{ color: '#888', fontStyle: 'italic' }}>此盤點單尚未設定項目數量，無法勾選明細。</div>
           ) : (
@@ -112,40 +98,53 @@ export default function RecountPanel({ ticket, onUpdate, canEdit }: Props) {
                 const itemNum = idx + 1;
                 const key = String(itemNum);
                 const isChecked = recountItems[key] !== undefined;
-                const itemDate = isChecked ? (recountItems[key] || '') : '';
+                const itemDate = recountItems[key] || '';
 
                 return (
                   <div key={itemNum} style={{ 
-                    display: 'flex', flexDirection: 'column', gap: '5px', 
+                    display: 'flex', flexDirection: 'column', gap: '8px', 
                     padding: '10px', borderRadius: '8px', 
                     backgroundColor: isChecked ? '#e8f5e9' : '#fff',
                     border: `2px solid ${isChecked ? 'var(--crayon-green)' : '#ccc'}`,
-                    width: '140px'
+                    width: '180px'
                   }}>
-                    <label style={{ display: 'flex', alignItems: 'center', cursor: canEdit ? 'pointer' : 'default', fontWeight: 'bold' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', cursor: canEdit ? 'pointer' : 'default', fontWeight: 'bold', color: isChecked ? 'var(--crayon-dark)' : '#666' }}>
                       <input 
                         type="checkbox" 
                         checked={isChecked}
                         onChange={() => canEdit && toggleItem(itemNum)}
                         disabled={!canEdit || isSaving}
-                        style={{ marginRight: '8px', width: '16px', height: '16px' }}
+                        style={{ marginRight: '8px', width: '18px', height: '18px', accentColor: 'var(--crayon-green)' }}
                       />
                       項目 #{itemNum}
                     </label>
                     {isChecked && (
-                      <input 
-                        type="date"
-                        className="doodle-input"
-                        style={{ padding: '2px 5px', fontSize: '0.85rem', width: '100%', boxSizing: 'border-box' }}
-                        value={itemDate || defaultDate}
-                        onChange={(e) => canEdit && handleDateChange(itemNum, e.target.value)}
-                        disabled={!canEdit || isSaving}
-                        title="此項目的獨立完成日"
-                      />
+                      <div style={{ width: '100%' }}>
+                        <CrayonDatePicker 
+                           value={itemDate}
+                           onChange={(val) => canEdit && handleDateChange(itemNum, val)}
+                           disabled={!canEdit || isSaving}
+                           placeholder="選擇完成日"
+                        />
+                      </div>
                     )}
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {allCheckedCompleted && (
+            <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '2px dashed #ccc', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--crayon-green)' }}>✅ 整體複盤完成日期：</span>
+              <div style={{ width: '180px' }}>
+                <CrayonDatePicker 
+                  value={totalRecountDate}
+                  onChange={handleTotalDateChange}
+                  disabled={!canEdit || isSaving}
+                  placeholder="選擇整體完成日"
+                />
+              </div>
             </div>
           )}
         </div>
