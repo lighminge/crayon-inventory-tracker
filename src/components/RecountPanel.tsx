@@ -56,6 +56,29 @@ export default function RecountPanel({ ticket, onUpdate, canEdit, personnel }: P
     }
   };
 
+  const updateItemsAndTotalDate = (newItems: Record<string, string>) => {
+    setRecountItems(newItems);
+    const newCheckedKeys = Object.keys(newItems);
+    const newCompletedCount = newCheckedKeys.filter(k => !!newItems[k]).length;
+    const newAllCompleted = newCheckedKeys.length > 0 && newCompletedCount === newCheckedKeys.length;
+    
+    let newTotalDate = totalRecountDate;
+    if (newAllCompleted) {
+      const newMaxDate = newCheckedKeys.reduce((max, k) => {
+        const d = newItems[k];
+        if (!d) return max;
+        if (!max) return d;
+        return d > max ? d : max;
+      }, '');
+      newTotalDate = newMaxDate;
+      setTotalRecountDate(newMaxDate);
+    } else if (newCheckedKeys.length === 0) {
+      newTotalDate = '';
+      setTotalRecountDate('');
+    }
+    return newTotalDate;
+  };
+
   const toggleHasRecount = (e: React.ChangeEvent<HTMLInputElement>) => {
     const checked = e.target.checked;
     setHasRecount(checked);
@@ -70,29 +93,14 @@ export default function RecountPanel({ ticket, onUpdate, canEdit, personnel }: P
     } else {
       newItems[key] = ''; // Check, empty date
     }
-    setRecountItems(newItems);
-    handleSave(hasRecount, newItems, totalRecountDate, recountAssigneeId);
+    const newTotalDate = updateItemsAndTotalDate(newItems);
+    handleSave(hasRecount, newItems, newTotalDate, recountAssigneeId);
   };
 
   const handleDateChange = (itemNum: number, date: string) => {
     const key = String(itemNum);
     const newItems = { ...recountItems, [key]: date };
-    setRecountItems(newItems);
-    
-    const newCheckedKeys = Object.keys(newItems);
-    const newMaxDate = newCheckedKeys.reduce((max, k) => {
-      const d = newItems[k];
-      if (!d) return max;
-      if (!max) return d;
-      return d > max ? d : max;
-    }, '');
-
-    let newTotalDate = totalRecountDate;
-    if (newMaxDate && (!newTotalDate || newTotalDate < newMaxDate)) {
-      newTotalDate = newMaxDate;
-      setTotalRecountDate(newMaxDate);
-    }
-
+    const newTotalDate = updateItemsAndTotalDate(newItems);
     handleSave(hasRecount, newItems, newTotalDate, recountAssigneeId);
   };
 
@@ -157,7 +165,7 @@ export default function RecountPanel({ ticket, onUpdate, canEdit, personnel }: P
               disabled={!canEdit || isSaving}
             >
               <option value="">- 請選擇人員 -</option>
-              {personnel.map(p => (
+              {personnel.filter(p => (p.roles || []).includes('盤點')).map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>

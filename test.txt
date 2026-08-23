@@ -1,0 +1,5 @@
+const ROLES_LIST = ['備料', '收料', '盤點', '行政', '生管', '採購', '主管'];
+
+              {ROLES_LIST.map(r => <option key={r} value={r}>{r}</option>)}
+
+                  {ROLES_LIST.map(role => (
