@@ -21,6 +21,18 @@ export default function RecountPanel({ ticket, onUpdate, canEdit }: Props) {
     setTotalRecountDate(ticket.totalRecountCompletionDate || '');
   }, [ticket]);
 
+  const checkedKeys = Object.keys(recountItems);
+  const completedCount = checkedKeys.filter(k => !!recountItems[k]).length;
+  const allCheckedCompleted = checkedKeys.length > 0 && completedCount === checkedKeys.length;
+  const isMainLocked = checkedKeys.length > 0 && !allCheckedCompleted;
+
+  const maxDate = checkedKeys.reduce((max, k) => {
+    const d = recountItems[k];
+    if (!d) return max;
+    if (!max) return d;
+    return d > max ? d : max;
+  }, '');
+
   const handleSave = async (newHasRecount: boolean, newItems: Record<string, string>, newTotalDate: string) => {
     if (!canEdit) return;
     setIsSaving(true);
@@ -61,10 +73,34 @@ export default function RecountPanel({ ticket, onUpdate, canEdit }: Props) {
     const key = String(itemNum);
     const newItems = { ...recountItems, [key]: date };
     setRecountItems(newItems);
-    handleSave(hasRecount, newItems, totalRecountDate);
+    
+    // Auto-update total date if all are now completed
+    const newCheckedKeys = Object.keys(newItems);
+    const newCompletedCount = newCheckedKeys.filter(k => !!newItems[k]).length;
+    const newAllCompleted = newCheckedKeys.length > 0 && newCompletedCount === newCheckedKeys.length;
+    
+    let newTotalDate = totalRecountDate;
+    if (newAllCompleted) {
+      const newMaxDate = newCheckedKeys.reduce((max, k) => {
+        const d = newItems[k];
+        if (!d) return max;
+        if (!max) return d;
+        return d > max ? d : max;
+      }, '');
+      if (newMaxDate && (!newTotalDate || newTotalDate < newMaxDate)) {
+        newTotalDate = newMaxDate;
+        setTotalRecountDate(newMaxDate);
+      }
+    }
+
+    handleSave(hasRecount, newItems, newTotalDate);
   };
 
   const handleTotalDateChange = (date: string) => {
+    if (date && maxDate && date < maxDate) {
+      alert(`整體完成日期不能早於最晚的項目完成日 (${maxDate})`);
+      return;
+    }
     setTotalRecountDate(date);
     handleSave(hasRecount, recountItems, date);
   };
@@ -72,20 +108,25 @@ export default function RecountPanel({ ticket, onUpdate, canEdit }: Props) {
   if (!canEdit && !ticket.hasRecount) return null;
 
   const itemCount = ticket.itemCount || 0;
-  const checkedKeys = Object.keys(recountItems);
-  const allCheckedCompleted = checkedKeys.length > 0 && checkedKeys.every(k => !!recountItems[k]);
 
   return (
     <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fff8e1', borderRadius: '10px', border: '2px dashed var(--crayon-orange)' }}>
-      <label style={{ display: 'flex', alignItems: 'center', cursor: canEdit ? 'pointer' : 'default', fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--crayon-orange)' }}>
+      <label style={{ display: 'flex', alignItems: 'center', cursor: (canEdit && !isMainLocked) ? 'pointer' : 'default', fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--crayon-orange)' }}>
         <input 
           type="checkbox" 
           checked={hasRecount} 
           onChange={toggleHasRecount} 
-          disabled={!canEdit || isSaving}
+          disabled={!canEdit || isSaving || isMainLocked}
           style={{ width: '20px', height: '20px', marginRight: '10px', accentColor: 'var(--crayon-orange)' }}
+          title={isMainLocked ? "請先完成所有已選取的複盤項目，或取消選取" : ""}
         />
-        🔍 複盤項目 {isSaving && <span style={{ fontSize: '0.9rem', color: '#888', marginLeft: '10px', fontWeight: 'normal' }}>(儲存中...)</span>}
+        🔍 複盤項目 
+        {checkedKeys.length > 0 && (
+           <span style={{ marginLeft: '10px', fontSize: '1rem', color: 'var(--crayon-dark)', backgroundColor: '#ffecb3', padding: '2px 8px', borderRadius: '5px', border: '1px solid var(--crayon-orange)' }}>
+             (已選: {checkedKeys.length} 項 / 已完成: {completedCount} 項)
+           </span>
+        )}
+        {isSaving && <span style={{ fontSize: '0.9rem', color: '#888', marginLeft: '10px', fontWeight: 'normal' }}>(儲存中...)</span>}
       </label>
 
       {hasRecount && (
