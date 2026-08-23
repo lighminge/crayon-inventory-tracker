@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [taskStatusFilter, setTaskStatusFilter] = useState<'all' | 'active' | 'expired'>('all');
   const [personnelTicketType, setPersonnelTicketType] = useState('');
   const [globalYear, setGlobalYear] = useState<number | ''>(new Date().getFullYear());
+  const [categoryFilter, setCategoryFilter] = useState<'一般' | '追加'>('一般');
   
   // Personnel Cards State
   const [activeTab, setActiveTab] = useState<Record<string, 'stats' | 'incomplete' | 'doing'>>({});
@@ -56,7 +57,7 @@ export default function Dashboard() {
   };
 
   const filteredTickets = useMemo(() => {
-    let res = tickets;
+    let res = tickets.filter(t => categoryFilter === '追加' ? t.isAdditional : !t.isAdditional);
     if (globalYear !== '') {
       res = res.filter(t => {
         const d = t.dispatchDate ? new Date(t.dispatchDate) : null;
@@ -70,7 +71,7 @@ export default function Dashboard() {
       res = res.filter(t => t.ticketType === personnelTicketType);
     }
     return res;
-  }, [tickets, globalYear, selectedTaskId, personnelTicketType]);
+  }, [tickets, globalYear, selectedTaskId, personnelTicketType, categoryFilter]);
 
   const getFirstStageDate = (t: InventoryTicket) => {
     if (t.stageDates && Object.keys(t.stageDates).length > 0) {
@@ -348,6 +349,13 @@ export default function Dashboard() {
             <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e8f5e9' }} value={globalYear} onChange={e => setGlobalYear(e.target.value === '' ? '' : Number(e.target.value))}>
               <option value="">全部年度</option>
               {yearOptions.map(y => <option key={y} value={y}>{y} 年</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: 'bold' }}>盤點種類：</label>
+            <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e3f2fd' }} value={categoryFilter} onChange={e => setCategoryFilter(e.target.value as '一般' | '追加')}>
+              <option value="一般">一般</option>
+              <option value="追加">追加</option>
             </select>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
