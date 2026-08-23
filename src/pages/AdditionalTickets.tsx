@@ -11,6 +11,11 @@ export default function AdditionalTickets() {
   const [loading, setLoading] = useState(true);
   const [systemAlert, setSystemAlert] = useState<{ message: string, onConfirm?: () => void } | null>(null);
 
+  // Search/Filter State
+  const [searchStartDate, setSearchStartDate] = useState('');
+  const [searchEndDate, setSearchEndDate] = useState('');
+  const [searchAssignee, setSearchAssignee] = useState('');
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -108,10 +113,32 @@ export default function AdditionalTickets() {
   const canEdit = hasPermission('tickets', 'edit');
   const assigneeOptions = personnel.filter(p => (p.roles || []).includes('盤點'));
 
+  // Filtering Logic
+  const filteredTickets = tickets.filter(t => {
+    if (searchAssignee && t.assigneeId !== searchAssignee) return false;
+    
+    if (searchStartDate || searchEndDate) {
+      const d = t.closeDate;
+      if (!d) return false;
+      
+      if (searchStartDate) {
+        const startTs = new Date(searchStartDate).getTime();
+        if (d < startTs) return false;
+      }
+      
+      if (searchEndDate) {
+        // Add 24h to include the end date fully
+        const endTs = new Date(searchEndDate).getTime() + 86400000;
+        if (d >= endTs) return false;
+      }
+    }
+    return true;
+  });
+
   // Pagination Logic
-  const totalItemsCount = tickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
-  const totalPages = Math.ceil(tickets.length / itemsPerPage);
-  const paginatedTickets = tickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalItemsCount = filteredTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+  const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
+  const paginatedTickets = filteredTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
@@ -138,8 +165,8 @@ export default function AdditionalTickets() {
 
       {/* Dispatch Modal */}
       {targetPerson && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 900 }}>
-          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '500px', backgroundColor: '#e3f2fd' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 900, overflowY: 'auto', paddingTop: '10vh', paddingBottom: '10vh' }}>
+          <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '500px', backgroundColor: '#e3f2fd', minHeight: '400px', overflow: 'visible' }}>
             <h3 style={{ margin: '0 0 20px 0', textAlign: 'center' }}>指派追加單給 {targetPerson.name}</h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -166,7 +193,7 @@ export default function AdditionalTickets() {
                   style={{ width: '100%' }}
                 />
               </div>
-              <div>
+              <div style={{ position: 'relative', zIndex: 10 }}>
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>完成日期：</label>
                 <CrayonDatePicker 
                   value={completionDate}
@@ -217,11 +244,56 @@ export default function AdditionalTickets() {
         </div>
       )}
 
+      {/* Search Filters */}
+      <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#e8f5e9' }}>
+        <h3 style={{ margin: '0 0 15px 0', color: 'var(--crayon-dark)' }}>🔍 查詢條件</h3>
+        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+            <div style={{ width: '160px' }}>
+              <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>完成日期 (起)</label>
+              <CrayonDatePicker value={searchStartDate} onChange={setSearchStartDate} placeholder="起日" />
+            </div>
+            <span style={{ paddingBottom: '10px', fontWeight: 'bold' }}>~</span>
+            <div style={{ width: '160px' }}>
+              <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>完成日期 (迄)</label>
+              <CrayonDatePicker value={searchEndDate} onChange={setSearchEndDate} placeholder="迄日" />
+            </div>
+          </div>
+          
+          <div style={{ width: '200px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點人員</label>
+            <select 
+              className="doodle-input" 
+              value={searchAssignee}
+              onChange={e => setSearchAssignee(e.target.value)}
+              style={{ width: '100%' }}
+            >
+              <option value="">- 所有人員 -</option>
+              {assigneeOptions.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+          
+          <button 
+            className="doodle-button"
+            onClick={() => {
+              setSearchStartDate('');
+              setSearchEndDate('');
+              setSearchAssignee('');
+              setCurrentPage(1);
+            }}
+          >
+            清除條件
+          </button>
+        </div>
+      </div>
+
       {/* Statistics and Pagination Controls */}
       <div className="doodle-border" style={{ padding: '15px', marginBottom: '20px', backgroundColor: '#fff9c4', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
         <div style={{ fontSize: '1.1rem' }}>
-          <strong style={{ color: 'var(--crayon-orange)' }}>總計追加：</strong>
-          <span style={{ margin: '0 15px' }}>共 {tickets.length} 單</span>
+          <strong style={{ color: 'var(--crayon-orange)' }}>查詢結果：</strong>
+          <span style={{ margin: '0 15px' }}>共 {filteredTickets.length} 單</span>
           <span>共 {totalItemsCount} 項</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -246,7 +318,7 @@ export default function AdditionalTickets() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
         {paginatedTickets.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#888', fontStyle: 'italic', border: '2px dashed #ccc', borderRadius: '10px' }}>
-            目前沒有追加盤點紀錄
+            目前沒有符合條件的追加盤點紀錄
           </div>
         ) : (
           paginatedTickets.map((t, idx) => {
@@ -302,7 +374,7 @@ export default function AdditionalTickets() {
           <button 
             className="doodle-button"
             disabled={currentPage === 1}
-            onClick={() => setCurrentPage(p => p - 1)}
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
           >
             上一頁
           </button>
@@ -312,7 +384,7 @@ export default function AdditionalTickets() {
           <button 
             className="doodle-button"
             disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(p => p + 1)}
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
           >
             下一頁
           </button>
