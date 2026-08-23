@@ -645,7 +645,7 @@ export default function InventoryTicketsPage() {
                     );
                   })}
                   </div>
-                  <RecountPanel ticket={t} onUpdate={loadData} canEdit={canEdit} />
+                  <RecountPanel ticket={t} onUpdate={loadData} canEdit={canEdit} personnel={personnel} />
                 </div>
               </div>
 

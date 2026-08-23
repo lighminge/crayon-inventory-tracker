@@ -38,6 +38,7 @@ export interface InventoryTicket {
   recountItems?: Record<string, string>;
   defaultRecountDate?: string;
   totalRecountCompletionDate?: string;
+  recountAssigneeId?: string;
   taskId?: string; // 關聯的盤點任務 ID
 }
 

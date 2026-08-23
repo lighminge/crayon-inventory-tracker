@@ -554,7 +554,7 @@ export default function WorkflowTickets() {
                             );
                           })}
                           </div>
-                          <RecountPanel ticket={t} onUpdate={loadData} canEdit={canEdit} />
+                          <RecountPanel ticket={t} onUpdate={loadData} canEdit={canEdit} personnel={personnel} />
                         </div>
                       </div>
                     {/* Total Elapsed Days Block */}
