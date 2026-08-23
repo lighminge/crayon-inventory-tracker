@@ -34,6 +34,9 @@ export interface InventoryTicket {
   managerName?: string;
   totalProcessingDays: number | null;
   itemCount?: number; // 盤點項目數量
+  hasRecount?: boolean;
+  recountItems?: Record<string, string>;
+  defaultRecountDate?: string;
   taskId?: string; // 關聯的盤點任務 ID
 }
 

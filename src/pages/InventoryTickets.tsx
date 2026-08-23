@@ -4,6 +4,7 @@ import { getTickets, updateTicket, deleteTicket, getPersonnel, getWorkflows, add
 import { calculateBusinessDays } from '../utils/dateUtils';
 import type { HolidaySetting } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
+import RecountPanel from '../components/RecountPanel';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function InventoryTicketsPage() {
@@ -643,9 +644,10 @@ export default function InventoryTicketsPage() {
                       </React.Fragment>
                     );
                   })}
+                  </div>
+                  <RecountPanel ticket={t} onUpdate={loadData} canEdit={canEdit} />
                 </div>
               </div>
-            </div>
 
               {/* Huge Total Processing Days Marker on the far right */}
               <div style={{ 

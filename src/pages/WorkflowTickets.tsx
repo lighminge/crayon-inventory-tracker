@@ -4,6 +4,7 @@ import { getTickets, updateTicket, getPersonnel, getWorkflows, getTasks, getHoli
 import { calculateBusinessDays } from '../utils/dateUtils';
 import type { HolidaySetting } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
+import RecountPanel from '../components/RecountPanel';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function WorkflowTickets() {
@@ -24,6 +25,7 @@ export default function WorkflowTickets() {
   const [fastQueryId, setFastQueryId] = useState('');
   const [filterTicketType, setFilterTicketType] = useState('');
   const [filterTaskId, setFilterTaskId] = useState('');
+  const [filterAssignee, setFilterAssignee] = useState('');
 
   // Modals State
   const [updatingTicket, setUpdatingTicket] = useState<InventoryTicket | null>(null);
@@ -67,9 +69,10 @@ export default function WorkflowTickets() {
     let result = [...tickets];
     if (filterTicketType) result = result.filter(t => t.ticketType === filterTicketType);
     if (filterTaskId) result = result.filter(t => t.taskId === filterTaskId);
+    if (filterAssignee) result = result.filter(t => t.assigneeId === filterAssignee);
     if (fastQueryId) result = result.filter(t => t.id.includes(fastQueryId));
     return result.sort((a, b) => a.id.localeCompare(b.id));
-  }, [tickets, filterTicketType, filterTaskId, fastQueryId]);
+  }, [tickets, filterTicketType, filterTaskId, filterAssignee, fastQueryId]);
 
   // Pagination Logic
   const totalPages = Math.ceil(activeTickets.length / itemsPerPage);
@@ -348,6 +351,15 @@ export default function WorkflowTickets() {
             ))}
           </select>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>👤 盤點人員：</label>
+          <select className="doodle-input" style={{ fontSize: '1.2rem', width: '150px' }} value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
+            <option value="">全部人員</option>
+            {personnel.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>🔍 快速查詢：</label>
           <input className="doodle-input" style={{ width: '150px', textAlign: 'center', fontSize: '1.2rem' }} value={fastQueryId} onChange={e => setFastQueryId(e.target.value)} placeholder="查詢單號..." />
@@ -541,9 +553,10 @@ export default function WorkflowTickets() {
                               </React.Fragment>
                             );
                           })}
+                          </div>
+                          <RecountPanel ticket={t} onUpdate={loadData} canEdit={canEdit} />
                         </div>
                       </div>
-                    </div>
                     {/* Total Elapsed Days Block */}
                     <div style={{ 
                       minWidth: '110px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', 
