@@ -479,16 +479,6 @@ export default function Statistics() {
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '30px', backgroundColor: '#f9f9f9' }}>
         <h3 style={{ margin: 0, marginBottom: '15px', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>📅 設定統計條件</h3>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label style={{ fontWeight: 'bold' }}>盤點種類：</label>
-            <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e3f2fd' }} value={categoryFilter} onChange={e => setCategoryFilter(e.target.value as '一般' | '追加')}>
-              <option value="一般">一般</option>
-              <option value="追加">追加</option>
-            </select>
-          </div>
-        </div>
-
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
           {/* 日期區間卡片 */}
           <div className="doodle-border" style={{ 
@@ -611,6 +601,22 @@ export default function Statistics() {
                   >▶</button>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* 盤點種類卡片 */}
+          <div className="doodle-border" style={{ 
+            backgroundColor: '#e3f2fd', 
+            padding: '15px', transform: 'rotate(-1deg)'
+          }}>
+            <h4 style={{ margin: '0 0 10px 0', color: 'var(--crayon-blue)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              📌 盤點種類
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <select className="doodle-input" style={{ width: '100%', backgroundColor: 'white' }} value={categoryFilter} onChange={e => setCategoryFilter(e.target.value as '一般' | '追加')}>
+                <option value="一般">一般</option>
+                <option value="追加">追加</option>
+              </select>
             </div>
           </div>
 

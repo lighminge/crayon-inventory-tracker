@@ -228,6 +228,40 @@ export default function AdditionalTickets() {
         </div>
       )}
 
+      {/* Personnel Cards for Dispatch */}
+      {canEdit && (
+        <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#f3e5f5' }}>
+          <h3 style={{ margin: '0 0 15px 0', color: 'var(--crayon-dark)' }}>👥 點選人員派送追加單</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px' }}>
+            {assigneeOptions.map(p => {
+              // Now computed based on filteredTickets so it respects search conditions
+              const personTickets = filteredTickets.filter(t => t.assigneeId === p.id);
+              const personItems = personTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+              return (
+                <div key={p.id} className="doodle-border" style={{ padding: '15px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--crayon-purple)' }}>
+                    {p.name}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                    已完成: {personTickets.length} 單 / {personItems} 項
+                  </div>
+                  <button 
+                    className="doodle-button"
+                    style={{ marginTop: 'auto' }}
+                    onClick={() => handleOpenModal(p)}
+                  >
+                    ➕ 追加派送
+                  </button>
+                </div>
+              );
+            })}
+            {assigneeOptions.length === 0 && (
+              <p style={{ color: '#888', gridColumn: '1 / -1' }}>目前沒有具備「盤點」權限的人員。</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Search Filters */}
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#e8f5e9' }}>
         <h3 style={{ margin: '0 0 15px 0', color: 'var(--crayon-dark)' }}>🔍 查詢條件</h3>
@@ -274,40 +308,6 @@ export default function AdditionalTickets() {
           </button>
         </div>
       </div>
-
-      {/* Personnel Cards for Dispatch */}
-      {canEdit && (
-        <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#f3e5f5' }}>
-          <h3 style={{ margin: '0 0 15px 0', color: 'var(--crayon-dark)' }}>👥 點選人員派送追加單</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px' }}>
-            {assigneeOptions.map(p => {
-              // Now computed based on filteredTickets so it respects search conditions
-              const personTickets = filteredTickets.filter(t => t.assigneeId === p.id);
-              const personItems = personTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
-              return (
-                <div key={p.id} className="doodle-border" style={{ padding: '15px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--crayon-purple)' }}>
-                    {p.name}
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                    已完成: {personTickets.length} 單 / {personItems} 項
-                  </div>
-                  <button 
-                    className="doodle-button"
-                    style={{ marginTop: 'auto' }}
-                    onClick={() => handleOpenModal(p)}
-                  >
-                    ➕ 追加派送
-                  </button>
-                </div>
-              );
-            })}
-            {assigneeOptions.length === 0 && (
-              <p style={{ color: '#888', gridColumn: '1 / -1' }}>目前沒有具備「盤點」權限的人員。</p>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Statistics and Pagination Controls */}
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '20px' }}>

@@ -333,9 +333,8 @@ export default function WorkflowTickets() {
         </div>
       </div>
 
-      <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#f9f9f9', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        <h3 style={{ margin: '0 0 10px 0', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>🔍 查詢與過濾</h3>
-        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="doodle-border" style={{ padding: '15px 20px', marginBottom: '20px', backgroundColor: '#f9f9f9', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>👤 盤點人員：</label>
             <select className="doodle-input" style={{ fontSize: '1.2rem', width: '150px' }} value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
@@ -364,7 +363,7 @@ export default function WorkflowTickets() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>🔍 快速查詢：</label>
             <input className="doodle-input" style={{ width: '150px', textAlign: 'center', fontSize: '1.2rem' }} value={fastQueryId} onChange={e => setFastQueryId(e.target.value)} placeholder="查詢單號..." />
