@@ -476,22 +476,19 @@ export default function Statistics() {
           </div>
 
       {/* 條件篩選 */}
-          <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#e8f5e9' }}>
-            <h3 style={{ margin: '0 0 15px 0', color: 'var(--crayon-dark)' }}>🔍 查詢條件</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <label style={{ fontWeight: 'bold' }}>盤點種類：</label>
-                <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e3f2fd' }} value={categoryFilter} onChange={e => setCategoryFilter(e.target.value as '一般' | '追加')}>
-                  <option value="一般">一般</option>
-                  <option value="追加">追加</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '30px', backgroundColor: '#f9f9f9' }}>
         <h3 style={{ margin: 0, marginBottom: '15px', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>📅 設定統計條件</h3>
         
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: 'bold' }}>盤點種類：</label>
+            <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e3f2fd' }} value={categoryFilter} onChange={e => setCategoryFilter(e.target.value as '一般' | '追加')}>
+              <option value="一般">一般</option>
+              <option value="追加">追加</option>
+            </select>
+          </div>
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
           {/* 日期區間卡片 */}
           <div className="doodle-border" style={{ 

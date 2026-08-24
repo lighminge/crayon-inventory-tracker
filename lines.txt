@@ -1,0 +1,46 @@
+6: import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, ComposedChart, LabelList } from 'recharts';
+33: const [chartType, setChartType] = useState<'bar' | 'line' | 'composed'>('bar');
+117: if (loading) return <div className="doodle-border" style={{ padding: '20px' }}>載入中...</div>;
+144: // Chart Data
+178: </div>
+179: </div>
+180: </div>
+200: </div>
+212: </div>
+220: </div>
+225: </div>
+226: </div>
+227: </div>
+228: </div>
+239: </div>
+244: </div>
+245: </div>
+260: </div>
+275: </div>
+276: </div>
+291: </div>
+294: </div>
+302: </div>
+308: </div>
+309: </div>
+312: {/* Statistics and Pagination Controls */}
+319: </div>
+335: </div>
+336: </div>
+343: </div>
+376: </div>
+384: </div>
+385: </div>
+386: </div>
+390: </div>
+392: {/* Pagination Nav */}
+404: </div>
+412: </div>
+415: {/* Chart */}
+417: <h3 style={{ margin: '0 0 20px 0', color: 'var(--crayon-dark)', textAlign: 'center' }}>📊 人員追加盤點統計</h3>
+421: <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+430: </BarChart>
+432: </div>
+436: </div>
+438: </div>
+439: </div>

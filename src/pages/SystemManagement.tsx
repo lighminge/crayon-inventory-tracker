@@ -336,7 +336,7 @@ export default function SystemManagement() {
         <>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 style={{ margin: 0 }}>⚙️ 系統管理 (權限與帳號) <span style={{ fontSize: '1.2rem', color: '#666' }}>共 {users.length} 筆</span></h2>
+        <h2 style={{ margin: 0, fontFamily: 'Caveat, cursive', fontSize: '2.5rem', color: 'var(--crayon-blue)' }}>⚙️ 系統管理 (權限與帳號) <span style={{ fontSize: '1.2rem', color: '#666' }}>共 {users.length} 筆</span></h2>
         {canEdit && !isEditing && (
           <button className="doodle-button success" onClick={handleAddNew}>
             ＋ 新增帳號
@@ -561,7 +561,7 @@ export default function SystemManagement() {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ margin: 0 }}>📊 登入記錄分析 <span style={{ fontSize: '1.2rem', color: '#666' }}>總計：{filteredLogins.length} 筆</span></h2>
+            <h2 style={{ margin: 0, fontFamily: 'Caveat, cursive', fontSize: '2.5rem', color: 'var(--crayon-blue)' }}>📊 登入記錄分析 <span style={{ fontSize: '1.2rem', color: '#666' }}>總計：{filteredLogins.length} 筆</span></h2>
             
             <div style={{ display: 'flex', gap: '10px' }}>
               <select className="doodle-input" style={{ padding: '6px 10px', fontSize: '1rem', borderRadius: '8px', minWidth: '100px' }} value={chartType} onChange={e => setChartType(e.target.value as 'bar'|'line')}>

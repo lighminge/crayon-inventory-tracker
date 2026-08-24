@@ -107,6 +107,7 @@ export default function WorkflowManagement() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ margin: 0, fontFamily: 'Caveat, cursive', fontSize: '2.5rem', color: 'var(--crayon-blue)' }}>🔀 流程管理</h2>
         {canEdit && (
           <button className="doodle-button" onClick={() => handleOpenForm()}>＋ 新增流程</button>
         )}
@@ -143,8 +144,12 @@ export default function WorkflowManagement() {
               <div style={{ display: 'flex', gap: '10px' }}>
                 {canEdit && (
                   <>
-                    <button className="doodle-button" onClick={() => moveOrder(index, 'up')} disabled={index <= 1 || isLast}>⬆️</button>
-                    <button className="doodle-button" onClick={() => moveOrder(index, 'down')} disabled={isFirst || index >= workflows.length - 2}>⬇️</button>
+                    <button className="doodle-button" onClick={() => moveOrder(index, 'up')} disabled={index <= 1 || isLast}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(-5deg)' }}><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                    </button>
+                    <button className="doodle-button" onClick={() => moveOrder(index, 'down')} disabled={isFirst || index >= workflows.length - 2}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ transform: 'rotate(5deg)' }}><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                    </button>
                     <button className="doodle-button success" onClick={() => handleOpenForm(w)}>編輯</button>
                     {!isLocked && (
                       <button className="doodle-button danger" onClick={() => handleDelete(w.id)}>刪除</button>

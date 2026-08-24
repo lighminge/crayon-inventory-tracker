@@ -168,7 +168,7 @@ export default function DispatchTickets() {
 
   return (
     <div>
-      <h2>📤 盤點單派送</h2>
+      <h2 style={{ margin: 0, fontFamily: 'Caveat, cursive', fontSize: '2.5rem', color: 'var(--crayon-blue)' }}>📤 盤點單派送</h2>
 
       {/* 派送通用設定區 */}
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '30px', backgroundColor: '#f0f8ff' }}>

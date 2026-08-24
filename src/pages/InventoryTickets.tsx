@@ -334,7 +334,7 @@ export default function InventoryTicketsPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>📝 盤點單管理</h2>
+        <h2 style={{ margin: 0, fontFamily: 'Caveat, cursive', fontSize: '2.5rem', color: 'var(--crayon-blue)' }}>📝 盤點單管理</h2>
       </div>
 
       {/* Filter & Sort Bar */}

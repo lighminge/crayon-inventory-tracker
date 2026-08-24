@@ -300,7 +300,7 @@ export default function ItemDetails() {
     return (
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2>📋 單號 {selectedTicketId} - 項目明細</h2>
+          <h2 style={{ margin: 0, fontFamily: 'Caveat, cursive', fontSize: '2.5rem', color: 'var(--crayon-blue)' }}>📋 單號 {selectedTicketId} - 項目明細</h2>
           <button className="doodle-button" onClick={() => { setViewMode('list'); setSelectedTicketId(null); loadData(); }}>
             🔙 返回清單
           </button>
@@ -746,7 +746,7 @@ export default function ItemDetails() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>📝 盤點項目明細</h2>
+        <h2 style={{ margin: 0, fontFamily: 'Caveat, cursive', fontSize: '2.5rem', color: 'var(--crayon-blue)' }}>📝 盤點項目明細</h2>
       </div>
 
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#f9f9f9' }}>

@@ -293,7 +293,7 @@ export default function WorkflowTickets() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
-        <h2>🔄 盤點單流程 (未結案)</h2>
+        <h2 style={{ margin: 0, fontFamily: 'Caveat, cursive', fontSize: '2.5rem', color: 'var(--crayon-blue)' }}>🔄 盤點單流程 (未結案)</h2>
       </div>
 
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#e3f2fd', display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -333,44 +333,50 @@ export default function WorkflowTickets() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px', gap: '30px', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>🏷️ 盤點類型：</label>
-          <select className="doodle-input" style={{ fontSize: '1.2rem', width: '150px' }} value={filterTicketType} onChange={e => setFilterTicketType(e.target.value)}>
-            <option value="">全部</option>
-            <option value="夾鉗">夾鉗</option>
-            <option value="TKW">TKW</option>
-          </select>
+      <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#f9f9f9', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        <h3 style={{ margin: '0 0 10px 0', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>🔍 查詢與過濾</h3>
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>👤 盤點人員：</label>
+            <select className="doodle-input" style={{ fontSize: '1.2rem', width: '150px' }} value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
+              <option value="">全部人員</option>
+              {personnel.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>🏷️ 盤點類型：</label>
+            <select className="doodle-input" style={{ fontSize: '1.2rem', width: '150px' }} value={filterTicketType} onChange={e => setFilterTicketType(e.target.value)}>
+              <option value="">全部</option>
+              <option value="夾鉗">夾鉗</option>
+              <option value="TKW">TKW</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>📋 盤點任務：</label>
+            <select className="doodle-input" style={{ fontSize: '1.2rem', width: '150px' }} value={filterTaskId} onChange={e => setFilterTaskId(e.target.value)}>
+              <option value="">全部任務</option>
+              {tasks.filter(tk => tk.endDate >= new Date().getTime() - (24 * 60 * 60 * 1000)).map(tk => (
+                <option key={tk.id} value={tk.id}>{tk.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>📋 盤點任務：</label>
-          <select className="doodle-input" style={{ fontSize: '1.2rem', width: '150px' }} value={filterTaskId} onChange={e => setFilterTaskId(e.target.value)}>
-            <option value="">全部任務</option>
-            {tasks.filter(tk => tk.endDate >= new Date().getTime() - (24 * 60 * 60 * 1000)).map(tk => (
-              <option key={tk.id} value={tk.id}>{tk.name}</option>
-            ))}
-          </select>
+
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>🔍 快速查詢：</label>
+            <input className="doodle-input" style={{ width: '150px', textAlign: 'center', fontSize: '1.2rem' }} value={fastQueryId} onChange={e => setFastQueryId(e.target.value)} placeholder="查詢單號..." />
+          </div>
+          {canEdit && (
+            <form onSubmit={handleSearchAndOpen} style={{ display: 'flex', gap: '10px', alignItems: 'center', margin: 0 }}>
+              <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>🚀 快速處理：</label>
+              <input className="doodle-input" style={{ width: '250px', textAlign: 'center', fontSize: '1.2rem' }} required value={searchId} onChange={e => setSearchId(e.target.value)} placeholder="輸入單號快速推進..." />
+              <button type="submit" className="doodle-button" style={{ fontSize: '1.1rem' }}>🔍 快查推進</button>
+            </form>
+          )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>👤 盤點人員：</label>
-          <select className="doodle-input" style={{ fontSize: '1.2rem', width: '150px' }} value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}>
-            <option value="">全部人員</option>
-            {personnel.map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-        </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>🔍 快速查詢：</label>
-          <input className="doodle-input" style={{ width: '150px', textAlign: 'center', fontSize: '1.2rem' }} value={fastQueryId} onChange={e => setFastQueryId(e.target.value)} placeholder="查詢單號..." />
-        </div>
-        {canEdit && (
-          <form onSubmit={handleSearchAndOpen} style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>🚀 快速處理：</label>
-            <input className="doodle-input" style={{ width: '250px', textAlign: 'center', fontSize: '1.2rem' }} required value={searchId} onChange={e => setSearchId(e.target.value)} placeholder="輸入單號快速推進..." />
-            <button type="submit" className="doodle-button" style={{ fontSize: '1.1rem' }}>🔍 快查推進</button>
-          </form>
-        )}
       </div>
 
       <div className="doodle-border" style={{ overflowX: 'auto', backgroundColor: 'white' }}>

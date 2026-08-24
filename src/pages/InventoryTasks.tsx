@@ -278,23 +278,7 @@ export default function InventoryTasks() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-          <h2 style={{ margin: 0 }}>🎯 盤點任務管理</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label style={{ fontWeight: 'bold' }}>任務狀態：</label>
-            <select className="doodle-input" style={{ width: 'auto' }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-              <option value="all">全部</option>
-              <option value="active">未到期</option>
-              <option value="expired">已到期</option>
-            </select>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label style={{ fontWeight: 'bold' }}>類型：</label>
-            <select className="doodle-input" style={{ width: 'auto' }} value={filterTicketType} onChange={e => setFilterTicketType(e.target.value)}>
-              <option value="all">全部</option>
-              <option value="夾鉗">夾鉗</option>
-              <option value="TKW">TKW</option>
-            </select>
-          </div>
+          <h2 style={{ margin: 0, fontFamily: 'Caveat, cursive', fontSize: '2.5rem', color: 'var(--crayon-blue)' }}>🎯 盤點任務管理</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <label style={{ fontWeight: 'bold' }}>年度：</label>
             <select className="doodle-input" style={{ width: 'auto' }} value={filterYear} onChange={e => setFilterYear(e.target.value)}>
@@ -304,19 +288,40 @@ export default function InventoryTasks() {
               ))}
             </select>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label style={{ fontWeight: 'bold' }}>建立日期區間：</label>
-            <input type="date" className="doodle-input" value={filterStartDate} onChange={e => setFilterStartDate(e.target.value)} />
-            <span>~</span>
-            <input type="date" className="doodle-input" value={filterEndDate} onChange={e => setFilterEndDate(e.target.value)} />
-          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          {canEdit && (
+            <button className="doodle-button" onClick={() => handleOpenForm()}>＋ 新增盤點任務</button>
+          )}
           <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-blue)' }}>
             總任務數量：{filteredTasks.length} 筆
           </div>
         </div>
-        {canEdit && (
-          <button className="doodle-button" onClick={() => handleOpenForm()}>＋ 新增盤點任務</button>
-        )}
+      </div>
+
+      <div className="doodle-border" style={{ padding: '15px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', backgroundColor: '#f9f9f9' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <label style={{ fontWeight: 'bold' }}>任務狀態：</label>
+          <select className="doodle-input" style={{ width: 'auto' }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+            <option value="all">全部</option>
+            <option value="active">未到期</option>
+            <option value="expired">已到期</option>
+          </select>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <label style={{ fontWeight: 'bold' }}>類型：</label>
+          <select className="doodle-input" style={{ width: 'auto' }} value={filterTicketType} onChange={e => setFilterTicketType(e.target.value)}>
+            <option value="all">全部</option>
+            <option value="夾鉗">夾鉗</option>
+            <option value="TKW">TKW</option>
+          </select>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <label style={{ fontWeight: 'bold' }}>建立日期區間：</label>
+          <div style={{ width: '130px' }}><CrayonDatePicker value={filterStartDate} onChange={setFilterStartDate} /></div>
+          <span>~</span>
+          <div style={{ width: '130px' }}><CrayonDatePicker value={filterEndDate} onChange={setFilterEndDate} /></div>
+        </div>
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '10px', backgroundColor: '#f0f8ff', borderRadius: '10px', border: '1px dashed var(--crayon-blue)', flexWrap: 'wrap', gap: '10px' }}>

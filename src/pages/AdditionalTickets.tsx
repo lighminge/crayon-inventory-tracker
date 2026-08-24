@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getTickets, addTicket, deleteTicket, getPersonnel } from '../services/api';
 import type { InventoryTicket, Personnel } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, ComposedChart, LabelList } from 'recharts';
 
 export default function AdditionalTickets() {
   const { hasPermission } = useAuth();
@@ -30,6 +30,7 @@ export default function AdditionalTickets() {
   const [newId, setNewId] = useState('');
   const [itemCount, setItemCount] = useState<string>('');
   const [completionDate, setCompletionDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [chartType, setChartType] = useState<'bar' | 'line' | 'composed'>('bar');
 
   const loadData = async () => {
     try {
@@ -309,7 +310,8 @@ export default function AdditionalTickets() {
       )}
 
       {/* Statistics and Pagination Controls */}
-      <div className="doodle-border" style={{ padding: '15px', marginBottom: '20px', backgroundColor: '#fff9c4', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+      <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', backgroundColor: '#fff9c4', padding: '15px', borderRadius: '10px', border: '2px dashed var(--crayon-orange)' }}>
         <div style={{ fontSize: '1.1rem' }}>
           <strong style={{ color: 'var(--crayon-orange)' }}>查詢結果：</strong>
           <span style={{ margin: '0 15px' }}>共 {filteredTickets.length} 單</span>
@@ -410,22 +412,69 @@ export default function AdditionalTickets() {
         </div>
       )}
 
+            </div>
       {/* Chart */}
       <div className="doodle-border" style={{ padding: '20px', backgroundColor: 'white', marginBottom: '40px' }}>
-        <h3 style={{ margin: '0 0 20px 0', color: 'var(--crayon-dark)', textAlign: 'center' }}>📊 人員追加盤點統計</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
+          <h3 style={{ margin: 0, color: 'var(--crayon-dark)' }}>📊 人員追加盤點統計</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: 'bold' }}>圖表類型：</label>
+            <select className="doodle-input" style={{ width: 'auto' }} value={chartType} onChange={e => setChartType(e.target.value as 'bar' | 'line' | 'composed')}>
+              <option value="bar">長條圖</option>
+              <option value="line">折線圖</option>
+              <option value="composed">二者並存</option>
+            </select>
+          </div>
+        </div>
         {chartData.length > 0 ? (
           <div style={{ height: '350px' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis yAxisId="left" orientation="left" stroke="var(--crayon-blue)" />
-                <YAxis yAxisId="right" orientation="right" stroke="var(--crayon-orange)" />
-                <Tooltip />
-                <Legend />
-                <Bar yAxisId="left" dataKey="追加件數" fill="var(--crayon-blue)" radius={[4, 4, 0, 0]} />
-                <Bar yAxisId="right" dataKey="項目數" fill="var(--crayon-orange)" radius={[4, 4, 0, 0]} />
-              </BarChart>
+              {chartType === 'bar' ? (
+                <BarChart data={chartData} margin={{ top: 30, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis yAxisId="left" orientation="left" stroke="var(--crayon-blue)" />
+                  <YAxis yAxisId="right" orientation="right" stroke="var(--crayon-orange)" />
+                  <Tooltip />
+                  <Legend />
+                  <Bar yAxisId="left" dataKey="追加件數" fill="var(--crayon-blue)" radius={[4, 4, 0, 0]}>
+                    <LabelList dataKey="追加件數" position="top" fill="var(--crayon-blue)" fontWeight="bold" />
+                  </Bar>
+                  <Bar yAxisId="right" dataKey="項目數" fill="var(--crayon-orange)" radius={[4, 4, 0, 0]}>
+                    <LabelList dataKey="項目數" position="top" fill="var(--crayon-orange)" fontWeight="bold" />
+                  </Bar>
+                </BarChart>
+              ) : chartType === 'line' ? (
+                <LineChart data={chartData} margin={{ top: 30, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis yAxisId="left" orientation="left" stroke="var(--crayon-blue)" />
+                  <YAxis yAxisId="right" orientation="right" stroke="var(--crayon-orange)" />
+                  <Tooltip />
+                  <Legend />
+                  <Line yAxisId="left" type="monotone" dataKey="追加件數" stroke="var(--crayon-blue)" strokeWidth={3} activeDot={{ r: 8 }}>
+                    <LabelList dataKey="追加件數" position="top" fill="var(--crayon-blue)" fontWeight="bold" />
+                  </Line>
+                  <Line yAxisId="right" type="monotone" dataKey="項目數" stroke="var(--crayon-orange)" strokeWidth={3} activeDot={{ r: 8 }}>
+                    <LabelList dataKey="項目數" position="top" fill="var(--crayon-orange)" fontWeight="bold" />
+                  </Line>
+                </LineChart>
+              ) : (
+                <ComposedChart data={chartData} margin={{ top: 30, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis yAxisId="left" orientation="left" stroke="var(--crayon-blue)" />
+                  <YAxis yAxisId="right" orientation="right" stroke="var(--crayon-orange)" />
+                  <Tooltip />
+                  <Legend />
+                  <Bar yAxisId="left" dataKey="追加件數" fill="var(--crayon-blue)" radius={[4, 4, 0, 0]}>
+                    <LabelList dataKey="追加件數" position="top" fill="var(--crayon-blue)" fontWeight="bold" />
+                  </Bar>
+                  <Line yAxisId="right" type="monotone" dataKey="項目數" stroke="var(--crayon-orange)" strokeWidth={3} activeDot={{ r: 8 }}>
+                    <LabelList dataKey="項目數" position="top" fill="var(--crayon-orange)" fontWeight="bold" />
+                  </Line>
+                </ComposedChart>
+              )}
             </ResponsiveContainer>
           </div>
         ) : (
