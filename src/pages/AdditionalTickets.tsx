@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getTickets, addTicket, deleteTicket, getPersonnel } from '../services/api';
 import type { InventoryTicket, Personnel } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function AdditionalTickets() {
   const { hasPermission } = useAuth();
@@ -12,8 +13,12 @@ export default function AdditionalTickets() {
   const [systemAlert, setSystemAlert] = useState<{ message: string, onConfirm?: () => void } | null>(null);
 
   // Search/Filter State
-  const [searchStartDate, setSearchStartDate] = useState('');
-  const [searchEndDate, setSearchEndDate] = useState('');
+  const [searchStartDate, setSearchStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  });
+  const [searchEndDate, setSearchEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [searchAssignee, setSearchAssignee] = useState('');
 
   // Pagination State
@@ -24,7 +29,7 @@ export default function AdditionalTickets() {
   const [targetPerson, setTargetPerson] = useState<Personnel | null>(null);
   const [newId, setNewId] = useState('');
   const [itemCount, setItemCount] = useState<string>('');
-  const [completionDate, setCompletionDate] = useState<string>('');
+  const [completionDate, setCompletionDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
 
   const loadData = async () => {
     try {
@@ -135,6 +140,17 @@ export default function AdditionalTickets() {
     return true;
   });
 
+  // Chart Data
+  const chartData = assigneeOptions.map(p => {
+    const personTickets = filteredTickets.filter(t => t.assigneeId === p.id);
+    const personItems = personTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+    return {
+      name: p.name,
+      '追加件數': personTickets.length,
+      '項目數': personItems
+    };
+  }).filter(d => d['追加件數'] > 0);
+
   // Pagination Logic
   const totalItemsCount = filteredTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
   const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
@@ -211,39 +227,6 @@ export default function AdditionalTickets() {
         </div>
       )}
 
-      {/* Personnel Cards for Dispatch */}
-      {canEdit && (
-        <div style={{ marginBottom: '40px' }}>
-          <h3 style={{ marginBottom: '15px', color: 'var(--crayon-dark)' }}>👥 點選人員派送追加單</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px' }}>
-            {assigneeOptions.map(p => {
-              const personTickets = tickets.filter(t => t.assigneeId === p.id);
-              const personItems = personTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
-              return (
-                <div key={p.id} className="doodle-border" style={{ padding: '15px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--crayon-purple)' }}>
-                    {p.name}
-                  </div>
-                  <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                    已完成: {personTickets.length} 單 / {personItems} 項
-                  </div>
-                  <button 
-                    className="doodle-button"
-                    style={{ marginTop: 'auto' }}
-                    onClick={() => handleOpenModal(p)}
-                  >
-                    ➕ 追加派送
-                  </button>
-                </div>
-              );
-            })}
-            {assigneeOptions.length === 0 && (
-              <p style={{ color: '#888', gridColumn: '1 / -1' }}>目前沒有具備「盤點」權限的人員。</p>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Search Filters */}
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#e8f5e9' }}>
         <h3 style={{ margin: '0 0 15px 0', color: 'var(--crayon-dark)' }}>🔍 查詢條件</h3>
@@ -278,8 +261,10 @@ export default function AdditionalTickets() {
           <button 
             className="doodle-button"
             onClick={() => {
-              setSearchStartDate('');
-              setSearchEndDate('');
+              const d = new Date();
+              d.setDate(d.getDate() - 30);
+              setSearchStartDate(d.toISOString().split('T')[0]);
+              setSearchEndDate(new Date().toISOString().split('T')[0]);
               setSearchAssignee('');
               setCurrentPage(1);
             }}
@@ -288,6 +273,40 @@ export default function AdditionalTickets() {
           </button>
         </div>
       </div>
+
+      {/* Personnel Cards for Dispatch */}
+      {canEdit && (
+        <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#f3e5f5' }}>
+          <h3 style={{ margin: '0 0 15px 0', color: 'var(--crayon-dark)' }}>👥 點選人員派送追加單</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '15px' }}>
+            {assigneeOptions.map(p => {
+              // Now computed based on filteredTickets so it respects search conditions
+              const personTickets = filteredTickets.filter(t => t.assigneeId === p.id);
+              const personItems = personTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+              return (
+                <div key={p.id} className="doodle-border" style={{ padding: '15px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--crayon-purple)' }}>
+                    {p.name}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                    已完成: {personTickets.length} 單 / {personItems} 項
+                  </div>
+                  <button 
+                    className="doodle-button"
+                    style={{ marginTop: 'auto' }}
+                    onClick={() => handleOpenModal(p)}
+                  >
+                    ➕ 追加派送
+                  </button>
+                </div>
+              );
+            })}
+            {assigneeOptions.length === 0 && (
+              <p style={{ color: '#888', gridColumn: '1 / -1' }}>目前沒有具備「盤點」權限的人員。</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Statistics and Pagination Controls */}
       <div className="doodle-border" style={{ padding: '15px', marginBottom: '20px', backgroundColor: '#fff9c4', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
@@ -370,7 +389,7 @@ export default function AdditionalTickets() {
 
       {/* Pagination Nav */}
       {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '40px' }}>
           <button 
             className="doodle-button"
             disabled={currentPage === 1}
@@ -390,6 +409,31 @@ export default function AdditionalTickets() {
           </button>
         </div>
       )}
+
+      {/* Chart */}
+      <div className="doodle-border" style={{ padding: '20px', backgroundColor: 'white', marginBottom: '40px' }}>
+        <h3 style={{ margin: '0 0 20px 0', color: 'var(--crayon-dark)', textAlign: 'center' }}>📊 人員追加盤點統計</h3>
+        {chartData.length > 0 ? (
+          <div style={{ height: '350px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis yAxisId="left" orientation="left" stroke="var(--crayon-blue)" />
+                <YAxis yAxisId="right" orientation="right" stroke="var(--crayon-orange)" />
+                <Tooltip />
+                <Legend />
+                <Bar yAxisId="left" dataKey="追加件數" fill="var(--crayon-blue)" radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="right" dataKey="項目數" fill="var(--crayon-orange)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', color: '#888', padding: '40px 0' }}>
+            無符合條件的數據
+          </div>
+        )}
+      </div>
     </div>
   );
 }
