@@ -157,6 +157,7 @@ export default function Statistics() {
   
   // Year Filter
   const [globalYear, setGlobalYear] = useState<number | ''>(new Date().getFullYear());
+  const [categoryFilter, setCategoryFilter] = useState<'一般' | '追加'>('一般');
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({length: 5}, (_, i) => currentYear - 2 + i);
 
@@ -187,10 +188,11 @@ export default function Statistics() {
 
   // Filter tickets based on Date and ID ranges
   const filteredTickets = useMemo(() => {
+    const baseTickets = tickets.filter(t => categoryFilter === '追加' ? t.isAdditional : !t.isAdditional);
     const startMs = startDate ? new Date(startDate).getTime() : 0;
     const endMs = endDate ? new Date(endDate).getTime() + 24 * 60 * 60 * 1000 - 1 : Infinity;
 
-    return tickets.filter(t => {
+    return baseTickets.filter(t => {
       // Global Year Filter
       if (globalYear !== '') {
         const d = t.dispatchDate ? new Date(t.dispatchDate) : null;
@@ -235,7 +237,7 @@ export default function Statistics() {
 
       return true;
     });
-  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskIds, selectedTypes, selectedDaysFilter, enableDateFilter, enableTicketFilter, enableTaskFilter, enableTypeFilter, enableDaysFilter, holidays, globalYear]);
+  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskIds, selectedTypes, selectedDaysFilter, enableDateFilter, enableTicketFilter, enableTaskFilter, enableTypeFilter, enableDaysFilter, holidays, globalYear, categoryFilter]);
 
   // Derive tasks to show in the "依盤點任務" list
   const filteredTasksList = useMemo(() => {
@@ -461,17 +463,32 @@ export default function Statistics() {
       {mainTab === 'overview' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
-            <h2 style={{ margin: 0 }}>📈 統計作業</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <label style={{ fontWeight: 'bold' }}>西元年度：</label>
-              <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e8f5e9' }} value={globalYear} onChange={e => setGlobalYear(e.target.value === '' ? '' : Number(e.target.value))}>
-                <option value="">全部年度</option>
-                {yearOptions.map(y => <option key={y} value={y}>{y} 年</option>)}
-              </select>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <h2 style={{ margin: 0, fontFamily: 'Caveat, cursive', fontSize: '2.5rem', color: 'var(--crayon-blue)' }}>📈 統計作業</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <label style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-dark)' }}>西元年度：</label>
+                <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e8f5e9', fontSize: '1.1rem' }} value={globalYear} onChange={e => setGlobalYear(e.target.value === '' ? '' : Number(e.target.value))}>
+                  <option value="">全部年度</option>
+                  {yearOptions.map(y => <option key={y} value={y}>{y} 年</option>)}
+                </select>
+              </div>
             </div>
           </div>
 
       {/* 條件篩選 */}
+          <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#e8f5e9' }}>
+            <h3 style={{ margin: '0 0 15px 0', color: 'var(--crayon-dark)' }}>🔍 查詢條件</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <label style={{ fontWeight: 'bold' }}>盤點種類：</label>
+                <select className="doodle-input" style={{ width: 'auto', backgroundColor: '#e3f2fd' }} value={categoryFilter} onChange={e => setCategoryFilter(e.target.value as '一般' | '追加')}>
+                  <option value="一般">一般</option>
+                  <option value="追加">追加</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '30px', backgroundColor: '#f9f9f9' }}>
         <h3 style={{ margin: 0, marginBottom: '15px', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>📅 設定統計條件</h3>
         
