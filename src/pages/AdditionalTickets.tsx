@@ -24,6 +24,7 @@ export default function AdditionalTickets() {
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [sortBy, setSortBy] = useState<'id_asc' | 'id_desc' | 'person' | 'date_desc' | 'date_asc'>('date_desc');
 
   // Dispatch Modal State
   const [targetPerson, setTargetPerson] = useState<Personnel | null>(null);
@@ -141,6 +142,24 @@ export default function AdditionalTickets() {
     return true;
   });
 
+  const sortedTickets = [...filteredTickets].sort((a, b) => {
+    if (sortBy.startsWith('id')) {
+      const cmp = a.id.localeCompare(b.id);
+      return sortBy === 'id_asc' ? cmp : -cmp;
+    }
+    if (sortBy === 'person') {
+      const nameA = personnel.find(p => p.id === a.assigneeId)?.name || '';
+      const nameB = personnel.find(p => p.id === b.assigneeId)?.name || '';
+      return nameA.localeCompare(nameB);
+    }
+    if (sortBy.startsWith('date')) {
+      const dateA = a.closeDate || 0;
+      const dateB = b.closeDate || 0;
+      return sortBy === 'date_asc' ? dateA - dateB : dateB - dateA;
+    }
+    return 0;
+  });
+
   // Chart Data
   const chartData = assigneeOptions.map(p => {
     const personTickets = filteredTickets.filter(t => t.assigneeId === p.id);
@@ -155,7 +174,7 @@ export default function AdditionalTickets() {
   // Pagination Logic
   const totalItemsCount = filteredTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
   const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
-  const paginatedTickets = filteredTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedTickets = sortedTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
@@ -317,8 +336,27 @@ export default function AdditionalTickets() {
           <span style={{ margin: '0 15px' }}>共 {filteredTickets.length} 單</span>
           <span>共 {totalItemsCount} 項</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <label style={{ fontWeight: 'bold' }}>每頁顯示：</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: 'bold' }}>排序：</label>
+            <select 
+              className="doodle-input"
+              value={sortBy}
+              onChange={e => {
+                setSortBy(e.target.value as any);
+                setCurrentPage(1);
+              }}
+              style={{ padding: '5px', width: 'auto' }}
+            >
+              <option value="date_desc">依完成日期 (新到舊)</option>
+              <option value="date_asc">依完成日期 (舊到新)</option>
+              <option value="id_asc">依單號 (小到大)</option>
+              <option value="id_desc">依單號 (大到小)</option>
+              <option value="person">依盤點人員</option>
+            </select>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ fontWeight: 'bold' }}>每頁顯示：</label>
           <select 
             className="doodle-input"
             value={itemsPerPage}
@@ -333,6 +371,7 @@ export default function AdditionalTickets() {
             ))}
           </select>
         </div>
+      </div>
       </div>
 
       {/* List */}
@@ -377,10 +416,19 @@ export default function AdditionalTickets() {
                 
                 <div style={{ flex: 1 }}>
                   <h3 style={{ margin: '0 0 8px 0', color: 'var(--crayon-dark)' }}>單號: {t.id}</h3>
-                  <div style={{ display: 'flex', gap: '20px', color: '#555', flexWrap: 'wrap', fontSize: '0.95rem' }}>
-                    <span><strong style={{ color: 'var(--crayon-blue)' }}>負責人員:</strong> {assigneeName}</span>
-                    <span><strong style={{ color: 'var(--crayon-orange)' }}>項目數:</strong> {t.itemCount} 項</span>
-                    <span><strong style={{ color: 'var(--crayon-green)' }}>完成日期:</strong> {dateStr}</span>
+                  <div style={{ display: 'flex', gap: '20px', color: '#555', flexWrap: 'wrap', fontSize: '1rem', alignItems: 'center' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <strong style={{ color: 'var(--crayon-blue)' }}>負責人員:</strong> 
+                      <span style={{ border: '2px solid var(--crayon-blue)', padding: '2px 10px', borderRadius: '8px', fontWeight: 'bold', color: 'var(--crayon-blue)', backgroundColor: '#e3f2fd' }}>{assigneeName}</span>
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <strong style={{ color: 'var(--crayon-orange)' }}>項目數:</strong> 
+                      <span style={{ border: '2px solid var(--crayon-orange)', padding: '2px 10px', borderRadius: '8px', fontWeight: 'bold', color: 'var(--crayon-orange)', backgroundColor: '#fff3e0' }}>{t.itemCount} 項</span>
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      <strong style={{ color: 'var(--crayon-green)' }}>完成日期:</strong> 
+                      <span style={{ border: '2px solid var(--crayon-green)', padding: '2px 10px', borderRadius: '8px', fontWeight: 'bold', color: 'var(--crayon-green)', backgroundColor: '#e8f5e9' }}>{dateStr}</span>
+                    </span>
                   </div>
                 </div>
               </div>
