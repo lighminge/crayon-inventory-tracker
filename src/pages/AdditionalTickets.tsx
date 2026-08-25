@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getTickets, addTicket, deleteTicket, getPersonnel } from '../services/api';
+import { getTickets, addTicket, deleteTicket, updateTicket, getPersonnel } from '../services/api';
 import type { InventoryTicket, Personnel } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, ComposedChart, LabelList } from 'recharts';
@@ -27,6 +27,8 @@ export default function AdditionalTickets() {
   const [sortBy, setSortBy] = useState<'id_asc' | 'id_desc' | 'person' | 'date_desc' | 'date_asc'>('date_desc');
 
   // Dispatch Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTicketId, setEditingTicketId] = useState<string | null>(null);
   const [targetPerson, setTargetPerson] = useState<Personnel | null>(null);
   const [newId, setNewId] = useState('');
   const [itemCount, setItemCount] = useState<string>('');
@@ -55,18 +57,30 @@ export default function AdditionalTickets() {
 
   const handleOpenModal = (p: Personnel) => {
     setTargetPerson(p);
+    setEditingTicketId(null);
     setNewId('');
     setItemCount('');
     setCompletionDate(new Date().toISOString().split('T')[0]);
+    setIsModalOpen(true);
   };
 
-  const handleAdd = async () => {
+  const handleOpenEditModal = (t: InventoryTicket) => {
+    const p = personnel.find(x => x.id === t.assigneeId) || null;
+    setTargetPerson(p);
+    setEditingTicketId(t.id);
+    setNewId(t.id);
+    setItemCount(String(t.itemCount || ''));
+    setCompletionDate(t.closeDate ? new Date(t.closeDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async () => {
     if (!targetPerson) return;
     if (!newId.trim() || !itemCount || !completionDate) {
       return setSystemAlert({ message: '請填寫完整資訊' });
     }
 
-    if (tickets.some(t => t.id === newId.trim())) {
+    if (!editingTicketId && tickets.some(t => t.id === newId.trim())) {
       return setSystemAlert({ message: '此單號已存在' });
     }
 
@@ -76,26 +90,36 @@ export default function AdditionalTickets() {
       return setSystemAlert({ message: '項目數必須是大於0的整數' });
     }
 
-    const ticket: InventoryTicket = {
-      id: newId.trim(),
-      title: newId.trim(),
-      ticketType: '追加',
-      isAdditional: true,
-      assigneeId: targetPerson.id,
-      dispatchDate: timestamp,
-      closeDate: timestamp,
-      stageDates: {},
-      totalProcessingDays: 0,
-      itemCount: count,
-    };
-
     try {
-      await addTicket(ticket);
+      if (editingTicketId) {
+        await updateTicket(editingTicketId, {
+          assigneeId: targetPerson.id,
+          itemCount: count,
+          closeDate: timestamp,
+          dispatchDate: timestamp
+        });
+      } else {
+        const ticket: InventoryTicket = {
+          id: newId.trim(),
+          title: newId.trim(),
+          ticketType: '追加',
+          isAdditional: true,
+          assigneeId: targetPerson.id,
+          dispatchDate: timestamp,
+          closeDate: timestamp,
+          stageDates: {},
+          totalProcessingDays: 0,
+          itemCount: count,
+        };
+        await addTicket(ticket);
+      }
+      setIsModalOpen(false);
       setTargetPerson(null);
+      setEditingTicketId(null);
       loadData();
     } catch (err) {
       console.error(err);
-      setSystemAlert({ message: '新增失敗' });
+      setSystemAlert({ message: '儲存失敗' });
     }
   };
 
@@ -200,12 +224,27 @@ export default function AdditionalTickets() {
       )}
 
       {/* Dispatch Modal */}
-      {targetPerson && (
+      {isModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 900, overflowY: 'auto', paddingTop: '10vh', paddingBottom: '10vh' }}>
           <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '500px', backgroundColor: '#e3f2fd', minHeight: '400px', overflow: 'visible' }}>
-            <h3 style={{ margin: '0 0 20px 0', textAlign: 'center' }}>指派追加單給 {targetPerson.name}</h3>
+            <h3 style={{ margin: '0 0 20px 0', textAlign: 'center' }}>{editingTicketId ? '修改追加盤點單' : `指派追加單給 ${targetPerson?.name}`}</h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              {editingTicketId && (
+                <div>
+                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點人員：</label>
+                  <select
+                    className="doodle-input"
+                    value={targetPerson?.id || ''}
+                    onChange={e => setTargetPerson(personnel.find(p => p.id === e.target.value) || null)}
+                    style={{ width: '100%' }}
+                  >
+                    {assigneeOptions.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>追加單號：</label>
                 <input 
@@ -215,6 +254,7 @@ export default function AdditionalTickets() {
                   onChange={e => setNewId(e.target.value)}
                   placeholder="例如: 260801"
                   style={{ width: '100%' }}
+                  disabled={!!editingTicketId}
                 />
               </div>
               <div>
@@ -239,8 +279,8 @@ export default function AdditionalTickets() {
               </div>
               
               <div style={{ display: 'flex', gap: '15px', marginTop: '15px' }}>
-                <button className="doodle-button" style={{ flex: 1 }} onClick={handleAdd}>確定新增</button>
-                <button className="doodle-button danger" style={{ flex: 1 }} onClick={() => setTargetPerson(null)}>取消</button>
+                <button className="doodle-button" style={{ flex: 1 }} onClick={handleSave}>{editingTicketId ? '儲存修改' : '確定新增'}</button>
+                <button className="doodle-button danger" style={{ flex: 1 }} onClick={() => { setIsModalOpen(false); setTargetPerson(null); setEditingTicketId(null); }}>取消</button>
               </div>
             </div>
           </div>
@@ -388,14 +428,24 @@ export default function AdditionalTickets() {
             return (
               <div key={t.id} className="doodle-border" style={{ padding: '15px 20px', display: 'flex', alignItems: 'center', backgroundColor: 'white', gap: '15px' }}>
                 {canEdit && (
-                  <button 
-                    onClick={() => handleDeletePrompt(t.id)} 
-                    className="doodle-button danger"
-                    title="刪除"
-                    style={{ padding: '8px 12px', fontSize: '0.9rem', flexShrink: 0 }}
-                  >
-                    🗑️ 刪除
-                  </button>
+                  <div style={{ display: 'flex', gap: '5px', flexShrink: 0 }}>
+                    <button 
+                      onClick={() => handleOpenEditModal(t)} 
+                      className="doodle-button"
+                      title="修改"
+                      style={{ padding: '8px 12px', fontSize: '0.9rem' }}
+                    >
+                      ✏️ 修改
+                    </button>
+                    <button 
+                      onClick={() => handleDeletePrompt(t.id)} 
+                      className="doodle-button danger"
+                      title="刪除"
+                      style={{ padding: '8px 12px', fontSize: '0.9rem' }}
+                    >
+                      🗑️ 刪除
+                    </button>
+                  </div>
                 )}
                 
                 <div style={{ 
