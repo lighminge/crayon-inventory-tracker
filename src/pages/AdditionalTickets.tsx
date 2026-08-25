@@ -426,8 +426,8 @@ export default function AdditionalTickets() {
                       <span style={{ border: '2px solid var(--crayon-orange)', padding: '2px 10px', borderRadius: '8px', fontWeight: 'bold', color: 'var(--crayon-orange)', backgroundColor: '#fff3e0' }}>{t.itemCount} 項</span>
                     </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                      <strong style={{ color: 'var(--crayon-green)' }}>完成日期:</strong> 
-                      <span style={{ border: '2px solid var(--crayon-green)', padding: '2px 10px', borderRadius: '8px', fontWeight: 'bold', color: 'var(--crayon-green)', backgroundColor: '#e8f5e9' }}>{dateStr}</span>
+                      <strong style={{ color: '#2e7d32' }}>完成日期:</strong> 
+                      <span style={{ border: '2px solid #2e7d32', padding: '2px 10px', borderRadius: '8px', fontWeight: 'bold', color: '#2e7d32', backgroundColor: '#e8f5e9' }}>{dateStr}</span>
                     </span>
                   </div>
                 </div>
