@@ -332,8 +332,13 @@ export default function AdditionalTickets() {
                   <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--crayon-purple)' }}>
                     {p.name}
                   </div>
-                  <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                    已完成: {personTickets.length} 單 / {personItems} 項
+                  <div style={{ display: 'flex', gap: '10px', fontSize: '0.9rem', flexWrap: 'wrap' }}>
+                    <span style={{ border: '2px solid var(--crayon-blue)', padding: '2px 8px', borderRadius: '5px', fontWeight: 'bold', color: 'var(--crayon-blue)', backgroundColor: '#e3f2fd' }}>
+                      {personTickets.length} 單
+                    </span>
+                    <span style={{ border: '2px solid var(--crayon-orange)', padding: '2px 8px', borderRadius: '5px', fontWeight: 'bold', color: 'var(--crayon-orange)', backgroundColor: '#fff3e0' }}>
+                      {personItems} 項
+                    </span>
                   </div>
                   <button 
                     className="doodle-button"
@@ -368,7 +373,31 @@ export default function AdditionalTickets() {
             </div>
           </div>
           
-          <div style={{ width: '200px' }}>
+          <div style={{ width: '150px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>追加單號</label>
+            <input 
+              type="text"
+              className="doodle-input" 
+              value={searchTicketId}
+              onChange={e => setSearchTicketId(e.target.value)}
+              placeholder="搜尋單號"
+              style={{ width: '100%' }}
+            />
+          </div>
+          <div style={{ width: '150px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>單據種類</label>
+            <select 
+              className="doodle-input" 
+              value={searchSubType}
+              onChange={e => setSearchSubType(e.target.value)}
+              style={{ width: '100%' }}
+            >
+              <option value="">- 所有 -</option>
+              <option value="低點表">低點表</option>
+              <option value="領料單">領料單</option>
+            </select>
+          </div>
+          <div style={{ width: '180px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點人員</label>
             <select 
               className="doodle-input" 
