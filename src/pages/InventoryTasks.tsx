@@ -358,13 +358,13 @@ export default function InventoryTasks() {
                 display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px', zIndex: 2
               }}>
                 <div style={{ 
-                  backgroundColor: task.completionRate === 100 ? 'var(--crayon-green)' : (task.isExpired ? 'var(--crayon-red)' : 'var(--crayon-orange)'), 
+                  backgroundColor: task.completionRate === 100 ? 'var(--crayon-green)' : (task.isExpired ? 'var(--crayon-red)' : (Date.now() < task.startDate ? '#9e9e9e' : 'var(--crayon-orange)')), 
                   color: 'white', padding: '10px 20px',
                   borderRadius: '10px', transform: 'rotate(3deg)', fontSize: '1.4rem',
                   fontWeight: '900', border: '3px solid var(--crayon-dark)',
                   boxShadow: '4px 4px 0px rgba(0,0,0,0.2)', textShadow: '1px 1px 2px rgba(0,0,0,0.3)'
                 }}>
-                  {task.completionRate === 100 ? '已完成' : (task.isExpired ? '未完成' : '進行中')}
+                  {task.completionRate === 100 ? '已完成' : (task.isExpired ? '未完成' : (Date.now() < task.startDate ? '未開始' : '進行中'))}
                 </div>
                 <div style={{ 
                   backgroundColor: task.isExpired ? '#ffebee' : '#e8f5e9', 
