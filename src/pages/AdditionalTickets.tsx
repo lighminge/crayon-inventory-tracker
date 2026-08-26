@@ -527,7 +527,7 @@ export default function AdditionalTickets() {
                 </div>
                 
                 <div style={{ flex: 1 }}>
-                  <div style={{ margin: '0 0 10px 0' }}>
+                  <div style={{ margin: '0 0 10px 0', display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
                     <span style={{ 
                       fontSize: '1.4rem', 
                       fontWeight: 'bold', 
@@ -540,18 +540,18 @@ export default function AdditionalTickets() {
                     }}>
                       單號：{t.id}
                     </span>
+                    {t.subType && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '1.1rem' }}>
+                        <strong style={{ color: 'var(--crayon-purple)' }}>單據種類:</strong> 
+                        <span style={{ border: '2px solid var(--crayon-purple)', padding: '2px 10px', borderRadius: '8px', fontWeight: 'bold', color: 'var(--crayon-purple)', backgroundColor: '#f3e5f5' }}>{t.subType}</span>
+                      </span>
+                    )}
                   </div>
                   <div style={{ display: 'flex', gap: '20px', color: '#555', flexWrap: 'wrap', fontSize: '1rem', alignItems: 'center' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <strong style={{ color: 'var(--crayon-blue)' }}>負責人員:</strong> 
                       <span style={{ border: '2px solid var(--crayon-blue)', padding: '2px 10px', borderRadius: '8px', fontWeight: 'bold', color: 'var(--crayon-blue)', backgroundColor: '#e3f2fd' }}>{assigneeName}</span>
                     </span>
-                    {t.subType && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <strong style={{ color: 'var(--crayon-purple)' }}>單據種類:</strong> 
-                        <span style={{ border: '2px solid var(--crayon-purple)', padding: '2px 10px', borderRadius: '8px', fontWeight: 'bold', color: 'var(--crayon-purple)', backgroundColor: '#f3e5f5' }}>{t.subType}</span>
-                      </span>
-                    )}
                     <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <strong style={{ color: 'var(--crayon-orange)' }}>項目數:</strong> 
                       <span style={{ border: '2px solid var(--crayon-orange)', padding: '2px 10px', borderRadius: '8px', fontWeight: 'bold', color: 'var(--crayon-orange)', backgroundColor: '#fff3e0' }}>{t.itemCount} 項</span>
