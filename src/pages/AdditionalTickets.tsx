@@ -527,7 +527,20 @@ export default function AdditionalTickets() {
                 </div>
                 
                 <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: '0 0 8px 0', color: 'var(--crayon-dark)' }}>單號: {t.id}</h3>
+                  <div style={{ margin: '0 0 10px 0' }}>
+                    <span style={{ 
+                      fontSize: '1.4rem', 
+                      fontWeight: 'bold', 
+                      color: '#d32f2f', 
+                      border: '3px solid #d32f2f', 
+                      padding: '4px 15px', 
+                      borderRadius: '12px',
+                      backgroundColor: '#ffebee',
+                      display: 'inline-block'
+                    }}>
+                      單號：{t.id}
+                    </span>
+                  </div>
                   <div style={{ display: 'flex', gap: '20px', color: '#555', flexWrap: 'wrap', fontSize: '1rem', alignItems: 'center' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <strong style={{ color: 'var(--crayon-blue)' }}>負責人員:</strong> 
