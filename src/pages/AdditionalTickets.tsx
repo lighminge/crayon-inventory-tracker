@@ -20,11 +20,13 @@ export default function AdditionalTickets() {
   });
   const [searchEndDate, setSearchEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [searchAssignee, setSearchAssignee] = useState('');
+  const [searchTicketId, setSearchTicketId] = useState('');
+  const [searchSubType, setSearchSubType] = useState('');
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [sortBy, setSortBy] = useState<'id_asc' | 'id_desc' | 'person' | 'date_desc' | 'date_asc'>('date_desc');
+  const [sortBy, setSortBy] = useState<'id_asc' | 'id_desc' | 'person' | 'date_desc' | 'date_asc'>('id_asc');
 
   // Dispatch Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,6 +35,7 @@ export default function AdditionalTickets() {
   const [newId, setNewId] = useState('');
   const [itemCount, setItemCount] = useState<string>('');
   const [completionDate, setCompletionDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [subType, setSubType] = useState<'低點表' | '領料單' | ''>('');
   const [chartType, setChartType] = useState<'bar' | 'line' | 'composed'>('bar');
 
   const loadData = async () => {
@@ -60,6 +63,7 @@ export default function AdditionalTickets() {
     setEditingTicketId(null);
     setNewId('');
     setItemCount('');
+    setSubType('');
     setCompletionDate(new Date().toISOString().split('T')[0]);
     setIsModalOpen(true);
   };
@@ -70,6 +74,7 @@ export default function AdditionalTickets() {
     setEditingTicketId(t.id);
     setNewId(t.id);
     setItemCount(String(t.itemCount || ''));
+    setSubType(t.subType as any || '');
     setCompletionDate(t.closeDate ? new Date(t.closeDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
     setIsModalOpen(true);
   };
@@ -95,6 +100,7 @@ export default function AdditionalTickets() {
         await updateTicket(editingTicketId, {
           assigneeId: targetPerson.id,
           itemCount: count,
+          subType: subType as any || undefined,
           closeDate: timestamp,
           dispatchDate: timestamp
         });
@@ -103,6 +109,7 @@ export default function AdditionalTickets() {
           id: newId.trim(),
           title: newId.trim(),
           ticketType: '追加',
+          subType: subType as any || undefined,
           isAdditional: true,
           assigneeId: targetPerson.id,
           dispatchDate: timestamp,
@@ -147,6 +154,8 @@ export default function AdditionalTickets() {
   // Filtering Logic
   const filteredTickets = tickets.filter(t => {
     if (searchAssignee && t.assigneeId !== searchAssignee) return false;
+    if (searchTicketId && !t.id.includes(searchTicketId)) return false;
+    if (searchSubType && t.subType !== searchSubType) return false;
     
     if (searchStartDate || searchEndDate) {
       const d = t.closeDate;
@@ -224,7 +233,10 @@ export default function AdditionalTickets() {
       )}
 
       {/* Dispatch Modal */}
-      {isModalOpen && (
+      {isModalOpen && (() => {
+        const duplicateTicket = newId.trim() && !editingTicketId ? tickets.find(t => t.id === newId.trim()) : null;
+        const duplicateAssigneeName = duplicateTicket ? personnel.find(p => p.id === duplicateTicket.assigneeId)?.name : '';
+        return (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', zIndex: 900, overflowY: 'auto', paddingTop: '10vh', paddingBottom: '10vh' }}>
           <div className="doodle-border" style={{ padding: '30px', width: '100%', maxWidth: '500px', backgroundColor: '#e3f2fd', minHeight: '400px', overflow: 'visible' }}>
             <h3 style={{ margin: '0 0 20px 0', textAlign: 'center' }}>{editingTicketId ? '修改追加盤點單' : `指派追加單給 ${targetPerson?.name}`}</h3>
@@ -253,9 +265,27 @@ export default function AdditionalTickets() {
                   value={newId}
                   onChange={e => setNewId(e.target.value)}
                   placeholder="例如: 260801"
-                  style={{ width: '100%' }}
+                  style={{ width: '100%', borderColor: duplicateTicket ? 'var(--crayon-red)' : undefined }}
                   disabled={!!editingTicketId}
                 />
+                {duplicateTicket && (
+                  <div style={{ color: 'var(--crayon-red)', marginTop: '5px', fontSize: '0.9rem', fontWeight: 'bold' }}>
+                    ⚠️ 此單號已派送給：{duplicateAssigneeName || '未知人員'}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>單據種類：</label>
+                <select
+                  className="doodle-input"
+                  value={subType}
+                  onChange={e => setSubType(e.target.value as any)}
+                  style={{ width: '100%' }}
+                >
+                  <option value="">- 請選擇 -</option>
+                  <option value="低點表">低點表</option>
+                  <option value="領料單">領料單</option>
+                </select>
               </div>
               <div>
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>項目數：</label>
@@ -279,13 +309,14 @@ export default function AdditionalTickets() {
               </div>
               
               <div style={{ display: 'flex', gap: '15px', marginTop: '15px' }}>
-                <button className="doodle-button" style={{ flex: 1 }} onClick={handleSave}>{editingTicketId ? '儲存修改' : '確定新增'}</button>
+                <button className="doodle-button" style={{ flex: 1, opacity: duplicateTicket ? 0.5 : 1 }} disabled={!!duplicateTicket} onClick={handleSave}>{editingTicketId ? '儲存修改' : '確定新增'}</button>
                 <button className="doodle-button danger" style={{ flex: 1 }} onClick={() => { setIsModalOpen(false); setTargetPerson(null); setEditingTicketId(null); }}>取消</button>
               </div>
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Personnel Cards for Dispatch */}
       {canEdit && (
@@ -360,6 +391,8 @@ export default function AdditionalTickets() {
               setSearchStartDate(d.toISOString().split('T')[0]);
               setSearchEndDate(new Date().toISOString().split('T')[0]);
               setSearchAssignee('');
+              setSearchTicketId('');
+              setSearchSubType('');
               setCurrentPage(1);
             }}
           >
@@ -471,6 +504,12 @@ export default function AdditionalTickets() {
                       <strong style={{ color: 'var(--crayon-blue)' }}>負責人員:</strong> 
                       <span style={{ border: '2px solid var(--crayon-blue)', padding: '2px 10px', borderRadius: '8px', fontWeight: 'bold', color: 'var(--crayon-blue)', backgroundColor: '#e3f2fd' }}>{assigneeName}</span>
                     </span>
+                    {t.subType && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <strong style={{ color: 'var(--crayon-purple)' }}>單據種類:</strong> 
+                        <span style={{ border: '2px solid var(--crayon-purple)', padding: '2px 10px', borderRadius: '8px', fontWeight: 'bold', color: 'var(--crayon-purple)', backgroundColor: '#f3e5f5' }}>{t.subType}</span>
+                      </span>
+                    )}
                     <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                       <strong style={{ color: 'var(--crayon-orange)' }}>項目數:</strong> 
                       <span style={{ border: '2px solid var(--crayon-orange)', padding: '2px 10px', borderRadius: '8px', fontWeight: 'bold', color: 'var(--crayon-orange)', backgroundColor: '#fff3e0' }}>{t.itemCount} 項</span>

@@ -27,6 +27,7 @@ export interface InventoryTicket {
   id: string; // Firestore document ID (can be the custom manual ID like '260701')
   title: string; // We can use this as description/notes or just the ID again
   ticketType?: '夾鉗' | 'TKW' | '追加'; // Added ticket type
+  subType?: '低點表' | '領料單'; // 追加單種類
   isAdditional?: boolean;
   assigneeId: string;
   dispatchDate: number | null; // Primary date used for stats/filtering
