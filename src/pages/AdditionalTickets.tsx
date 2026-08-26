@@ -37,6 +37,7 @@ export default function AdditionalTickets() {
   const [completionDate, setCompletionDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [subType, setSubType] = useState<'低點表' | '領料單' | ''>('');
   const [chartType, setChartType] = useState<'bar' | 'line' | 'composed'>('bar');
+  const [viewMode, setViewMode] = useState<'list' | 'chart'>('list');
 
   const loadData = async () => {
     try {
@@ -433,12 +434,32 @@ export default function AdditionalTickets() {
       {/* Statistics and Pagination Controls */}
       <div className="doodle-border" style={{ padding: '20px', marginBottom: '20px', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', backgroundColor: '#fff9c4', padding: '15px', borderRadius: '10px', border: '2px dashed var(--crayon-orange)' }}>
-        <div style={{ fontSize: '1.1rem' }}>
-          <strong style={{ color: 'var(--crayon-orange)' }}>查詢結果：</strong>
-          <span style={{ margin: '0 15px' }}>共 {filteredTickets.length} 單</span>
-          <span>共 {totalItemsCount} 項</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ fontSize: '1.1rem' }}>
+            <strong style={{ color: 'var(--crayon-orange)' }}>查詢結果：</strong>
+            <span style={{ margin: '0 15px' }}>共 {filteredTickets.length} 單</span>
+            <span>共 {totalItemsCount} 項</span>
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button 
+              className="doodle-button"
+              style={{ backgroundColor: viewMode === 'list' ? 'var(--crayon-blue)' : 'white', color: viewMode === 'list' ? 'white' : 'var(--crayon-blue)', padding: '5px 15px', fontSize: '1rem' }}
+              onClick={() => setViewMode('list')}
+            >
+              📋 清單
+            </button>
+            <button 
+              className="doodle-button"
+              style={{ backgroundColor: viewMode === 'chart' ? 'var(--crayon-blue)' : 'white', color: viewMode === 'chart' ? 'white' : 'var(--crayon-blue)', padding: '5px 15px', fontSize: '1rem' }}
+              onClick={() => setViewMode('chart')}
+            >
+              📊 圖表
+            </button>
+          </div>
+          {viewMode === 'list' && (
+          <>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <label style={{ fontWeight: 'bold' }}>排序：</label>
             <select 
@@ -473,9 +494,14 @@ export default function AdditionalTickets() {
             ))}
           </select>
         </div>
+          </>
+          )}
       </div>
       </div>
 
+      {/* Content */}
+      {viewMode === 'list' ? (
+      <>
       {/* List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
         {paginatedTickets.length === 0 ? (
@@ -591,8 +617,8 @@ export default function AdditionalTickets() {
         </div>
       )}
 
-            </div>
-      {/* Chart */}
+      </>
+      ) : (
       <div className="doodle-border" style={{ padding: '20px', backgroundColor: 'white', marginBottom: '40px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
           <h3 style={{ margin: 0, color: 'var(--crayon-dark)' }}>📊 人員追加盤點統計</h3>
@@ -661,6 +687,8 @@ export default function AdditionalTickets() {
             無符合條件的數據
           </div>
         )}
+      </div>
+      )}
       </div>
     </div>
   );
