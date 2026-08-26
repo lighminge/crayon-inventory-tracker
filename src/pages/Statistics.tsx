@@ -158,6 +158,7 @@ export default function Statistics() {
   // Year Filter
   const [globalYear, setGlobalYear] = useState<number | ''>(new Date().getFullYear());
   const [categoryFilter, setCategoryFilter] = useState<'一般' | '追加'>('一般');
+  const [additionalTypeFilter, setAdditionalTypeFilter] = useState<'全部' | '領料單' | '低點表'>('全部');
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({length: 5}, (_, i) => currentYear - 2 + i);
 
@@ -188,7 +189,10 @@ export default function Statistics() {
 
   // Filter tickets based on Date and ID ranges
   const filteredTickets = useMemo(() => {
-    const baseTickets = tickets.filter(t => categoryFilter === '追加' ? t.isAdditional : !t.isAdditional);
+    let baseTickets = tickets.filter(t => categoryFilter === '追加' ? t.isAdditional : !t.isAdditional);
+    if (categoryFilter === '追加' && additionalTypeFilter !== '全部') {
+      baseTickets = baseTickets.filter(t => t.subType === additionalTypeFilter);
+    }
     const startMs = startDate ? new Date(startDate).getTime() : 0;
     const endMs = endDate ? new Date(endDate).getTime() + 24 * 60 * 60 * 1000 - 1 : Infinity;
 
@@ -237,7 +241,7 @@ export default function Statistics() {
 
       return true;
     });
-  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskIds, selectedTypes, selectedDaysFilter, enableDateFilter, enableTicketFilter, enableTaskFilter, enableTypeFilter, enableDaysFilter, holidays, globalYear, categoryFilter]);
+  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskIds, selectedTypes, selectedDaysFilter, enableDateFilter, enableTicketFilter, enableTaskFilter, enableTypeFilter, enableDaysFilter, holidays, globalYear, categoryFilter, additionalTypeFilter]);
 
   // Derive tasks to show in the "依盤點任務" list
   const filteredTasksList = useMemo(() => {
@@ -617,6 +621,16 @@ export default function Statistics() {
                 <option value="一般">一般</option>
                 <option value="追加">追加</option>
               </select>
+              {categoryFilter === '追加' && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>追加單據種類：</label>
+                  <select className="doodle-input" style={{ width: '100%', backgroundColor: 'white' }} value={additionalTypeFilter} onChange={e => setAdditionalTypeFilter(e.target.value as any)}>
+                    <option value="全部">全部</option>
+                    <option value="領料單">領料單</option>
+                    <option value="低點表">低點表</option>
+                  </select>
+                </div>
+              )}
             </div>
           </div>
 
