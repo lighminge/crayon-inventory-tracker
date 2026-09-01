@@ -892,15 +892,38 @@ export default function Dashboard() {
                   const assigneeTickets = unclosedTicketsGrouped[assigneeName];
                   const assigneeTotalItems = assigneeTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
                   
+                  // 計算盤點類型統計
+                  const typeStats = assigneeTickets.reduce((acc, t) => {
+                    if (t.ticketType) {
+                      acc[t.ticketType] = (acc[t.ticketType] || 0) + 1;
+                    }
+                    return acc;
+                  }, {} as Record<string, number>);
+
                   return (
                     <div key={assigneeName} className="doodle-border" style={{ 
                       backgroundColor: 'white', padding: '15px', 
                       display: 'flex', flexDirection: 'column', gap: '15px'
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '10px' }}>
-                        <span style={{ fontWeight: 'bold', fontSize: '1.4rem', color: 'var(--crayon-dark)' }}>
-                          👤 {assigneeName}
-                        </span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '10px', flexWrap: 'wrap', gap: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+                          <span style={{ fontWeight: 'bold', fontSize: '1.4rem', color: 'var(--crayon-dark)' }}>
+                            👤 {assigneeName}
+                          </span>
+                          {Object.entries(typeStats).map(([type, count]) => (
+                            <span key={type} style={{
+                              backgroundColor: type === 'TKW' ? '#e1bee7' : '#b2dfdb',
+                              color: type === 'TKW' ? '#4a148c' : '#004d40',
+                              border: `2px solid ${type === 'TKW' ? '#7b1fa2' : '#00796b'}`,
+                              padding: '2px 8px',
+                              borderRadius: '12px',
+                              fontWeight: 'bold',
+                              fontSize: '1rem'
+                            }}>
+                              {type} {count} 件
+                            </span>
+                          ))}
+                        </div>
                         <span style={{ 
                           backgroundColor: 'var(--crayon-yellow)', padding: '5px 12px', borderRadius: '15px', 
                           fontSize: '1.1rem', fontWeight: 'bold', border: '2px dashed var(--crayon-dark)',
@@ -923,8 +946,9 @@ export default function Dashboard() {
                           return (
                             <div key={t.id} style={{
                               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                              backgroundColor: '#f9f9f9', padding: '8px 12px', borderRadius: '8px',
-                              border: '1px solid #ddd'
+                              backgroundColor: t.taskId ? '#fff9c4' : '#f9f9f9',
+                              padding: '8px 12px', borderRadius: '8px',
+                              border: t.taskId ? '2px dashed #f57f17' : '1px solid #ddd'
                             }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <span style={{ backgroundColor: 'var(--crayon-dark)', color: 'white', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 'bold' }}>

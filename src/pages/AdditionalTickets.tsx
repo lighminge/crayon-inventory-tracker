@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
+import html2canvas from 'html2canvas';
 import { useAuth } from '../contexts/AuthContext';
 import { getTickets, addTicket, deleteTicket, updateTicket, getPersonnel } from '../services/api';
 import type { InventoryTicket, Personnel } from '../types';
@@ -216,7 +218,47 @@ export default function AdditionalTickets() {
   const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
   const paginatedTickets = sortedTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+
+  const handleExportExcel = () => {
+    const exportData = sortedTickets.map((t, idx) => ({
+      '序號': idx + 1,
+      '單號': t.id,
+      '盤點類型': t.ticketType !== '追加' ? t.ticketType : '',
+      '單據種類': t.subType || '',
+      '負責人員': personnel.find(p => p.id === t.assigneeId)?.name || '未知人員',
+      '項目數': t.itemCount || 0,
+      '完成日期': t.closeDate ? new Date(t.closeDate).toISOString().split('T')[0] : ''
+    }));
+
+    if (exportData.length === 0) {
+      alert('沒有資料可匯出');
+      return;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '追加盤點清單');
+    XLSX.writeFile(wb, `追加盤點清單_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const handleExportImage = async () => {
+    const el = document.getElementById('additional-tickets-chart');
+    if (!el) return;
+    try {
+      const canvas = await html2canvas(el, { scale: 2 });
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `追加盤點統計圖_${new Date().toISOString().split('T')[0]}.png`;
+      a.click();
+    } catch (e) {
+      console.error(e);
+      alert('匯出圖片失敗');
+    }
+  };
+
   return (
+
     <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <h2 style={{ fontFamily: 'Caveat, cursive', fontSize: '2.5rem', color: 'var(--crayon-blue)' }}>
         ➕ 追加盤點
@@ -536,27 +578,36 @@ export default function AdditionalTickets() {
       {viewMode === 'list' ? (
       <>
       {/* Top Pagination Nav */}
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '15px' }}>
-          <button 
-            className="doodle-button"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-          >
-            上一頁
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            第 {currentPage} / {totalPages} 頁
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', marginBottom: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+            <button 
+              className="doodle-button"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            >
+              上一頁
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              第 {currentPage} / {totalPages} 頁
+            </div>
+            <button 
+              className="doodle-button"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            >
+              下一頁
+            </button>
           </div>
-          <button 
-            className="doodle-button"
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-          >
-            下一頁
-          </button>
-        </div>
-      )}
+        )}
+        <button 
+          className="doodle-button"
+          onClick={handleExportExcel}
+          style={{ backgroundColor: '#2e7d32', color: 'white', padding: '5px 15px' }}
+        >
+          📊 匯出Excel檔
+        </button>
+      </div>
       {/* List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
         {paginatedTickets.length === 0 ? (
@@ -684,6 +735,13 @@ export default function AdditionalTickets() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
           <h3 style={{ margin: 0, color: 'var(--crayon-dark)' }}>📊 人員追加盤點統計</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <button 
+              className="doodle-button" 
+              onClick={handleExportImage} 
+              style={{ backgroundColor: '#ff9800', color: 'white', padding: '5px 15px' }}
+            >
+              🖼️ 匯出圖檔
+            </button>
             <label style={{ fontWeight: 'bold' }}>圖表類型：</label>
             <select className="doodle-input" style={{ width: 'auto' }} value={chartType} onChange={e => setChartType(e.target.value as 'bar' | 'line' | 'composed')}>
               <option value="bar">長條圖</option>
