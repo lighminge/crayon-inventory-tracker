@@ -731,8 +731,8 @@ export default function AdditionalTickets() {
 
       </>
       ) : (
-      <div className="doodle-border" style={{ padding: '20px', backgroundColor: 'white', marginBottom: '40px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
+      <div id="additional-tickets-chart" className="doodle-border" style={{ padding: '20px', backgroundColor: 'white', marginBottom: '40px' }}>
+        <div data-html2canvas-ignore style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
           <h3 style={{ margin: 0, color: 'var(--crayon-dark)' }}>📊 人員追加盤點統計</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <button 
