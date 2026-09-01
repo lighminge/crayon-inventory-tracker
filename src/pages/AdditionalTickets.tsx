@@ -22,6 +22,7 @@ export default function AdditionalTickets() {
   const [searchAssignee, setSearchAssignee] = useState('');
   const [searchTicketId, setSearchTicketId] = useState('');
   const [searchSubType, setSearchSubType] = useState('');
+  const [searchTicketType, setSearchTicketType] = useState('');
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -36,6 +37,7 @@ export default function AdditionalTickets() {
   const [itemCount, setItemCount] = useState<string>('');
   const [completionDate, setCompletionDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
   const [subType, setSubType] = useState<'低點表' | '領料單' | ''>('');
+  const [ticketType, setTicketType] = useState<'夾鉗' | 'TKW' | ''>('');
   const [chartType, setChartType] = useState<'bar' | 'line' | 'composed'>('bar');
   const [viewMode, setViewMode] = useState<'list' | 'chart'>('list');
 
@@ -65,6 +67,7 @@ export default function AdditionalTickets() {
     setNewId('');
     setItemCount('');
     setSubType('');
+    setTicketType('');
     setCompletionDate(new Date().toISOString().split('T')[0]);
     setIsModalOpen(true);
   };
@@ -76,6 +79,7 @@ export default function AdditionalTickets() {
     setNewId(t.id);
     setItemCount(String(t.itemCount || ''));
     setSubType(t.subType as any || '');
+    setTicketType(t.ticketType as any || '');
     setCompletionDate(t.closeDate ? new Date(t.closeDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
     setIsModalOpen(true);
   };
@@ -102,6 +106,7 @@ export default function AdditionalTickets() {
           assigneeId: targetPerson.id,
           itemCount: count,
           subType: subType as any || undefined,
+          ticketType: ticketType as any || '追加',
           closeDate: timestamp,
           dispatchDate: timestamp
         });
@@ -109,8 +114,8 @@ export default function AdditionalTickets() {
         const ticket: InventoryTicket = {
           id: newId.trim(),
           title: newId.trim(),
-          ticketType: '追加',
           subType: subType as any || undefined,
+          ticketType: ticketType as any || '追加',
           isAdditional: true,
           assigneeId: targetPerson.id,
           dispatchDate: timestamp,
@@ -157,6 +162,7 @@ export default function AdditionalTickets() {
     if (searchAssignee && t.assigneeId !== searchAssignee) return false;
     if (searchTicketId && !t.id.includes(searchTicketId)) return false;
     if (searchSubType && t.subType !== searchSubType) return false;
+    if (searchTicketType && t.ticketType !== searchTicketType) return false;
     
     if (searchStartDate || searchEndDate) {
       const d = t.closeDate;
@@ -276,6 +282,19 @@ export default function AdditionalTickets() {
                 )}
               </div>
               <div>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點類型：</label>
+                <select
+                  className="doodle-input"
+                  value={ticketType}
+                  onChange={e => setTicketType(e.target.value as any)}
+                  style={{ width: '100%' }}
+                >
+                  <option value="">- 請選擇 -</option>
+                  <option value="夾鉗">夾鉗</option>
+                  <option value="TKW">TKW</option>
+                </select>
+              </div>
+              <div>
                 <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>單據種類：</label>
                 <select
                   className="doodle-input"
@@ -386,6 +405,19 @@ export default function AdditionalTickets() {
             />
           </div>
           <div style={{ width: '150px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點類型</label>
+            <select 
+              className="doodle-input" 
+              value={searchTicketType}
+              onChange={e => setSearchTicketType(e.target.value)}
+              style={{ width: '100%' }}
+            >
+              <option value="">- 所有 -</option>
+              <option value="夾鉗">夾鉗</option>
+              <option value="TKW">TKW</option>
+            </select>
+          </div>
+          <div style={{ width: '150px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>單據種類</label>
             <select 
               className="doodle-input" 
@@ -423,6 +455,7 @@ export default function AdditionalTickets() {
               setSearchAssignee('');
               setSearchTicketId('');
               setSearchSubType('');
+              setSearchTicketType('');
               setCurrentPage(1);
             }}
           >
@@ -502,6 +535,28 @@ export default function AdditionalTickets() {
       {/* Content */}
       {viewMode === 'list' ? (
       <>
+      {/* Top Pagination Nav */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '15px' }}>
+          <button 
+            className="doodle-button"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          >
+            上一頁
+          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            第 {currentPage} / {totalPages} 頁
+          </div>
+          <button 
+            className="doodle-button"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+          >
+            下一頁
+          </button>
+        </div>
+      )}
       {/* List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
         {paginatedTickets.length === 0 ? (
@@ -566,6 +621,12 @@ export default function AdditionalTickets() {
                     }}>
                       單號：{t.id}
                     </span>
+                    {t.ticketType && t.ticketType !== '追加' && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '1.1rem' }}>
+                        <strong style={{ color: '#00695c' }}>盤點類型:</strong> 
+                        <span style={{ border: '2px solid #00695c', padding: '2px 10px', borderRadius: '8px', fontWeight: 'bold', color: '#00695c', backgroundColor: '#e0f2f1' }}>{t.ticketType}</span>
+                      </span>
+                    )}
                     {t.subType && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '1.1rem' }}>
                         <strong style={{ color: 'var(--crayon-purple)' }}>單據種類:</strong> 
