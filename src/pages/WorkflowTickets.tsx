@@ -418,7 +418,27 @@ export default function WorkflowTickets() {
                       />
                     </td>
                     <td style={{ padding: '15px', fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-blue)' }}>{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                    <td style={{ padding: '15px', fontWeight: 'bold', fontSize: '1.5rem', color: 'var(--crayon-dark)' }}>{t.id}</td>
+                    <td style={{ padding: '15px' }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '1.5rem', color: 'var(--crayon-dark)' }}>{t.id}</div>
+                      {t.taskId && (() => {
+                        const taskName = tasks.find(tk => tk.id === t.taskId)?.name || '未知任務';
+                        return (
+                          <div style={{ 
+                            marginTop: '8px', 
+                            display: 'inline-block',
+                            backgroundColor: '#e8f5e9', 
+                            border: '2px dashed #2e7d32', 
+                            color: '#2e7d32', 
+                            padding: '4px 8px', 
+                            borderRadius: '8px',
+                            fontWeight: 'bold',
+                            fontSize: '0.95rem'
+                          }}>
+                            🎯 {taskName}
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td style={{ padding: '15px' }}>
                       <span style={{ backgroundColor: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)', color: 'white', padding: '4px 10px', borderRadius: '5px', fontWeight: 'bold' }}>
                         {t.ticketType || '未指定'}
