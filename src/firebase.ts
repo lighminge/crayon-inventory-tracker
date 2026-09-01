@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAdcWfaFSobqOaI29ZeT2egbqwXUpDRs2g",
@@ -23,7 +23,7 @@ if (typeof window !== 'undefined') {
     (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
   }
   initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider('6LdsdKMtAAAAAAdj6iEMvolYa19W8FuZxE9KNFoe'),
+    provider: new ReCaptchaEnterpriseProvider('6LdsdKMtAAAAAAdj6iEMvolYa19W8FuZxE9KNFoe'),
     isTokenAutoRefreshEnabled: true
   });
 }
