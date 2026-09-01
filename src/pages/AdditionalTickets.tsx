@@ -235,6 +235,38 @@ export default function AdditionalTickets() {
       return;
     }
 
+    // 計算人員統計
+    const statsByPerson: Record<string, { tickets: number, items: number }> = {};
+    sortedTickets.forEach(t => {
+      const pName = personnel.find(p => p.id === t.assigneeId)?.name || '未知人員';
+      if (!statsByPerson[pName]) {
+        statsByPerson[pName] = { tickets: 0, items: 0 };
+      }
+      statsByPerson[pName].tickets += 1;
+      statsByPerson[pName].items += (t.itemCount || 0);
+    });
+
+    // 加入分隔空行
+    (exportData as any[]).push({
+      '序號': '', '單號': '', '盤點類型': '', '單據種類': '', '負責人員': '', '項目數': '', '完成日期': ''
+    });
+
+    (exportData as any[]).push({
+      '序號': '【人員統計】', '單號': '', '盤點類型': '', '單據種類': '', '負責人員': '總筆數', '項目數': '總項目數', '完成日期': ''
+    });
+
+    Object.keys(statsByPerson).sort().forEach(pName => {
+      (exportData as any[]).push({
+        '序號': pName,
+        '單號': '',
+        '盤點類型': '',
+        '單據種類': '',
+        '負責人員': statsByPerson[pName].tickets,
+        '項目數': statsByPerson[pName].items,
+        '完成日期': ''
+      });
+    });
+
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '追加盤點清單');
