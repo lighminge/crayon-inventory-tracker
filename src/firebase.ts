@@ -18,8 +18,10 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize App Check
 if (typeof window !== 'undefined') {
-  // 設定在開發環境可以透過 debug token 繞過限制 (選擇性)
-  // self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  // 在本機開發環境 (localhost) 啟用 Debug Token，否則 Firebase 會阻擋本機連線
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  }
   initializeAppCheck(app, {
     provider: new ReCaptchaV3Provider('6LdsdKMtAAAAAAdj6iEMvolYa19W8FuZxE9KNFoe'),
     isTokenAutoRefreshEnabled: true
