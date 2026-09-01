@@ -12,7 +12,6 @@ import Login from './pages/Login';
 import InventoryTasks from './pages/InventoryTasks';
 import ItemDetails from './pages/ItemDetails';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { GoogleReCaptchaProvider } from 'react-google-recaptcha-v3';
 import SystemManagement from './pages/SystemManagement';
 import CalendarManagement from './pages/CalendarManagement';
 
@@ -27,7 +26,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <AuthProvider>
-      <GoogleReCaptchaProvider reCaptchaKey="6LdsdKMtAAAAAAdj6iEMvolYa19W8FuZxE9KNFoe">
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -48,7 +46,6 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
-      </GoogleReCaptchaProvider>
     </AuthProvider>
   );
 }

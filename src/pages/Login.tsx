@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getSystemUsers, addSystemUser } from '../services/api';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import type { SystemUser } from '../types';
 
 export default function Login() {
@@ -12,7 +11,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { login, currentUser } = useAuth();
   const navigate = useNavigate();
-  const { executeRecaptcha } = useGoogleReCaptcha();
 
   useEffect(() => {
     // If already logged in, redirect to dashboard
@@ -26,17 +24,7 @@ export default function Login() {
     setError('');
     setLoading(true);
 
-    if (!executeRecaptcha) {
-      setError('reCAPTCHA 尚未載入完成，請稍候');
-      setLoading(false);
-      return;
-    }
-
     try {
-      const token = await executeRecaptcha('login');
-      console.log('取得 reCAPTCHA Token:', token);
-      // NOTE: 在真實環境中，這裡應該把 token 傳給後端驗證。
-      // 因目前為前端模擬，故略過後端驗證步驟。
       const users = await getSystemUsers();
       
       // Seed default admin if no users exist
