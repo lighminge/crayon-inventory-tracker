@@ -257,15 +257,15 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
       <div className="doodle-border" style={{ backgroundColor: 'white', padding: '20px' }}>
         <h2 style={{ marginTop: 0, color: 'var(--crayon-orange)' }}>🔍 稽催報表條件篩選</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
-          <div style={{ flex: '1 1 200px' }}>
+          <div style={{ flex: '1 1 30%', minWidth: '200px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>起始日期</label>
             <CrayonDatePicker value={startDate} onChange={setStartDate} />
           </div>
-          <div style={{ flex: '1 1 200px' }}>
+          <div style={{ flex: '1 1 30%', minWidth: '200px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>結束日期</label>
             <CrayonDatePicker value={endDate} onChange={setEndDate} />
           </div>
-          <div style={{ flex: '1 1 200px' }}>
+          <div style={{ flex: '1 1 30%', minWidth: '200px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點任務</label>
             <select className="doodle-input" style={{ width: '100%' }} value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
               <option value="">-- 全部任務 --</option>
@@ -274,14 +274,14 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
               ))}
             </select>
           </div>
-          <div style={{ flex: '1 1 120px' }}>
+          <div style={{ flex: '1 1 22%', minWidth: '120px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點種類</label>
             <select className="doodle-input" style={{ width: '100%' }} value={ticketType} onChange={e => setTicketType(e.target.value as '一般' | '追加')}>
               <option value="一般">一般</option>
               <option value="追加">追加</option>
             </select>
           </div>
-          <div style={{ flex: '0 1 150px' }}>
+          <div style={{ flex: '1 1 22%', minWidth: '120px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點人員</label>
             <select className="doodle-input" style={{ width: '100%' }} value={selectedAssigneeId} onChange={e => setSelectedAssigneeId(e.target.value)}>
               <option value="">-- 全部人員 --</option>
@@ -290,7 +290,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
               ))}
             </select>
           </div>
-          <div style={{ flex: '0 1 120px' }}>
+          <div style={{ flex: '1 1 22%', minWidth: '120px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點單狀態</label>
             <select className="doodle-input" style={{ width: '100%' }} value={ticketStatus} onChange={e => setTicketStatus(e.target.value)}>
               <option value="all">全部</option>
@@ -298,9 +298,9 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
               <option value="unclosed">未結案</option>
             </select>
           </div>
-          <div style={{ flex: '1 1 150px' }}>
+          <div style={{ flex: '1 1 22%', minWidth: '150px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點單處理天數</label>
-            <select className="doodle-input" style={{ width: '100%' }} value={selectedDays} onChange={e => setSelectedDays(e.target.value)}>
+            <select className="doodle-input" style={{ width: '100%', paddingLeft: '5px', paddingRight: '5px' }} value={selectedDays} onChange={e => setSelectedDays(e.target.value)}>
               <option value="0">0天 (含) 以上</option>
               <option value="1">1天 (含) 以上</option>
               <option value="2">2天 (含) 以上</option>
