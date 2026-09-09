@@ -26,6 +26,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
   const [selectedAssigneeId, setSelectedAssigneeId] = useState('');
   const [selectedDays, setSelectedDays] = useState('0'); // "0" ~ "7"
   const [ticketStatus, setTicketStatus] = useState('all'); // 'all', 'closed', 'unclosed'
+  const [ticketType, setTicketType] = useState<'一般' | '追加'>('一般');
   const [exactDayFilter, setExactDayFilter] = useState<number | null>(null);
   
   const [sortBy, setSortBy] = useState('id'); // 'id', 'stage', 'assignee', 'processingDays'
@@ -66,6 +67,10 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
     const daysThreshold = parseInt(selectedDays, 10);
 
     const filtered = tickets.filter(t => {
+      // 盤點種類 filter
+      if (ticketType === '一般' && t.isAdditional) return false;
+      if (ticketType === '追加' && !t.isAdditional) return false;
+
       // Date range filter (using dispatchDate or firstStageDate)
       const firstDate = getFirstStageDate(t);
       const dateToUse = firstDate || (t.id ? new Date(2020, 0, 1).getTime() : 0); // fallback
@@ -155,7 +160,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
         return factor * (a.processingDays - b.processingDays);
       }
     });
-  }, [tickets, startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays, ticketStatus, workflows, sortBy, sortOrder]);
+  }, [tickets, startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays, ticketStatus, ticketType, workflows, sortBy, sortOrder]);
 
   const displayedTickets = useMemo(() => {
     if (exactDayFilter === null) return baseProcessedTickets;
@@ -167,7 +172,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
   const currentData = displayedTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   // When filters change, reset page
-  useMemo(() => setCurrentPage(1), [startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays, ticketStatus, itemsPerPage, exactDayFilter]);
+  useMemo(() => setCurrentPage(1), [startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays, ticketStatus, ticketType, itemsPerPage, exactDayFilter]);
 
   const getRowColor = (days: number) => {
     if (days >= 7) return '#e1bee7'; // Purple
@@ -251,44 +256,51 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div className="doodle-border" style={{ backgroundColor: 'white', padding: '20px' }}>
         <h2 style={{ marginTop: 0, color: 'var(--crayon-orange)' }}>🔍 稽催報表條件篩選</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-          <div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
+          <div style={{ flex: '1 1 200px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>起始日期</label>
             <CrayonDatePicker value={startDate} onChange={setStartDate} />
           </div>
-          <div>
+          <div style={{ flex: '1 1 200px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>結束日期</label>
             <CrayonDatePicker value={endDate} onChange={setEndDate} />
           </div>
-          <div>
+          <div style={{ flex: '1 1 200px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點任務</label>
-            <select className="doodle-input" value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
+            <select className="doodle-input" style={{ width: '100%' }} value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}>
               <option value="">-- 全部任務 --</option>
               {tasks.map(t => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
           </div>
-          <div>
+          <div style={{ flex: '1 1 120px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點種類</label>
+            <select className="doodle-input" style={{ width: '100%' }} value={ticketType} onChange={e => setTicketType(e.target.value as '一般' | '追加')}>
+              <option value="一般">一般</option>
+              <option value="追加">追加</option>
+            </select>
+          </div>
+          <div style={{ flex: '0 1 150px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點人員</label>
-            <select className="doodle-input" value={selectedAssigneeId} onChange={e => setSelectedAssigneeId(e.target.value)}>
+            <select className="doodle-input" style={{ width: '100%' }} value={selectedAssigneeId} onChange={e => setSelectedAssigneeId(e.target.value)}>
               <option value="">-- 全部人員 --</option>
               {personnel.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
           </div>
-          <div>
+          <div style={{ flex: '0 1 120px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點單狀態</label>
-            <select className="doodle-input" value={ticketStatus} onChange={e => setTicketStatus(e.target.value)}>
+            <select className="doodle-input" style={{ width: '100%' }} value={ticketStatus} onChange={e => setTicketStatus(e.target.value)}>
               <option value="all">全部</option>
               <option value="closed">已結案</option>
               <option value="unclosed">未結案</option>
             </select>
           </div>
-          <div>
+          <div style={{ flex: '1 1 150px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點單處理天數</label>
-            <select className="doodle-input" value={selectedDays} onChange={e => setSelectedDays(e.target.value)}>
+            <select className="doodle-input" style={{ width: '100%' }} value={selectedDays} onChange={e => setSelectedDays(e.target.value)}>
               <option value="0">0天 (含) 以上</option>
               <option value="1">1天 (含) 以上</option>
               <option value="2">2天 (含) 以上</option>
