@@ -426,11 +426,11 @@ export default function AdditionalTickets() {
                   <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--crayon-purple)' }}>
                     {p.name}
                   </div>
-                  <div style={{ display: 'flex', gap: '10px', fontSize: '0.9rem', flexWrap: 'wrap' }}>
-                    <span style={{ border: '2px solid var(--crayon-blue)', padding: '2px 8px', borderRadius: '5px', fontWeight: 'bold', color: 'var(--crayon-blue)', backgroundColor: '#e3f2fd' }}>
+                  <div style={{ display: 'flex', gap: '10px', fontSize: '1.2rem', flexWrap: 'wrap' }}>
+                    <span style={{ border: '3px solid #1565c0', padding: '4px 10px', borderRadius: '8px', fontWeight: '900', color: '#1565c0', backgroundColor: '#bbdefb' }}>
                       {personTickets.length} 單
                     </span>
-                    <span style={{ border: '2px solid var(--crayon-orange)', padding: '2px 8px', borderRadius: '5px', fontWeight: 'bold', color: 'var(--crayon-orange)', backgroundColor: '#fff3e0' }}>
+                    <span style={{ border: '3px solid #e65100', padding: '4px 10px', borderRadius: '8px', fontWeight: '900', color: '#e65100', backgroundColor: '#ffe0b2' }}>
                       {personItems} 項
                     </span>
                   </div>
