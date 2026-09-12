@@ -5,6 +5,7 @@ import { calculateBusinessDays } from '../utils/dateUtils';
 import type { HolidaySetting } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid, LineChart, Line, ComposedChart, LabelList } from 'recharts';
 import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import html2canvas from 'html2canvas';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 import ExpeditingReport from '../components/ExpeditingReport';
@@ -142,6 +143,56 @@ export default function Statistics() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `全部人員_統計數據.png`;
+    a.click();
+  };
+
+
+  const handleExportPersonChartExcel = async (stat: any, chartData: any[]) => {
+    const el = document.getElementById(`person-card-${stat.id}`);
+    let imageUrl = '';
+    if (el) {
+      // Create a cloned node to fix select display issue if needed, but we rely on style fix
+      const canvas = await html2canvas(el, { scale: 2 });
+      imageUrl = canvas.toDataURL('image/png');
+    }
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet(`${stat.name}圖表數據`);
+
+    // Headers
+    ws.addRow(['日期 (X軸)', '盤點單數量 (Y軸)', '盤點項目數量 (Y軸)']);
+    
+    // Data
+    chartData.forEach(d => {
+      ws.addRow([d.name, d.tickets, d.items]);
+    });
+    
+    // Format headers
+    ws.getRow(1).font = { bold: true };
+    ws.columns = [
+      { width: 15 },
+      { width: 20 },
+      { width: 20 }
+    ];
+
+    // Image
+    if (imageUrl) {
+      const imageId = wb.addImage({
+        base64: imageUrl,
+        extension: 'png',
+      });
+      
+      ws.addImage(imageId, {
+        tl: { col: 4, row: 1 },
+        ext: { width: 600, height: 400 }
+      });
+    }
+    
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${stat.name}_圖表數據.xlsx`;
     a.click();
   };
 
@@ -1031,7 +1082,7 @@ export default function Statistics() {
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                   <select 
-                    style={{ padding: '2px 5px', borderRadius: '5px', border: '2px solid var(--crayon-dark)', outline: 'none' }}
+                    style={{ padding: '4px 8px', height: '32px', fontSize: '14px', lineHeight: '20px', borderRadius: '5px', border: '2px solid var(--crayon-dark)', outline: 'none', backgroundColor: '#fff' }}
                     value={type} onChange={e => setPersonChartType(prev => ({...prev, [stat.id]: e.target.value as any}))}
                   >
                     <option value="bar">長條圖</option>
@@ -1039,7 +1090,7 @@ export default function Statistics() {
                     <option value="composed">長條+折線</option>
                   </select>
                   <select 
-                    style={{ padding: '2px 5px', borderRadius: '5px', border: '2px solid var(--crayon-dark)', outline: 'none' }}
+                    style={{ padding: '4px 8px', height: '32px', fontSize: '14px', lineHeight: '20px', borderRadius: '5px', border: '2px solid var(--crayon-dark)', outline: 'none', backgroundColor: '#fff' }}
                     value={tType} onChange={e => setPersonTicketType(prev => ({...prev, [stat.id]: e.target.value}))}
                   >
                     <option value="">全部類型</option>
@@ -1084,7 +1135,7 @@ export default function Statistics() {
                   </ResponsiveContainer>
                 </div>
                 <div style={{ marginTop: 'auto', paddingTop: '10px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                  <button className="doodle-button" style={{ padding: '4px 10px', fontSize: '0.9rem', backgroundColor: 'var(--crayon-blue)', color: 'white' }} onClick={() => handleExportPersonExcel(stat)}>📥 匯出 Excel 檔</button>
+                  <button className="doodle-button" style={{ padding: '4px 10px', fontSize: '0.9rem', backgroundColor: 'var(--crayon-blue)', color: 'white' }} onClick={() => handleExportPersonChartExcel(stat, chartData)}>📥 匯出 Excel 檔</button>
                   <button className="doodle-button" style={{ padding: '4px 10px', fontSize: '0.9rem', backgroundColor: 'var(--crayon-purple)', color: 'white' }} onClick={() => handleExportPersonImage(stat.id, stat.name)}>🖼️ 匯出圖檔</button>
                 </div>
               </div>
