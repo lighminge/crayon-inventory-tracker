@@ -21,8 +21,7 @@
     "react-google-recaptcha-v3": "^1.11.0",
     "react-router-dom": "^7.18.1",
     "recharts": "^3.9.2",
-    "roughjs": "^4.6.6",
-    "xlsx": "^0.18.5"
+    "roughjs": "^4.6.6"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",

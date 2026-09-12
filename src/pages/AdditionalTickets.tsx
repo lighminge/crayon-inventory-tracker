@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import html2canvas from 'html2canvas';
 import { useAuth } from '../contexts/AuthContext';
 import { getTickets, addTicket, deleteTicket, updateTicket, getPersonnel } from '../services/api';
@@ -219,7 +219,7 @@ export default function AdditionalTickets() {
   const paginatedTickets = sortedTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     const exportData = sortedTickets.map((t, idx) => ({
       '序號': idx + 1,
       '單號': t.id,
@@ -267,10 +267,21 @@ export default function AdditionalTickets() {
       });
     });
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, '追加盤點清單');
-    XLSX.writeFile(wb, `追加盤點清單_${new Date().toISOString().split('T')[0]}.xlsx`);
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('追加盤點清單');
+    if (exportData.length > 0) {
+      ws.columns = Object.keys(exportData[0]).map(k => ({ header: k, key: k }));
+      exportData.forEach(d => ws.addRow(d));
+    }
+    
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `追加盤點清單_${new Date().toISOString().split('T')[0]}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleExportImage = async () => {

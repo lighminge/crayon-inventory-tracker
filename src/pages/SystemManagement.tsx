@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { getSystemUsers, addSystemUser, updateSystemUser, deleteSystemUser, getPersonnel, getLoginRecords } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import type { SystemUser, ModulePermissions, PermissionLevel, Personnel, SystemLoginRecord } from '../types';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import html2canvas from 'html2canvas';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line , LabelList } from 'recharts';
 
@@ -188,7 +188,7 @@ export default function SystemManagement() {
     }
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     const exportData = filteredLogins.map((r, i) => ({
       '序號': i + 1,
       '帳號': r.username,
@@ -198,12 +198,22 @@ export default function SystemManagement() {
       '登出時間': r.logoutTime ? new Date(r.logoutTime).toLocaleString('zh-TW') : '未登出/異常'
     }));
     
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "登入記錄");
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("登入記錄");
+    if (exportData.length > 0) {
+      ws.columns = Object.keys(exportData[0]).map(k => ({ header: k, key: k }));
+      exportData.forEach(d => ws.addRow(d));
+    }
     
     const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
-    XLSX.writeFile(wb, `系統登入記錄_${dateStr}.xlsx`);
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `系統登入記錄_${dateStr}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   useEffect(() => {

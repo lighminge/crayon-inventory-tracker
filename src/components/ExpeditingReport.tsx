@@ -4,7 +4,7 @@ import CrayonDatePicker from './CrayonDatePicker';
 import { calculateBusinessDays } from '../utils/dateUtils';
 import { getHolidays } from '../services/api';
 import type { HolidaySetting } from '../types';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import html2canvas from 'html2canvas';
 
 interface ExpeditingReportProps {
@@ -197,7 +197,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
 
 
   // Export Functions
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     const exportData = displayedTickets.map(t => ({
       '單號': t.id,
       '標題/備註': t.title,
@@ -208,10 +208,20 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
       '總處理天數': t.processingDays
     }));
     
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "稽催報表");
-    XLSX.writeFile(wb, `稽催報表_${new Date().toISOString().split('T')[0]}.xlsx`);
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("稽催報表");
+    if (exportData.length > 0) {
+      ws.columns = Object.keys(exportData[0]).map(k => ({ header: k, key: k }));
+      exportData.forEach(d => ws.addRow(d));
+    }
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `稽催報表_${new Date().toISOString().split('T')[0]}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const exportToText = () => {

@@ -4,7 +4,7 @@ import { getTickets, getPersonnel, getWorkflows, getTasks, getHolidays } from '.
 import { calculateBusinessDays } from '../utils/dateUtils';
 import type { HolidaySetting } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, CartesianGrid, LineChart, Line, ComposedChart, LabelList } from 'recharts';
-import * as XLSX from 'xlsx';
+
 import ExcelJS from 'exceljs';
 import html2canvas from 'html2canvas';
 import CrayonDatePicker from '../components/CrayonDatePicker';
@@ -19,8 +19,8 @@ export default function Statistics() {
   const [holidays, setHolidays] = useState<HolidaySetting[]>([]);
 
 
-  const handleExportAllExcel = () => {
-    const wb = XLSX.utils.book_new();
+  const handleExportAllExcel = async () => {
+    const wb = new ExcelJS.Workbook();
     let allTicketsData: any[] = [];
     const personSummaries: any[] = [];
     let allIdx = 1;
@@ -68,11 +68,15 @@ export default function Statistics() {
       exportData.push({
         '序號': '', '單號': '總計', '任務': `共 ${taskCount} 筆`, '盤點類型': '', '狀態': `共 ${totalTickets} 單`, '項目數': `共 ${totalItems} 項`, '派送日期': '', '結案日期': '', '處理天數': avgDaysStr
       });
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      XLSX.utils.book_append_sheet(wb, ws, stat.name.substring(0, 31));
+      
+      const ws = wb.addWorksheet(stat.name.substring(0, 31));
+      if (exportData.length > 0) {
+        ws.columns = Object.keys(exportData[0]).map(k => ({ header: k, key: k }));
+        exportData.forEach(d => ws.addRow(d));
+      }
     });
     
-    if (wb.SheetNames.length === 0) {
+    if (wb.worksheets.length === 0) {
       alert('無盤點數據可匯出');
       return;
     }
@@ -127,12 +131,22 @@ export default function Statistics() {
         '處理天數': ''
       });
       
-      const wsAll = XLSX.utils.json_to_sheet(allExportData);
-      XLSX.utils.book_append_sheet(wb, wsAll, '全部');
+      const wsAll = wb.addWorksheet('全部');
+      if (allExportData.length > 0) {
+        wsAll.columns = Object.keys(allExportData[0] || {}).map(k => ({ header: k, key: k }));
+        allExportData.forEach(d => wsAll.addRow(d));
+      }
     }
     
     const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
-    XLSX.writeFile(wb, `全部人員_盤點數據_${dateStr}.xlsx`);
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `全部人員_盤點數據_${dateStr}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleExportAllImage = async () => {
@@ -196,7 +210,7 @@ export default function Statistics() {
     a.click();
   };
 
-  const handleExportPersonExcel = (stat: any) => {
+  const handleExportPersonExcel = async (stat: any) => {
     const exportData: any[] = stat.pTickets.map((t: any, i: number) => {
         const start = getFirstStageDate(t);
         const processingDays = (t.closeDate && start) ? calculateBusinessDays(start, t.closeDate, holidays) : null;
@@ -223,12 +237,23 @@ export default function Statistics() {
       exportData.push({
         '序號': '', '單號': '總計', '任務': `共 ${taskCount} 筆`, '盤點類型': '', '狀態': `共 ${totalTickets} 單`, '項目數': `共 ${totalItems} 項`, '派送日期': '', '結案日期': '', '處理天數': avgDaysStr
       });
-      const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, `${stat.name}盤點數據`);
+      
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet(`${stat.name}盤點數據`);
+    if (exportData.length > 0) {
+      ws.columns = Object.keys(exportData[0]).map(k => ({ header: k, key: k }));
+      exportData.forEach(d => ws.addRow(d));
+    }
     
     const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
-    XLSX.writeFile(wb, `${stat.name}_盤點數據_${dateStr}.xlsx`);
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${stat.name}_盤點數據_${dateStr}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleExportPersonImage = async (statId: string, statName: string) => {
