@@ -15,6 +15,43 @@ export default function Dashboard() {
   const [personnelTicketType, setPersonnelTicketType] = useState('');
   const [globalYear, setGlobalYear] = useState<number | ''>(new Date().getFullYear());
   const [categoryFilter, setCategoryFilter] = useState<'全部' | '一般' | '追加'>('一般');
+  const [calendarWeekStart, setCalendarWeekStart] = useState<Date>(() => {
+    const today = new Date();
+    const currentDay = today.getDay();
+    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + mondayOffset);
+    monday.setHours(0,0,0,0);
+    return monday;
+  });
+
+  const handleCalYearChange = (e: any) => {
+    const y = Number(e.target.value);
+    const d = new Date(y, calendarWeekStart.getMonth(), 1);
+    const offset = d.getDay() === 0 ? -6 : 1 - d.getDay();
+    d.setDate(d.getDate() + offset);
+    setCalendarWeekStart(d);
+  };
+
+  const handleCalMonthChange = (e: any) => {
+    const m = Number(e.target.value);
+    const d = new Date(calendarWeekStart.getFullYear(), m - 1, 1);
+    const offset = d.getDay() === 0 ? -6 : 1 - d.getDay();
+    d.setDate(d.getDate() + offset);
+    setCalendarWeekStart(d);
+  };
+
+  const handlePrevWeek = () => {
+    const d = new Date(calendarWeekStart);
+    d.setDate(d.getDate() - 7);
+    setCalendarWeekStart(d);
+  };
+
+  const handleNextWeek = () => {
+    const d = new Date(calendarWeekStart);
+    d.setDate(d.getDate() + 7);
+    setCalendarWeekStart(d);
+  };
   
   // Personnel Cards State
   const [activeTab, setActiveTab] = useState<Record<string, 'stats' | 'incomplete' | 'doing'>>({});
@@ -127,7 +164,7 @@ export default function Dashboard() {
     }
 
     return { total, totalItems, closed, closedItems, inProgress, inProgressItems, completionRate, itemCompletionRate, avgDays, chartData };
-  }, [filteredTickets, holidays]);
+  }, [filteredTickets, holidays, calendarWeekStart]);
 
   // Personnel specific stats for selected month
   const personnelStats = useMemo(() => {
@@ -492,7 +529,7 @@ export default function Dashboard() {
           
           <div style={{ marginBottom: '15px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '4px' }}>
-              <span>單據 ({stats.completionRate}%)</span>
+              <span style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--crayon-blue)', textShadow: '1px 1px 0px rgba(0,0,0,0.1)' }}>單據 ({stats.completionRate}%)</span>
             </div>
             <div style={{ position: 'relative', width: '100%', height: '22px', backgroundColor: '#bbdefb', borderRadius: '11px', overflow: 'hidden', border: '2px solid var(--crayon-blue)' }}>
               <div style={{ width: `${stats.completionRate}%`, height: '100%', backgroundColor: 'var(--crayon-blue)', transition: 'width 0.5s ease-in-out' }}></div>
@@ -504,7 +541,7 @@ export default function Dashboard() {
           
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '4px' }}>
-              <span>項目 ({stats.itemCompletionRate}%)</span>
+              <span style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--crayon-green)', textShadow: '1px 1px 0px rgba(0,0,0,0.1)' }}>項目 ({stats.itemCompletionRate}%)</span>
             </div>
             <div style={{ position: 'relative', width: '100%', height: '22px', backgroundColor: '#c8e6c9', borderRadius: '11px', overflow: 'hidden', border: '2px solid var(--crayon-green)' }}>
               <div style={{ width: `${stats.itemCompletionRate}%`, height: '100%', backgroundColor: 'var(--crayon-green)', transition: 'width 0.5s ease-in-out' }}></div>
@@ -525,8 +562,18 @@ export default function Dashboard() {
         
         {/* 本週盤點單派送狀況 */}
         <div className="doodle-border" style={{ padding: '20px', backgroundColor: '#fff3e0', transform: 'rotate(0.5deg)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px dashed var(--crayon-orange)', paddingBottom: '10px', marginBottom: '15px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px dashed var(--crayon-orange)', paddingBottom: '10px', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
             <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--crayon-orange)' }}>📅 本週盤點單派送狀況</h3>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <button className="doodle-button" style={{ padding: '2px 10px', fontSize: '1.2rem', backgroundColor: '#ffe0b2' }} onClick={handlePrevWeek}>◀</button>
+              <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={calendarWeekStart.getFullYear()} onChange={handleCalYearChange}>
+                {yearOptions.map(y => <option key={y} value={y}>{y} 年</option>)}
+              </select>
+              <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={calendarWeekStart.getMonth() + 1} onChange={handleCalMonthChange}>
+                {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>{m} 月</option>)}
+              </select>
+              <button className="doodle-button" style={{ padding: '2px 10px', fontSize: '1.2rem', backgroundColor: '#ffe0b2' }} onClick={handleNextWeek}>▶</button>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: '15px', alignItems: 'stretch', flexWrap: 'wrap' }}>
             {weeklyCalendarData.days.map((day, idx) => (
