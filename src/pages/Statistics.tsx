@@ -284,7 +284,7 @@ export default function Statistics() {
   
   // Year Filter
   const [globalYear, setGlobalYear] = useState<number | ''>(new Date().getFullYear());
-  const [categoryFilter, setCategoryFilter] = useState<'一般' | '追加'>('一般');
+  const [categoryFilter, setCategoryFilter] = useState<'全部' | '一般' | '追加'>('一般');
   const [additionalTypeFilter, setAdditionalTypeFilter] = useState<'全部' | '領料單' | '低點表'>('全部');
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({length: 5}, (_, i) => currentYear - 2 + i);
@@ -316,7 +316,7 @@ export default function Statistics() {
 
   // Filter tickets based on Date and ID ranges
   const filteredTickets = useMemo(() => {
-    let baseTickets = tickets.filter(t => categoryFilter === '追加' ? t.isAdditional : !t.isAdditional);
+    let baseTickets = tickets.filter(t => categoryFilter === '全部' ? true : (categoryFilter === '追加' ? t.isAdditional : !t.isAdditional));
     if (categoryFilter === '追加' && additionalTypeFilter !== '全部') {
       baseTickets = baseTickets.filter(t => t.subType === additionalTypeFilter);
     }
@@ -799,7 +799,8 @@ export default function Statistics() {
               📌 盤點種類
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              <select className="doodle-input" style={{ width: '100%', backgroundColor: 'white' }} value={categoryFilter} onChange={e => setCategoryFilter(e.target.value as '一般' | '追加')}>
+              <select className="doodle-input" style={{ width: '100%', backgroundColor: 'white' }} value={categoryFilter} onChange={e => setCategoryFilter(e.target.value as any)}>
+                <option value="全部">全部</option>
                 <option value="一般">一般</option>
                 <option value="追加">追加</option>
               </select>
