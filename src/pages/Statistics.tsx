@@ -603,6 +603,7 @@ export default function Statistics() {
             </div>
           </div>
 
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* 單號區間卡片 */}
           <div className="doodle-border" style={{ 
             backgroundColor: '#e8f5e9', 
@@ -655,6 +656,7 @@ export default function Statistics() {
                 </select>
               </div>
             </div>
+          </div>
           </div>
 
           {/* 盤點任務區塊 */}
@@ -763,6 +765,28 @@ export default function Statistics() {
             </div>
           </div>
 
+          {/* 單號狀態區塊 */}
+          <div className="doodle-border" style={{ 
+            backgroundColor: '#fff9c4', 
+            padding: '15px', transform: 'rotate(0.5deg)',
+            opacity: enableStatusFilter ? 1 : 0.6
+          }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#f57f17', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <input type="checkbox" checked={enableStatusFilter} onChange={e => setEnableStatusFilter(e.target.checked)} style={{ transform: 'scale(1.5)', cursor: 'pointer' }} />
+              📌 依盤點單狀態
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: enableStatusFilter ? 'auto' : 'none' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>盤點單狀態：</label>
+                <select className="doodle-input" style={{ width: '100%', padding: '5px' }} value={daysFilterTicketStatus} onChange={e => setDaysFilterTicketStatus(e.target.value as any)}>
+                  <option value="all">全部</option>
+                  <option value="closed">已結案</option>
+                  <option value="unclosed">未結案</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* 盤點類型區塊 */}
           <div className="doodle-border" style={{ 
             backgroundColor: '#ffccbc', 
@@ -798,28 +822,6 @@ export default function Statistics() {
                 />
                 TKW
               </label>
-            </div>
-          </div>
-
-          {/* 單號狀態區塊 */}
-          <div className="doodle-border" style={{ 
-            backgroundColor: '#fff9c4', 
-            padding: '15px', transform: 'rotate(0.5deg)',
-            opacity: enableStatusFilter ? 1 : 0.6
-          }}>
-            <h4 style={{ margin: '0 0 10px 0', color: '#f57f17', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <input type="checkbox" checked={enableStatusFilter} onChange={e => setEnableStatusFilter(e.target.checked)} style={{ transform: 'scale(1.5)', cursor: 'pointer' }} />
-              📌 依盤點單狀態
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: enableStatusFilter ? 'auto' : 'none' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>盤點單狀態：</label>
-                <select className="doodle-input" style={{ width: '100%', padding: '5px' }} value={daysFilterTicketStatus} onChange={e => setDaysFilterTicketStatus(e.target.value as any)}>
-                  <option value="all">全部</option>
-                  <option value="closed">已結案</option>
-                  <option value="unclosed">未結案</option>
-                </select>
-              </div>
             </div>
           </div>
 
@@ -1080,6 +1082,10 @@ export default function Statistics() {
                       </ComposedChart>
                     )}
                   </ResponsiveContainer>
+                </div>
+                <div style={{ marginTop: 'auto', paddingTop: '10px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                  <button className="doodle-button" style={{ padding: '4px 10px', fontSize: '0.9rem', backgroundColor: 'var(--crayon-blue)', color: 'white' }} onClick={() => handleExportPersonExcel(stat)}>📥 匯出 Excel 檔</button>
+                  <button className="doodle-button" style={{ padding: '4px 10px', fontSize: '0.9rem', backgroundColor: 'var(--crayon-purple)', color: 'white' }} onClick={() => handleExportPersonImage(stat.id, stat.name)}>🖼️ 匯出圖檔</button>
                 </div>
               </div>
             )}
