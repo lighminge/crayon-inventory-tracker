@@ -625,6 +625,38 @@ export default function Statistics() {
             </div>
           </div>
 
+          {/* 完成日數區塊 */}
+          <div className="doodle-border" style={{ 
+            backgroundColor: '#e0f7fa', 
+            padding: '15px', transform: 'rotate(-0.5deg)',
+            opacity: enableDaysFilter ? 1 : 0.6
+          }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#00838f', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <input type="checkbox" checked={enableDaysFilter} onChange={e => setEnableDaysFilter(e.target.checked)} style={{ transform: 'scale(1.5)', cursor: 'pointer' }} />
+              📌 依盤點單完成日數
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: enableDaysFilter ? 'auto' : 'none' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>選擇完成日數：</label>
+                <select 
+                  className="doodle-input" 
+                  style={{ width: '100%', padding: '5px' }}
+                  value={selectedDaysFilter}
+                  onChange={e => setSelectedDaysFilter(e.target.value)}
+                >
+                  <option value="0">0 天</option>
+                  <option value="1">1 天</option>
+                  <option value="2">2 天</option>
+                  <option value="3">3 天</option>
+                  <option value="4">4 天</option>
+                  <option value="5">5 天</option>
+                  <option value="6">6 天</option>
+                  <option value="7+">7 天以上</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* 盤點任務區塊 */}
           <div className="doodle-border" style={{ 
             backgroundColor: '#e1bee7', 
@@ -791,37 +823,7 @@ export default function Statistics() {
             </div>
           </div>
 
-          {/* 完成日數區塊 */}
-          <div className="doodle-border" style={{ 
-            backgroundColor: '#e0f7fa', 
-            padding: '15px', transform: 'rotate(-0.5deg)',
-            opacity: enableDaysFilter ? 1 : 0.6
-          }}>
-            <h4 style={{ margin: '0 0 10px 0', color: '#00838f', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <input type="checkbox" checked={enableDaysFilter} onChange={e => setEnableDaysFilter(e.target.checked)} style={{ transform: 'scale(1.5)', cursor: 'pointer' }} />
-              📌 依盤點單完成日數
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: enableDaysFilter ? 'auto' : 'none' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>選擇完成日數：</label>
-                <select 
-                  className="doodle-input" 
-                  style={{ width: '100%', padding: '5px' }}
-                  value={selectedDaysFilter}
-                  onChange={e => setSelectedDaysFilter(e.target.value)}
-                >
-                  <option value="0">0 天</option>
-                  <option value="1">1 天</option>
-                  <option value="2">2 天</option>
-                  <option value="3">3 天</option>
-                  <option value="4">4 天</option>
-                  <option value="5">5 天</option>
-                  <option value="6">6 天</option>
-                  <option value="7+">7 天以上</option>
-                </select>
-              </div>
-            </div>
-          </div>
+
         </div>
       </div>
 
