@@ -22,6 +22,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
     return d.toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [dateFilterType, setDateFilterType] = useState<'dispatch' | 'inventory' | 'close'>('dispatch');
   const [selectedTaskId, setSelectedTaskId] = useState('');
   const [selectedAssigneeId, setSelectedAssigneeId] = useState('');
   const [selectedDays, setSelectedDays] = useState('0'); // "0" ~ "7"
@@ -71,10 +72,17 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
       if (ticketType === '一般' && t.isAdditional) return false;
       if (ticketType === '追加' && !t.isAdditional) return false;
 
-      // Date range filter (using dispatchDate or firstStageDate)
-      const firstDate = getFirstStageDate(t);
-      const dateToUse = firstDate || (t.id ? new Date(2020, 0, 1).getTime() : 0); // fallback
-      if (dateToUse < startMs || dateToUse > endMs) return false;
+      // Date range filter
+      let d: number | null | undefined = null;
+      if (dateFilterType === 'dispatch') d = t.dispatchDate;
+      else if (dateFilterType === 'close') d = t.closeDate;
+      else if (dateFilterType === 'inventory') {
+        const invStage = workflows.find(w => w.name === '盤點中');
+        d = invStage ? t.stageDates[invStage.id] : null;
+      }
+      
+      if (!d && (startMs > 0 || endMs < Infinity)) return false; // If date missing and filter is active, skip it
+      if (d && (d < startMs || d > endMs)) return false;
       
       // Task filter
       if (selectedTaskId && t.taskId !== selectedTaskId) return false;
@@ -160,7 +168,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
         return factor * (a.processingDays - b.processingDays);
       }
     });
-  }, [tickets, startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays, ticketStatus, ticketType, workflows, sortBy, sortOrder]);
+  }, [tickets, startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays, ticketStatus, ticketType, workflows, sortBy, sortOrder, dateFilterType]);
 
   const displayedTickets = useMemo(() => {
     if (exactDayFilter === null) return baseProcessedTickets;
@@ -172,7 +180,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
   const currentData = displayedTickets.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   // When filters change, reset page
-  useMemo(() => setCurrentPage(1), [startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays, ticketStatus, ticketType, itemsPerPage, exactDayFilter]);
+  useMemo(() => setCurrentPage(1), [startDate, endDate, selectedTaskId, selectedAssigneeId, selectedDays, ticketStatus, ticketType, itemsPerPage, exactDayFilter, dateFilterType]);
 
   const getRowColor = (days: number) => {
     if (days >= 7) return '#e1bee7'; // Purple
@@ -257,11 +265,19 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
       <div className="doodle-border" style={{ backgroundColor: 'white', padding: '20px' }}>
         <h2 style={{ marginTop: 0, color: 'var(--crayon-orange)' }}>🔍 稽催報表條件篩選</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
-          <div style={{ flex: '1 1 30%', minWidth: '200px' }}>
+          <div style={{ flex: '1 1 18%', minWidth: '150px' }}>
+            <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>日期類型</label>
+            <select className="doodle-input" style={{ width: '100%' }} value={dateFilterType} onChange={e => setDateFilterType(e.target.value as any)}>
+              <option value="dispatch">派送日</option>
+              <option value="inventory">盤點完成日</option>
+              <option value="close">結案日</option>
+            </select>
+          </div>
+          <div style={{ flex: '1 1 18%', minWidth: '150px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>起始日期</label>
             <CrayonDatePicker value={startDate} onChange={setStartDate} />
           </div>
-          <div style={{ flex: '1 1 30%', minWidth: '200px' }}>
+          <div style={{ flex: '1 1 18%', minWidth: '150px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>結束日期</label>
             <CrayonDatePicker value={endDate} onChange={setEndDate} />
           </div>

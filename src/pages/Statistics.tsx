@@ -125,6 +125,8 @@ export default function Statistics() {
     return d.toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [dateFilterType, setDateFilterType] = useState<'dispatch' | 'inventory' | 'close'>('dispatch');
+  const [daysFilterTicketStatus, setDaysFilterTicketStatus] = useState<'all' | 'closed' | 'unclosed'>('all');
 
   // Ticket ID range state
   const [startTicketId, setStartTicketId] = useState('');
@@ -205,8 +207,15 @@ export default function Statistics() {
 
       // Date filter
       if (enableDateFilter) {
-        if (!t.dispatchDate) return false;
-        if (t.dispatchDate < startMs || t.dispatchDate > endMs) return false;
+        let d: number | null | undefined = null;
+        if (dateFilterType === 'dispatch') d = t.dispatchDate;
+        else if (dateFilterType === 'close') d = t.closeDate;
+        else if (dateFilterType === 'inventory') {
+          const invStage = workflows.find(w => w.name === '盤點中');
+          d = invStage ? t.stageDates[invStage.id] : null;
+        }
+        if (!d) return false;
+        if (d < startMs || d > endMs) return false;
       }
 
       // Ticket ID filter (string comparison)
@@ -227,10 +236,13 @@ export default function Statistics() {
 
       // Days filter
       if (enableDaysFilter && selectedDaysFilter) {
-        if (!t.closeDate) return false;
+        if (daysFilterTicketStatus === 'closed' && !t.closeDate) return false;
+        if (daysFilterTicketStatus === 'unclosed' && t.closeDate) return false;
+        
         const start = getFirstStageDate(t);
         if (!start) return false;
-        const days = calculateBusinessDays(start, t.closeDate, holidays);
+        const endForDays = t.closeDate || Date.now();
+        const days = calculateBusinessDays(start, endForDays, holidays);
         
         if (selectedDaysFilter === '7+') {
           if (days < 7) return false;
@@ -241,7 +253,7 @@ export default function Statistics() {
 
       return true;
     });
-  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskIds, selectedTypes, selectedDaysFilter, enableDateFilter, enableTicketFilter, enableTaskFilter, enableTypeFilter, enableDaysFilter, holidays, globalYear, categoryFilter, additionalTypeFilter]);
+  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskIds, selectedTypes, selectedDaysFilter, enableDateFilter, enableTicketFilter, enableTaskFilter, enableTypeFilter, enableDaysFilter, holidays, globalYear, categoryFilter, additionalTypeFilter, dateFilterType, daysFilterTicketStatus, workflows]);
 
   // Derive tasks to show in the "依盤點任務" list
   const filteredTasksList = useMemo(() => {
@@ -496,6 +508,14 @@ export default function Statistics() {
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', pointerEvents: enableDateFilter ? 'auto' : 'none' }}>
               <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>日期類型：</label>
+                <select className="doodle-input" style={{ width: '100%' }} value={dateFilterType} onChange={e => setDateFilterType(e.target.value as any)}>
+                  <option value="dispatch">派送日</option>
+                  <option value="inventory">盤點完成日</option>
+                  <option value="close">結案日</option>
+                </select>
+              </div>
+              <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>起始日期：</label>
                 <CrayonDatePicker value={startDate} onChange={setStartDate} />
               </div>
@@ -683,22 +703,32 @@ export default function Statistics() {
               📌 依盤點單完成日數
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: enableDaysFilter ? 'auto' : 'none' }}>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>選擇完成日數：</label>
-              <select 
-                className="doodle-input" 
-                style={{ width: '100%', padding: '5px' }}
-                value={selectedDaysFilter}
-                onChange={e => setSelectedDaysFilter(e.target.value)}
-              >
-                <option value="0">0 天</option>
-                <option value="1">1 天</option>
-                <option value="2">2 天</option>
-                <option value="3">3 天</option>
-                <option value="4">4 天</option>
-                <option value="5">5 天</option>
-                <option value="6">6 天</option>
-                <option value="7+">7 天以上</option>
-              </select>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>盤點單狀態：</label>
+                <select className="doodle-input" style={{ width: '100%', padding: '5px' }} value={daysFilterTicketStatus} onChange={e => setDaysFilterTicketStatus(e.target.value as any)}>
+                  <option value="all">全部</option>
+                  <option value="closed">已結案</option>
+                  <option value="unclosed">未結案</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>選擇完成日數：</label>
+                <select 
+                  className="doodle-input" 
+                  style={{ width: '100%', padding: '5px' }}
+                  value={selectedDaysFilter}
+                  onChange={e => setSelectedDaysFilter(e.target.value)}
+                >
+                  <option value="0">0 天</option>
+                  <option value="1">1 天</option>
+                  <option value="2">2 天</option>
+                  <option value="3">3 天</option>
+                  <option value="4">4 天</option>
+                  <option value="5">5 天</option>
+                  <option value="6">6 天</option>
+                  <option value="7+">7 天以上</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
