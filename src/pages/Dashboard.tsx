@@ -102,7 +102,9 @@ export default function Dashboard() {
     const inProgressTickets = filteredTickets.filter(t => !t.closeDate);
     const inProgress = inProgressTickets.length;
     const inProgressItems = inProgressTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+    const closedItems = filteredTickets.filter(t => t.closeDate).reduce((sum, t) => sum + (t.itemCount || 0), 0);
     const completionRate = total === 0 ? 0 : Math.round((closed / total) * 100);
+    const itemCompletionRate = totalItems === 0 ? 0 : Math.round((closedItems / totalItems) * 100);
 
     const closedWithDays = filteredTickets.filter(t => t.closeDate && getFirstStageDate(t));
     const avgDays = closedWithDays.length === 0 ? 0 : 
@@ -124,7 +126,7 @@ export default function Dashboard() {
       chartData.push({ month: monthStr, count, itemCount });
     }
 
-    return { total, totalItems, closed, inProgress, inProgressItems, completionRate, avgDays, chartData };
+    return { total, totalItems, closed, closedItems, inProgress, inProgressItems, completionRate, itemCompletionRate, avgDays, chartData };
   }, [filteredTickets, holidays]);
 
   // Personnel specific stats for selected month
@@ -339,6 +341,41 @@ export default function Dashboard() {
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({length: 5}, (_, i) => currentYear - 2 + i);
 
+  // Weekly calendar logic
+  const weeklyCalendarData = useMemo(() => {
+    const today = new Date();
+    const currentDay = today.getDay(); 
+    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + mondayOffset);
+    
+    let totalWeeklyCount = 0;
+    const days = Array.from({ length: 5 }).map((_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const isHoliday = holidays.some(h => h.date === dateStr);
+      
+            const count = filteredTickets.filter(t => {
+        if (!t.dispatchDate) return false;
+        const td = new Date(t.dispatchDate);
+        const tdStr = `${td.getFullYear()}-${String(td.getMonth()+1).padStart(2,'0')}-${String(td.getDate()).padStart(2,'0')}`;
+        return tdStr === dateStr;
+      }).length;
+      totalWeeklyCount += count;
+      
+      return {
+        date: d,
+        dateStr,
+        isHoliday,
+        dayName: ['日', '一', '二', '三', '四', '五', '六'][d.getDay()],
+        count
+      };
+    });
+    
+    return { days, totalWeeklyCount };
+  }, [filteredTickets, holidays]);
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
@@ -450,13 +487,30 @@ export default function Dashboard() {
           </div>
         </div>
         
-        <div className="doodle-border" style={{ padding: '15px', textAlign: 'center', backgroundColor: '#e3f2fd', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <h3 style={{ margin: '0 0 5px 0', fontSize: '1.1rem' }}>整體完成率</h3>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)', lineHeight: '1' }}>{stats.completionRate}%</div>
-          <div style={{ marginTop: '10px', position: 'relative', width: '100%', height: '22px', backgroundColor: '#bbdefb', borderRadius: '11px', overflow: 'hidden', border: '2px solid var(--crayon-blue)' }}>
-            <div style={{ width: `${stats.completionRate}%`, height: '100%', backgroundColor: 'var(--crayon-blue)', transition: 'width 0.5s ease-in-out' }}></div>
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: stats.completionRate > 50 ? 'white' : 'var(--crayon-dark)', fontSize: '0.9rem', fontWeight: 'bold', textShadow: stats.completionRate > 50 ? '1px 1px 2px rgba(0,0,0,0.7)' : 'none', whiteSpace: 'nowrap' }}>
-              {stats.closed} / {stats.total}
+        <div className="doodle-border" style={{ padding: '15px', backgroundColor: '#e3f2fd', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <h3 style={{ margin: '0 0 10px 0', fontSize: '1.1rem', textAlign: 'center' }}>整體完成率</h3>
+          
+          <div style={{ marginBottom: '15px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '4px' }}>
+              <span>單據 ({stats.completionRate}%)</span>
+            </div>
+            <div style={{ position: 'relative', width: '100%', height: '22px', backgroundColor: '#bbdefb', borderRadius: '11px', overflow: 'hidden', border: '2px solid var(--crayon-blue)' }}>
+              <div style={{ width: `${stats.completionRate}%`, height: '100%', backgroundColor: 'var(--crayon-blue)', transition: 'width 0.5s ease-in-out' }}></div>
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: stats.completionRate > 50 ? 'white' : 'var(--crayon-dark)', fontSize: '0.9rem', fontWeight: 'bold', textShadow: stats.completionRate > 50 ? '1px 1px 2px rgba(0,0,0,0.7)' : 'none', whiteSpace: 'nowrap' }}>
+                {stats.closed} / {stats.total}
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '4px' }}>
+              <span>項目 ({stats.itemCompletionRate}%)</span>
+            </div>
+            <div style={{ position: 'relative', width: '100%', height: '22px', backgroundColor: '#c8e6c9', borderRadius: '11px', overflow: 'hidden', border: '2px solid var(--crayon-green)' }}>
+              <div style={{ width: `${stats.itemCompletionRate}%`, height: '100%', backgroundColor: 'var(--crayon-green)', transition: 'width 0.5s ease-in-out' }}></div>
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: stats.itemCompletionRate > 50 ? 'white' : 'var(--crayon-dark)', fontSize: '0.9rem', fontWeight: 'bold', textShadow: stats.itemCompletionRate > 50 ? '1px 1px 2px rgba(0,0,0,0.7)' : 'none', whiteSpace: 'nowrap' }}>
+                {stats.closedItems} / {stats.totalItems}
+              </div>
             </div>
           </div>
         </div>
@@ -469,6 +523,55 @@ export default function Dashboard() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
         
+        {/* 本週盤點單派送狀況 */}
+        <div className="doodle-border" style={{ padding: '20px', backgroundColor: '#fff3e0', transform: 'rotate(0.5deg)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px dashed var(--crayon-orange)', paddingBottom: '10px', marginBottom: '15px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--crayon-orange)' }}>📅 本週盤點單派送狀況</h3>
+          </div>
+          <div style={{ display: 'flex', gap: '15px', alignItems: 'stretch', flexWrap: 'wrap' }}>
+            {weeklyCalendarData.days.map((day, idx) => (
+              <div key={idx} style={{ 
+                flex: 1, minWidth: '120px', padding: '15px', borderRadius: '10px', 
+                backgroundColor: day.isHoliday ? '#ffebee' : '#fff', 
+                border: `2px solid ${day.isHoliday ? 'var(--crayon-red)' : '#ccc'}`,
+                textAlign: 'center',
+                boxShadow: '3px 3px 0px rgba(0,0,0,0.1)'
+              }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: day.isHoliday ? 'var(--crayon-red)' : '#333' }}>
+                  星期{day.dayName}
+                </div>
+                <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '10px' }}>{day.date.getMonth() + 1}/{day.date.getDate()}</div>
+                
+                {day.isHoliday ? (
+                  <div style={{ color: 'var(--crayon-red)', fontWeight: 'bold', padding: '10px 0' }}>休假</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    {day.count > 0 ? (
+                      <>
+                        <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{day.count}</span>
+                        <span style={{ fontSize: '0.8rem', color: '#666' }}>筆派送</span>
+                      </>
+                    ) : (
+                      <span style={{ fontSize: '1rem', color: '#999', padding: '10px 0' }}>無派送</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+            <div style={{ 
+              flex: 1, minWidth: '150px', padding: '15px', borderRadius: '10px', 
+              backgroundColor: 'var(--crayon-orange)', color: 'white',
+              border: '2px solid #e65100',
+              textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center',
+              boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'
+            }}>
+              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '10px' }}>當週總計</div>
+              <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{weeklyCalendarData.totalWeeklyCount}</div>
+              <div style={{ fontSize: '0.9rem' }}>筆派送單據</div>
+            </div>
+          </div>
+        </div>
+
         {/* 備料員盤點情況 - Moved ABOVE Chart & Restyled to Doodle Cards */}
         <div className="doodle-border" style={{ padding: '20px', backgroundColor: '#e0f7fa' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px dashed var(--crayon-dark)', paddingBottom: '10px', flexWrap: 'wrap', gap: '15px' }}>
