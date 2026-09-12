@@ -27,7 +27,7 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
   const [selectedAssigneeId, setSelectedAssigneeId] = useState('');
   const [selectedDays, setSelectedDays] = useState('0'); // "0" ~ "7"
   const [ticketStatus, setTicketStatus] = useState('all'); // 'all', 'closed', 'unclosed'
-  const [ticketType, setTicketType] = useState<'一般' | '追加'>('一般');
+  const [ticketType, setTicketType] = useState<'全部' | '一般' | '追加'>('全部');
   const [exactDayFilter, setExactDayFilter] = useState<number | null>(null);
   
   const [sortBy, setSortBy] = useState('id'); // 'id', 'stage', 'assignee', 'processingDays'
@@ -292,7 +292,8 @@ export default function ExpeditingReport({ tickets, personnel, tasks, workflows 
           </div>
           <div style={{ flex: '1 1 22%', minWidth: '120px' }}>
             <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '5px' }}>盤點種類</label>
-            <select className="doodle-input" style={{ width: '100%' }} value={ticketType} onChange={e => setTicketType(e.target.value as '一般' | '追加')}>
+            <select className="doodle-input" style={{ width: '100%' }} value={ticketType} onChange={e => setTicketType(e.target.value as any)}>
+              <option value="全部">全部</option>
               <option value="一般">一般</option>
               <option value="追加">追加</option>
             </select>

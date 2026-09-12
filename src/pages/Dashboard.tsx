@@ -124,7 +124,7 @@ export default function Dashboard() {
       chartData.push({ month: monthStr, count, itemCount });
     }
 
-    return { total, totalItems, inProgress, inProgressItems, completionRate, avgDays, chartData };
+    return { total, totalItems, closed, inProgress, inProgressItems, completionRate, avgDays, chartData };
   }, [filteredTickets, holidays]);
 
   // Personnel specific stats for selected month
@@ -450,9 +450,15 @@ export default function Dashboard() {
           </div>
         </div>
         
-        <div className="doodle-border" style={{ padding: '15px', textAlign: 'center', backgroundColor: '#e3f2fd', flex: 1 }}>
-          <h3 style={{ margin: '0 0 10px 0', fontSize: '1.1rem' }}>整體完成率</h3>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{stats.completionRate}%</div>
+        <div className="doodle-border" style={{ padding: '15px', textAlign: 'center', backgroundColor: '#e3f2fd', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <h3 style={{ margin: '0 0 5px 0', fontSize: '1.1rem' }}>整體完成率</h3>
+          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)', lineHeight: '1' }}>{stats.completionRate}%</div>
+          <div style={{ marginTop: '10px', position: 'relative', width: '100%', height: '22px', backgroundColor: '#bbdefb', borderRadius: '11px', overflow: 'hidden', border: '2px solid var(--crayon-blue)' }}>
+            <div style={{ width: `${stats.completionRate}%`, height: '100%', backgroundColor: 'var(--crayon-blue)', transition: 'width 0.5s ease-in-out' }}></div>
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: stats.completionRate > 50 ? 'white' : 'var(--crayon-dark)', fontSize: '0.9rem', fontWeight: 'bold', textShadow: stats.completionRate > 50 ? '1px 1px 2px rgba(0,0,0,0.7)' : 'none', whiteSpace: 'nowrap' }}>
+              {stats.closed} / {stats.total}
+            </div>
+          </div>
         </div>
         
         <div className="doodle-border" style={{ padding: '15px', textAlign: 'center', backgroundColor: '#f3e5f5', flex: 1 }}>
