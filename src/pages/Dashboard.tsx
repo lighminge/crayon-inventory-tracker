@@ -385,7 +385,9 @@ export default function Dashboard() {
       const d = new Date(calendarWeekStart);
       d.setDate(calendarWeekStart.getDate() + i);
       const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      const isHoliday = holidays.some(h => h.date === dateStr);
+      const holidayObj = holidays.find(h => h.date === dateStr);
+      const isHoliday = !!holidayObj;
+      const holidayDesc = holidayObj ? holidayObj.description : '';
       
             const count = filteredTickets.filter(t => {
         if (!t.dispatchDate) return false;
@@ -399,6 +401,7 @@ export default function Dashboard() {
         date: d,
         dateStr,
         isHoliday,
+        holidayDesc,
         dayName: ['日', '一', '二', '三', '四', '五', '六'][d.getDay()],
         count
       };
@@ -512,7 +515,7 @@ export default function Dashboard() {
         
         <div className="doodle-border" style={{ padding: '15px', textAlign: 'center', backgroundColor: '#e8f5e9', flex: 1 }}>
           <div style={{ fontSize: '1rem', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-            <span style={{ color: 'var(--crayon-green)' }}>處理中項目 <br/><span style={{ fontSize: '2rem' }}>{stats.inProgressItems}</span></span>
+            <span style={{ color: '#009900' }}>處理中項目 <br/><span style={{ fontSize: '2rem' }}>{stats.inProgressItems}</span></span>
             <span style={{ color: '#555', fontSize: '1rem' }}>/</span> 
             <span style={{ color: 'var(--crayon-purple)' }}>總開立項目 <br/><span style={{ fontSize: '1.5rem' }}>{stats.totalItems}</span></span>
           </div>
@@ -535,10 +538,10 @@ export default function Dashboard() {
           
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '4px' }}>
-              <span style={{ fontSize: '1.2rem', fontWeight: '900', color: 'var(--crayon-green)', textShadow: '1px 1px 0px rgba(0,0,0,0.1)' }}>項目 ({stats.itemCompletionRate}%)</span>
+              <span style={{ fontSize: '1.2rem', fontWeight: '900', color: '#009900', textShadow: '1px 1px 0px rgba(0,0,0,0.1)' }}>項目 ({stats.itemCompletionRate}%)</span>
             </div>
-            <div style={{ position: 'relative', width: '100%', height: '22px', backgroundColor: '#c8e6c9', borderRadius: '11px', overflow: 'hidden', border: '2px solid var(--crayon-green)' }}>
-              <div style={{ width: `${stats.itemCompletionRate}%`, height: '100%', backgroundColor: 'var(--crayon-green)', transition: 'width 0.5s ease-in-out' }}></div>
+            <div style={{ position: 'relative', width: '100%', height: '22px', backgroundColor: '#c8e6c9', borderRadius: '11px', overflow: 'hidden', border: '2px solid #009900' }}>
+              <div style={{ width: `${stats.itemCompletionRate}%`, height: '100%', backgroundColor: '#009900', transition: 'width 0.5s ease-in-out' }}></div>
               <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', color: stats.itemCompletionRate > 50 ? 'white' : 'var(--crayon-dark)', fontSize: '0.9rem', fontWeight: 'bold', textShadow: stats.itemCompletionRate > 50 ? '1px 1px 2px rgba(0,0,0,0.7)' : 'none', whiteSpace: 'nowrap' }}>
                 {stats.closedItems} / {stats.totalItems}
               </div>
@@ -559,14 +562,16 @@ export default function Dashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px dashed var(--crayon-orange)', paddingBottom: '10px', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
             <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--crayon-orange)' }}>📅 當週盤點單派送狀況</h3>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <button className="doodle-button" style={{ padding: '2px 10px', fontSize: '1.2rem', backgroundColor: '#ffe0b2' }} onClick={handlePrevWeek}>◀</button>
+              <div style={{ display: 'flex', gap: '5px' }}>
+                <button className="doodle-button" style={{ padding: '2px 10px', fontSize: '1.2rem', backgroundColor: '#ffe0b2' }} onClick={handlePrevWeek}>◀</button>
+                <button className="doodle-button" style={{ padding: '2px 10px', fontSize: '1.2rem', backgroundColor: '#ffe0b2' }} onClick={handleNextWeek}>▶</button>
+              </div>
               <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={calendarWeekStart.getFullYear()} onChange={handleCalYearChange}>
                 {yearOptions.map(y => <option key={y} value={y}>{y} 年</option>)}
               </select>
               <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={calendarWeekStart.getMonth() + 1} onChange={handleCalMonthChange}>
                 {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>{m} 月</option>)}
               </select>
-              <button className="doodle-button" style={{ padding: '2px 10px', fontSize: '1.2rem', backgroundColor: '#ffe0b2' }} onClick={handleNextWeek}>▶</button>
             </div>
           </div>
           <div style={{ display: 'flex', gap: '15px', alignItems: 'stretch', flexWrap: 'wrap' }}>
@@ -584,7 +589,10 @@ export default function Dashboard() {
                 <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '10px' }}>{day.date.getMonth() + 1}/{day.date.getDate()}</div>
                 
                 {day.isHoliday ? (
-                  <div style={{ color: 'var(--crayon-red)', fontWeight: 'bold', padding: '10px 0' }}>休假</div>
+                  <div style={{ color: 'var(--crayon-red)', fontWeight: 'bold', padding: '10px 0' }}>
+                    <div style={{ fontSize: '1.2rem' }}>休假</div>
+                    {day.holidayDesc && <div style={{ fontSize: '0.9rem', marginTop: '5px' }}>{day.holidayDesc}</div>}
+                  </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     {day.count > 0 ? (
