@@ -20,22 +20,41 @@ export default function Statistics() {
 
   const handleExportAllExcel = () => {
     const wb = XLSX.utils.book_new();
+    let allTicketsData: any[] = [];
+    const personSummaries: any[] = [];
+    let allIdx = 1;
+
     statsByPerson.forEach(stat => {
       if (stat.pTickets.length === 0) return;
+      
+      let pTotalItems = 0;
+      
       const exportData: any[] = stat.pTickets.map((t: any, i: number) => {
         const start = getFirstStageDate(t);
         const processingDays = (t.closeDate && start) ? calculateBusinessDays(start, t.closeDate, holidays) : null;
-        return {
+        const itemCount = t.itemCount || 0;
+        pTotalItems += itemCount;
+        
+        const row = {
           '序號': i + 1,
           '單號': t.id,
           '任務': t.taskId ? (tasks.find(tsk => tsk.id === t.taskId)?.name || '未知任務') : '無任務',
           '盤點類型': t.ticketType,
           '狀態': t.closeDate ? '已結案' : '處理中',
-          '項目數': t.itemCount || 0,
+          '項目數': itemCount,
           '派送日期': t.dispatchDate ? new Date(t.dispatchDate).toLocaleDateString('zh-TW') : '-',
           '結案日期': t.closeDate ? new Date(t.closeDate).toLocaleDateString('zh-TW') : '-',
           '處理天數': processingDays !== null ? processingDays : '-'
         };
+        
+        allTicketsData.push({ ...row, '負責人': stat.name, '序號': allIdx++ });
+        return row;
+      });
+      
+      personSummaries.push({
+        '負責人': stat.name,
+        '單據總數': stat.pTickets.length,
+        '項目總數': pTotalItems
       });
       
       const totalTickets = exportData.length;
@@ -55,6 +74,60 @@ export default function Statistics() {
     if (wb.SheetNames.length === 0) {
       alert('無盤點數據可匯出');
       return;
+    }
+    
+    // Create the "全部" sheet
+    if (allTicketsData.length > 0) {
+      const allExportData = allTicketsData.map(row => ({
+        '序號': row['序號'],
+        '負責人': row['負責人'],
+        '單號': row['單號'],
+        '任務': row['任務'],
+        '盤點類型': row['盤點類型'],
+        '狀態': row['狀態'],
+        '項目數': row['項目數'],
+        '派送日期': row['派送日期'],
+        '結案日期': row['結案日期'],
+        '處理天數': row['處理天數']
+      }));
+      
+      allExportData.push({} as any);
+      allExportData.push({ '負責人': '【各人員統計】' } as any);
+      
+      let grandTotalTickets = 0;
+      let grandTotalItems = 0;
+      personSummaries.forEach(s => {
+        allExportData.push({
+          '序號': '',
+          '負責人': s['負責人'],
+          '單號': `單據數: ${s['單據總數']}`,
+          '任務': '',
+          '盤點類型': '',
+          '狀態': '',
+          '項目數': `項目數: ${s['項目總數']}`,
+          '派送日期': '',
+          '結案日期': '',
+          '處理天數': ''
+        });
+        grandTotalTickets += s['單據總數'];
+        grandTotalItems += s['項目總數'];
+      });
+      
+      allExportData.push({
+        '序號': '',
+        '負責人': '總計',
+        '單號': `共 ${grandTotalTickets} 單`,
+        '任務': '',
+        '盤點類型': '',
+        '狀態': '',
+        '項目數': `共 ${grandTotalItems} 項`,
+        '派送日期': '',
+        '結案日期': '',
+        '處理天數': ''
+      });
+      
+      const wsAll = XLSX.utils.json_to_sheet(allExportData);
+      XLSX.utils.book_append_sheet(wb, wsAll, '全部');
     }
     
     const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
@@ -138,6 +211,7 @@ export default function Statistics() {
   const [enableTaskFilter, setEnableTaskFilter] = useState(false);
   const [enableTypeFilter, setEnableTypeFilter] = useState(false);
   const [enableDaysFilter, setEnableDaysFilter] = useState(false);
+  const [enableStatusFilter, setEnableStatusFilter] = useState(false);
 
   // Multi-select state
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
@@ -234,11 +308,14 @@ export default function Statistics() {
         if (!t.ticketType || !selectedTypes.includes(t.ticketType)) return false;
       }
 
-      // Days filter
-      if (enableDaysFilter && selectedDaysFilter) {
+      // Status filter
+      if (enableStatusFilter) {
         if (daysFilterTicketStatus === 'closed' && !t.closeDate) return false;
         if (daysFilterTicketStatus === 'unclosed' && t.closeDate) return false;
-        
+      }
+
+      // Days filter
+      if (enableDaysFilter && selectedDaysFilter) {
         const start = getFirstStageDate(t);
         if (!start) return false;
         const endForDays = t.closeDate || Date.now();
@@ -253,7 +330,7 @@ export default function Statistics() {
 
       return true;
     });
-  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskIds, selectedTypes, selectedDaysFilter, enableDateFilter, enableTicketFilter, enableTaskFilter, enableTypeFilter, enableDaysFilter, holidays, globalYear, categoryFilter, additionalTypeFilter, dateFilterType, daysFilterTicketStatus, workflows]);
+  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskIds, selectedTypes, selectedDaysFilter, enableDateFilter, enableTicketFilter, enableTaskFilter, enableTypeFilter, enableDaysFilter, enableStatusFilter, holidays, globalYear, categoryFilter, additionalTypeFilter, dateFilterType, daysFilterTicketStatus, workflows]);
 
   // Derive tasks to show in the "依盤點任務" list
   const filteredTasksList = useMemo(() => {
@@ -692,6 +769,28 @@ export default function Statistics() {
             </div>
           </div>
 
+          {/* 單號狀態區塊 */}
+          <div className="doodle-border" style={{ 
+            backgroundColor: '#fff9c4', 
+            padding: '15px', transform: 'rotate(0.5deg)',
+            opacity: enableStatusFilter ? 1 : 0.6
+          }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#f57f17', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <input type="checkbox" checked={enableStatusFilter} onChange={e => setEnableStatusFilter(e.target.checked)} style={{ transform: 'scale(1.5)', cursor: 'pointer' }} />
+              📌 依盤點單狀態
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: enableStatusFilter ? 'auto' : 'none' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>盤點單狀態：</label>
+                <select className="doodle-input" style={{ width: '100%', padding: '5px' }} value={daysFilterTicketStatus} onChange={e => setDaysFilterTicketStatus(e.target.value as any)}>
+                  <option value="all">全部</option>
+                  <option value="closed">已結案</option>
+                  <option value="unclosed">未結案</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* 完成日數區塊 */}
           <div className="doodle-border" style={{ 
             backgroundColor: '#e0f7fa', 
@@ -703,14 +802,6 @@ export default function Statistics() {
               📌 依盤點單完成日數
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: enableDaysFilter ? 'auto' : 'none' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>盤點單狀態：</label>
-                <select className="doodle-input" style={{ width: '100%', padding: '5px' }} value={daysFilterTicketStatus} onChange={e => setDaysFilterTicketStatus(e.target.value as any)}>
-                  <option value="all">全部</option>
-                  <option value="closed">已結案</option>
-                  <option value="unclosed">未結案</option>
-                </select>
-              </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>選擇完成日數：</label>
                 <select 
