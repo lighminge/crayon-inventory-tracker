@@ -380,16 +380,10 @@ export default function Dashboard() {
 
   // Weekly calendar logic
   const weeklyCalendarData = useMemo(() => {
-    const today = new Date();
-    const currentDay = today.getDay(); 
-    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + mondayOffset);
-    
     let totalWeeklyCount = 0;
     const days = Array.from({ length: 5 }).map((_, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
+      const d = new Date(calendarWeekStart);
+      d.setDate(calendarWeekStart.getDate() + i);
       const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
       const isHoliday = holidays.some(h => h.date === dateStr);
       
@@ -411,7 +405,7 @@ export default function Dashboard() {
     });
     
     return { days, totalWeeklyCount };
-  }, [filteredTickets, holidays]);
+  }, [filteredTickets, holidays, calendarWeekStart]);
 
   return (
     <div>
@@ -560,10 +554,10 @@ export default function Dashboard() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
         
-        {/* 本週盤點單派送狀況 */}
+        {/* 當週盤點單派送狀況 */}
         <div className="doodle-border" style={{ padding: '20px', backgroundColor: '#fff3e0', transform: 'rotate(0.5deg)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px dashed var(--crayon-orange)', paddingBottom: '10px', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
-            <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--crayon-orange)' }}>📅 本週盤點單派送狀況</h3>
+            <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--crayon-orange)' }}>📅 當週盤點單派送狀況</h3>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <button className="doodle-button" style={{ padding: '2px 10px', fontSize: '1.2rem', backgroundColor: '#ffe0b2' }} onClick={handlePrevWeek}>◀</button>
               <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={calendarWeekStart.getFullYear()} onChange={handleCalYearChange}>
