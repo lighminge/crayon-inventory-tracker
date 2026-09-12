@@ -380,6 +380,8 @@ export default function Dashboard() {
 
   // Weekly calendar logic
   const weeklyCalendarData = useMemo(() => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
     let totalWeeklyCount = 0;
     const days = Array.from({ length: 5 }).map((_, i) => {
       const d = new Date(calendarWeekStart);
@@ -402,6 +404,7 @@ export default function Dashboard() {
         dateStr,
         isHoliday,
         holidayDesc,
+        isToday: dateStr === todayStr,
         dayName: ['日', '一', '二', '三', '四', '五', '六'][d.getDay()],
         count
       };
@@ -578,15 +581,16 @@ export default function Dashboard() {
             {weeklyCalendarData.days.map((day, idx) => (
               <div key={idx} style={{ 
                 flex: 1, minWidth: '120px', padding: '15px', borderRadius: '10px', 
-                backgroundColor: day.isHoliday ? '#ffebee' : '#fff', 
-                border: `2px solid ${day.isHoliday ? 'var(--crayon-red)' : '#ccc'}`,
+                backgroundColor: day.isHoliday ? '#ffebee' : (day.isToday ? '#e3f2fd' : '#fff'), 
+                border: `2px solid ${day.isHoliday ? 'var(--crayon-red)' : (day.isToday ? 'var(--crayon-blue)' : '#ccc')}`,
                 textAlign: 'center',
                 boxShadow: '3px 3px 0px rgba(0,0,0,0.1)'
               }}>
-                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: day.isHoliday ? 'var(--crayon-red)' : '#333' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: day.isToday ? 'var(--crayon-blue)' : (day.isHoliday ? 'var(--crayon-red)' : '#333') }}>
                   星期{day.dayName}
+                  {day.isToday && <span style={{ marginLeft: '5px', fontSize: '0.8rem', backgroundColor: 'var(--crayon-blue)', color: 'white', padding: '2px 6px', borderRadius: '10px', verticalAlign: 'middle' }}>今日</span>}
                 </div>
-                <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '10px' }}>{day.date.getMonth() + 1}/{day.date.getDate()}</div>
+                <div style={{ fontSize: '1rem', color: day.isToday ? 'var(--crayon-blue)' : '#666', fontWeight: day.isToday ? 'bold' : 'normal', marginBottom: '10px' }}>{day.date.getMonth() + 1}/{day.date.getDate()}</div>
                 
                 {day.isHoliday ? (
                   <div style={{ color: 'var(--crayon-red)', fontWeight: 'bold', padding: '10px 0' }}>
