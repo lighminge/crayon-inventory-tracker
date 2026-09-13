@@ -391,15 +391,28 @@ export default function Dashboard() {
       const isHoliday = !!holidayObj;
       const holidayDesc = holidayObj ? holidayObj.description : '';
       
-            const count = filteredTickets.filter(t => {
+            const dayTickets = filteredTickets.filter(t => {
         if (!t.dispatchDate) return false;
         const td = new Date(t.dispatchDate);
         const tdStr = `${td.getFullYear()}-${String(td.getMonth()+1).padStart(2,'0')}-${String(td.getDate()).padStart(2,'0')}`;
         return tdStr === dateStr;
-      }).length;
+      });
+      const count = dayTickets.length;
       totalWeeklyCount += count;
+
+      const statsMap: Record<string, number> = {};
+      dayTickets.forEach(t => {
+        const pName = personnel.find(p => p.id === t.assigneeId)?.name || '未知人員';
+        statsMap[pName] = (statsMap[pName] || 0) + 1;
+      });
+      
+      const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ff9800', '#ff5722'];
+      const personnelStats = Object.keys(statsMap).map((name, idx) => ({
+        name, count: statsMap[name], color: colors[idx % colors.length]
+      })).sort((a, b) => b.count - a.count);
       
       return {
+        personnelStats,
         date: d,
         dateStr,
         isHoliday,
@@ -411,7 +424,17 @@ export default function Dashboard() {
     });
     
     return { days, totalWeeklyCount };
-  }, [filteredTickets, holidays, calendarWeekStart]);
+  }, [filteredTickets, holidays, calendarWeekStart, personnel]);
+
+  const monthTotalTickets = useMemo(() => {
+    return filteredTickets.filter(t => {
+      if (!t.dispatchDate) return false;
+      const d = new Date(t.dispatchDate);
+      return d.getFullYear() === calendarWeekStart.getFullYear() && d.getMonth() === calendarWeekStart.getMonth();
+    }).length;
+  }, [filteredTickets, calendarWeekStart]);
+
+  const [expandedDay, setExpandedDay] = useState<string | null>(null);
 
   return (
     <div>
@@ -563,7 +586,12 @@ export default function Dashboard() {
         {/* 當週盤點單派送狀況 */}
         <div className="doodle-border" style={{ padding: '20px', backgroundColor: '#fff3e0', transform: 'rotate(0.5deg)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px dashed var(--crayon-orange)', paddingBottom: '10px', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
-            <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--crayon-orange)' }}>📅 當週盤點單派送狀況</h3>
+            <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--crayon-orange)' }}>
+              📅 當週盤點單派送狀況 
+              <span style={{ fontSize: '1rem', marginLeft: '10px', color: '#666', fontWeight: 'bold', border: '1px solid #ccc', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'white' }}>
+                本月共 {monthTotalTickets} 筆
+              </span>
+            </h3>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <div style={{ display: 'flex', gap: '5px' }}>
                 <button className="doodle-button" style={{ padding: '2px 10px', fontSize: '1.2rem', backgroundColor: '#ffe0b2' }} onClick={handlePrevWeek}>◀</button>
@@ -579,16 +607,21 @@ export default function Dashboard() {
           </div>
           <div style={{ display: 'flex', gap: '15px', alignItems: 'stretch', flexWrap: 'wrap' }}>
             {weeklyCalendarData.days.map((day, idx) => (
-              <div key={idx} style={{ 
+              <div key={idx} onClick={() => { if (!day.isHoliday && day.count > 0) setExpandedDay(expandedDay === day.dateStr ? null : day.dateStr) }} style={{ 
                 flex: 1, minWidth: '120px', padding: '15px', borderRadius: '10px', 
                 backgroundColor: day.isHoliday ? '#ffebee' : (day.isToday ? '#e3f2fd' : '#fff'), 
                 border: `2px solid ${day.isHoliday ? 'var(--crayon-red)' : (day.isToday ? 'var(--crayon-blue)' : '#ccc')}`,
                 textAlign: 'center',
-                boxShadow: '3px 3px 0px rgba(0,0,0,0.1)'
+                boxShadow: '3px 3px 0px rgba(0,0,0,0.1)',
+                cursor: (!day.isHoliday && day.count > 0) ? 'pointer' : 'default',
+                transition: 'all 0.2s ease-in-out',
+                transform: expandedDay === day.dateStr ? 'scale(1.02)' : 'none'
               }}>
-                <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: day.isToday ? 'var(--crayon-blue)' : (day.isHoliday ? 'var(--crayon-red)' : '#333') }}>
-                  星期{day.dayName}
-                  {day.isToday && <span style={{ marginLeft: '5px', fontSize: '0.8rem', backgroundColor: 'var(--crayon-blue)', color: 'white', padding: '2px 6px', borderRadius: '10px', verticalAlign: 'middle' }}>今日</span>}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '35px', justifyContent: 'flex-end' }}>
+                  {day.isToday && <div style={{ fontSize: '0.8rem', backgroundColor: 'var(--crayon-blue)', color: 'white', padding: '2px 8px', borderRadius: '10px', marginBottom: '2px' }}>今日</div>}
+                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: day.isToday ? 'var(--crayon-blue)' : (day.isHoliday ? 'var(--crayon-red)' : '#333') }}>
+                    星期{day.dayName}
+                  </div>
                 </div>
                 <div style={{ fontSize: '1rem', color: day.isToday ? 'var(--crayon-blue)' : '#666', fontWeight: day.isToday ? 'bold' : 'normal', marginBottom: '10px' }}>{day.date.getMonth() + 1}/{day.date.getDate()}</div>
                 
@@ -600,10 +633,21 @@ export default function Dashboard() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     {day.count > 0 ? (
-                      <>
-                        <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{day.count}</span>
-                        <span style={{ fontSize: '0.8rem', color: '#666' }}>筆派送</span>
-                      </>
+                      expandedDay === day.dateStr ? (
+                        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px', animation: 'fadeIn 0.3s' }}>
+                          {day.personnelStats?.map(ps => (
+                            <div key={ps.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f5f5f5', padding: '4px 8px', borderRadius: '5px', borderLeft: `4px solid ${ps.color}` }}>
+                              <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: ps.color }}>{ps.name}</span>
+                              <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#333' }}>{ps.count}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <>
+                          <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{day.count}</span>
+                          <span style={{ fontSize: '0.8rem', color: '#666' }}>筆派送 <span style={{fontSize: '0.7rem'}}>(點擊查看)</span></span>
+                        </>
+                      )
                     ) : (
                       <span style={{ fontSize: '1rem', color: '#999', padding: '10px 0' }}>無派送</span>
                     )}
