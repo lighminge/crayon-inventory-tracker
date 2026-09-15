@@ -37,7 +37,7 @@ export default function Dashboard() {
 
   const handleCalYearChange = (e: any) => {
     const y = Number(e.target.value);
-    const d = new Date(y, displayMonth - 1, 1);
+    const d = new Date(y, displayMonth - 1, 4);
     const offset = d.getDay() === 0 ? -6 : 1 - d.getDay();
     d.setDate(d.getDate() + offset);
     setCalendarWeekStart(d);
@@ -45,7 +45,7 @@ export default function Dashboard() {
 
   const handleCalMonthChange = (e: any) => {
     const m = Number(e.target.value);
-    const d = new Date(displayYear, m - 1, 1);
+    const d = new Date(displayYear, m - 1, 4);
     const offset = d.getDay() === 0 ? -6 : 1 - d.getDay();
     d.setDate(d.getDate() + offset);
     setCalendarWeekStart(d);
@@ -807,7 +807,7 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     <>
-                      <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-orange)', fontFamily: 'Caveat, cursive', lineHeight: '1', marginBottom: '5px' }}>{weeklyCalendarData.totalWeeklyCount}</div>
+                      <div style={{ fontSize: '3.5rem', fontWeight: '900', color: 'var(--crayon-orange)', fontFamily: 'Caveat, cursive', lineHeight: '1', marginBottom: '5px', textShadow: '2px 2px 0px rgba(0,0,0,0.1)' }}>{weeklyCalendarData.totalWeeklyCount}</div>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.9rem', color: '#666' }}>筆派送單據</span>
                         {weeklyCalendarData.totalWeeklyCount > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--crayon-orange)', marginTop: '2px' }}>(點擊查看)</span>}
