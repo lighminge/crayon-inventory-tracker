@@ -378,11 +378,22 @@ export default function Dashboard() {
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({length: 5}, (_, i) => currentYear - 2 + i);
 
+  const personnelColors = useMemo(() => {
+    const colors = ['#f44336', '#2196f3', '#4caf50', '#ff9800', '#9c27b0', '#00bcd4', '#795548', '#e91e63', '#607d8b', '#cddc39', '#3f51b5', '#ffeb3b', '#009688', '#ff5722', '#673ab7', '#8bc34a'];
+    const map: Record<string, string> = {};
+    personnel.forEach((p, idx) => {
+      map[p.name] = colors[idx % colors.length];
+    });
+    map['未知人員'] = '#999999';
+    return map;
+  }, [personnel]);
+
   // Weekly calendar logic
   const weeklyCalendarData = useMemo(() => {
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
     let totalWeeklyCount = 0;
+    const weeklyStatsMap: Record<string, number> = {};
     const days = Array.from({ length: 5 }).map((_, i) => {
       const d = new Date(calendarWeekStart);
       d.setDate(calendarWeekStart.getDate() + i);
@@ -391,7 +402,7 @@ export default function Dashboard() {
       const isHoliday = !!holidayObj;
       const holidayDesc = holidayObj ? holidayObj.description : '';
       
-            const dayTickets = filteredTickets.filter(t => {
+      const dayTickets = filteredTickets.filter(t => {
         if (!t.dispatchDate) return false;
         const td = new Date(t.dispatchDate);
         const tdStr = `${td.getFullYear()}-${String(td.getMonth()+1).padStart(2,'0')}-${String(td.getDate()).padStart(2,'0')}`;
@@ -404,11 +415,11 @@ export default function Dashboard() {
       dayTickets.forEach(t => {
         const pName = personnel.find(p => p.id === t.assigneeId)?.name || '未知人員';
         statsMap[pName] = (statsMap[pName] || 0) + 1;
+        weeklyStatsMap[pName] = (weeklyStatsMap[pName] || 0) + 1;
       });
       
-      const colors = ['#f44336', '#e91e63', '#9c27b0', '#673ab7', '#3f51b5', '#2196f3', '#03a9f4', '#00bcd4', '#009688', '#4caf50', '#8bc34a', '#cddc39', '#ff9800', '#ff5722'];
-      const personnelStats = Object.keys(statsMap).map((name, idx) => ({
-        name, count: statsMap[name], color: colors[idx % colors.length]
+      const personnelStats = Object.keys(statsMap).map(name => ({
+        name, count: statsMap[name], color: personnelColors[name] || '#999999'
       })).sort((a, b) => b.count - a.count);
       
       return {
@@ -423,8 +434,12 @@ export default function Dashboard() {
       };
     });
     
-    return { days, totalWeeklyCount };
-  }, [filteredTickets, holidays, calendarWeekStart, personnel]);
+    const weeklyPersonnelStats = Object.keys(weeklyStatsMap).map(name => ({
+      name, count: weeklyStatsMap[name], color: personnelColors[name] || '#999999'
+    })).sort((a, b) => b.count - a.count);
+
+    return { days, totalWeeklyCount, weeklyPersonnelStats };
+  }, [filteredTickets, holidays, calendarWeekStart, personnel, personnelColors]);
 
   const monthTotalTickets = useMemo(() => {
     return filteredTickets.filter(t => {
@@ -435,6 +450,23 @@ export default function Dashboard() {
   }, [filteredTickets, calendarWeekStart]);
 
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const [showMonthChart, setShowMonthChart] = useState(false);
+
+  const monthlyData = useMemo(() => {
+    const monthTickets = filteredTickets.filter(t => {
+      if (!t.dispatchDate) return false;
+      const d = new Date(t.dispatchDate);
+      return d.getFullYear() === calendarWeekStart.getFullYear() && d.getMonth() === calendarWeekStart.getMonth();
+    });
+    const map: Record<string, number> = {};
+    monthTickets.forEach(t => {
+      const pName = personnel.find(p => p.id === t.assigneeId)?.name || '未知人員';
+      map[pName] = (map[pName] || 0) + 1;
+    });
+    return Object.keys(map).map(name => ({
+      name, count: map[name], color: personnelColors[name] || '#999999'
+    })).sort((a, b) => b.count - a.count);
+  }, [filteredTickets, calendarWeekStart, personnel, personnelColors]);
 
   return (
     <div>
@@ -591,6 +623,7 @@ export default function Dashboard() {
               <span style={{ fontSize: '1rem', marginLeft: '10px', color: '#666', fontWeight: 'bold', border: '1px solid #ccc', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'white' }}>
                 本月共 {monthTotalTickets} 筆
               </span>
+              <button className="doodle-button" onClick={() => setShowMonthChart(true)} style={{ marginLeft: '15px', padding: '4px 12px', fontSize: '0.9rem', backgroundColor: 'var(--crayon-purple)', color: 'white' }}>📊 當月圖表檢視</button>
             </h3>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <div style={{ display: 'flex', gap: '5px' }}>
@@ -645,7 +678,10 @@ export default function Dashboard() {
                       ) : (
                         <>
                           <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{day.count}</span>
-                          <span style={{ fontSize: '0.8rem', color: '#666' }}>筆派送 <span style={{fontSize: '0.7rem'}}>(點擊查看)</span></span>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#666' }}>筆派送</span>
+                            <span style={{ fontSize: '0.75rem', color: '#999', marginTop: '2px' }}>(點擊查看)</span>
+                          </div>
                         </>
                       )
                     ) : (
@@ -655,16 +691,37 @@ export default function Dashboard() {
                 )}
               </div>
             ))}
-            <div style={{ 
+            <div 
+              onClick={() => { if (weeklyCalendarData.totalWeeklyCount > 0) setExpandedDay(expandedDay === 'week' ? null : 'week') }} 
+              style={{ 
               flex: 1, minWidth: '150px', padding: '15px', borderRadius: '10px', 
               backgroundColor: 'var(--crayon-orange)', color: 'white',
               border: '2px solid #e65100',
-              textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center',
-              boxShadow: '3px 3px 0px rgba(0,0,0,0.2)'
+              textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+              boxShadow: '3px 3px 0px rgba(0,0,0,0.2)',
+              cursor: weeklyCalendarData.totalWeeklyCount > 0 ? 'pointer' : 'default',
+              transition: 'all 0.2s ease-in-out',
+              transform: expandedDay === 'week' ? 'scale(1.02)' : 'none'
             }}>
               <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '10px' }}>當週總計</div>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{weeklyCalendarData.totalWeeklyCount}</div>
-              <div style={{ fontSize: '0.9rem' }}>筆派送單據</div>
+              {expandedDay === 'week' ? (
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px', animation: 'fadeIn 0.3s' }}>
+                  {weeklyCalendarData.weeklyPersonnelStats.map(ps => (
+                    <div key={ps.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', padding: '4px 8px', borderRadius: '5px', borderLeft: `4px solid ${ps.color}` }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{ps.name}</span>
+                      <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>{ps.count}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{weeklyCalendarData.totalWeeklyCount}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.9rem' }}>筆派送單據</span>
+                    {weeklyCalendarData.totalWeeklyCount > 0 && <span style={{ fontSize: '0.75rem', color: '#ffccbc', marginTop: '2px' }}>(點擊查看)</span>}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1230,6 +1287,53 @@ export default function Dashboard() {
         </div>
 
       </div>
+
+      {showMonthChart && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="doodle-border" style={{ backgroundColor: '#fff', padding: '30px', borderRadius: '15px', width: '90%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, color: 'var(--crayon-dark)', fontFamily: 'Caveat, cursive', fontSize: '2rem' }}>📊 {calendarWeekStart.getFullYear()}年{calendarWeekStart.getMonth() + 1}月 派送統計圖表</h2>
+              <button className="doodle-button" style={{ backgroundColor: '#ffccbc', padding: '5px 15px', fontSize: '1rem' }} onClick={() => setShowMonthChart(false)}>✖ 關閉</button>
+            </div>
+            {monthlyData.length === 0 ? (
+              <div style={{ textAlign: 'center', fontSize: '1.2rem', color: '#999', padding: '50px 0' }}>本月份尚無派送單據</div>
+            ) : (
+              <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '300px', height: '400px' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" tick={{fontFamily: 'Caveat, cursive', fontWeight: 'bold'}} angle={-45} textAnchor="end" />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip contentStyle={{ borderRadius: '10px', fontWeight: 'bold' }} />
+                      <Bar dataKey="count" name="派送數量" radius={[5, 5, 0, 0]}>
+                        {monthlyData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                        <LabelList dataKey="count" position="top" style={{ fontWeight: 'bold' }} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '10px', border: '2px dashed #ccc' }}>
+                  <h4 style={{ margin: '0 0 10px 0', borderBottom: '2px solid #ddd', paddingBottom: '5px', color: 'var(--crayon-dark)', fontSize: '1.1rem' }}>人員圖例與統計</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto' }}>
+                    {monthlyData.map(d => (
+                      <div key={d.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: '15px', height: '15px', backgroundColor: d.color, borderRadius: '4px', border: '1px solid rgba(0,0,0,0.1)' }}></div>
+                          <span style={{ fontWeight: 'bold', fontSize: '1rem', color: '#333' }}>{d.name}</span>
+                        </div>
+                        <span style={{ fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{d.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
