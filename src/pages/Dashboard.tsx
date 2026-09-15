@@ -618,112 +618,178 @@ export default function Dashboard() {
         {/* 當週盤點單派送狀況 */}
         <div className="doodle-border" style={{ padding: '20px', backgroundColor: '#fff3e0', transform: 'rotate(0.5deg)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px dashed var(--crayon-orange)', paddingBottom: '10px', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
-            <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--crayon-orange)' }}>
+            <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--crayon-orange)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
               📅 當週盤點單派送狀況 
-              <span style={{ fontSize: '1rem', marginLeft: '10px', color: '#666', fontWeight: 'bold', border: '1px solid #ccc', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'white' }}>
+              <span style={{ fontSize: '1rem', color: '#666', fontWeight: 'bold', border: '1px solid #ccc', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'white' }}>
                 本月共 {monthTotalTickets} 筆
               </span>
-              <button className="doodle-button" onClick={() => setShowMonthChart(true)} style={{ marginLeft: '15px', padding: '4px 12px', fontSize: '0.9rem', backgroundColor: 'var(--crayon-purple)', color: 'white' }}>📊 當月圖表檢視</button>
+              <button className="doodle-button" onClick={() => setShowMonthChart(!showMonthChart)} style={{ padding: '2px 10px', fontSize: '0.9rem', backgroundColor: showMonthChart ? '#ffccbc' : 'var(--crayon-purple)', color: showMonthChart ? 'var(--crayon-dark)' : 'white' }}>
+                {showMonthChart ? '返回當週視圖' : '📊 當月圖表檢視'}
+              </button>
             </h3>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <div style={{ display: 'flex', gap: '5px' }}>
-                <button className="doodle-button" style={{ padding: '2px 10px', fontSize: '1.2rem', backgroundColor: '#ffe0b2' }} onClick={handlePrevWeek}>◀</button>
-                <button className="doodle-button" style={{ padding: '2px 10px', fontSize: '1.2rem', backgroundColor: '#ffe0b2' }} onClick={handleNextWeek}>▶</button>
-              </div>
-              <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={calendarWeekStart.getFullYear()} onChange={handleCalYearChange}>
+              {!showMonthChart && (
+                <div style={{ display: 'flex', gap: '5px' }}>
+                  <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '1rem', backgroundColor: '#ffe0b2' }} onClick={handlePrevWeek}>◀</button>
+                  <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '1rem', backgroundColor: '#ffe0b2' }} onClick={handleNextWeek}>▶</button>
+                </div>
+              )}
+              <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white', padding: '2px 5px', fontSize: '0.9rem' }} value={calendarWeekStart.getFullYear()} onChange={handleCalYearChange}>
                 {yearOptions.map(y => <option key={y} value={y}>{y} 年</option>)}
               </select>
-              <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={calendarWeekStart.getMonth() + 1} onChange={handleCalMonthChange}>
+              <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white', padding: '2px 5px', fontSize: '0.9rem' }} value={calendarWeekStart.getMonth() + 1} onChange={handleCalMonthChange}>
                 {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>{m} 月</option>)}
               </select>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '15px', alignItems: 'stretch', flexWrap: 'wrap' }}>
-            {weeklyCalendarData.days.map((day, idx) => (
-              <div key={idx} onClick={() => { if (!day.isHoliday && day.count > 0) setExpandedDay(expandedDay === day.dateStr ? null : day.dateStr) }} style={{ 
-                flex: 1, minWidth: '120px', padding: '15px', borderRadius: '10px', 
-                backgroundColor: day.isHoliday ? '#ffebee' : (day.isToday ? '#e3f2fd' : '#fff'), 
-                border: `2px solid ${day.isHoliday ? 'var(--crayon-red)' : (day.isToday ? 'var(--crayon-blue)' : '#ccc')}`,
-                textAlign: 'center',
-                boxShadow: '3px 3px 0px rgba(0,0,0,0.1)',
-                cursor: (!day.isHoliday && day.count > 0) ? 'pointer' : 'default',
-                transition: 'all 0.2s ease-in-out',
-                transform: expandedDay === day.dateStr ? 'scale(1.02)' : 'none'
-              }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '35px', justifyContent: 'flex-end' }}>
-                  {day.isToday && <div style={{ fontSize: '0.8rem', backgroundColor: 'var(--crayon-blue)', color: 'white', padding: '2px 8px', borderRadius: '10px', marginBottom: '2px' }}>今日</div>}
-                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: day.isToday ? 'var(--crayon-blue)' : (day.isHoliday ? 'var(--crayon-red)' : '#333') }}>
-                    星期{day.dayName}
-                  </div>
-                </div>
-                <div style={{ fontSize: '1rem', color: day.isToday ? 'var(--crayon-blue)' : '#666', fontWeight: day.isToday ? 'bold' : 'normal', marginBottom: '10px' }}>{day.date.getMonth() + 1}/{day.date.getDate()}</div>
-                
-                {day.isHoliday ? (
-                  <div style={{ color: 'var(--crayon-red)', fontWeight: 'bold', padding: '10px 0' }}>
-                    <div style={{ fontSize: '1.2rem' }}>休假</div>
-                    {day.holidayDesc && <div style={{ fontSize: '0.9rem', marginTop: '5px' }}>{day.holidayDesc}</div>}
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    {day.count > 0 ? (
-                      expandedDay === day.dateStr ? (
-                        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px', animation: 'fadeIn 0.3s' }}>
-                          {day.personnelStats?.map(ps => (
-                            <div key={ps.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f5f5f5', padding: '4px 8px', borderRadius: '5px', borderLeft: `4px solid ${ps.color}` }}>
-                              <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: ps.color }}>{ps.name}</span>
-                              <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#333' }}>{ps.count}</span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <>
-                          <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{day.count}</span>
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <span style={{ fontSize: '0.8rem', color: '#666' }}>筆派送</span>
-                            <span style={{ fontSize: '0.75rem', color: '#999', marginTop: '2px' }}>(點擊查看)</span>
-                          </div>
-                        </>
-                      )
-                    ) : (
-                      <span style={{ fontSize: '1rem', color: '#999', padding: '10px 0' }}>無派送</span>
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-            <div 
-              onClick={() => { if (weeklyCalendarData.totalWeeklyCount > 0) setExpandedDay(expandedDay === 'week' ? null : 'week') }} 
-              style={{ 
-              flex: 1, minWidth: '150px', padding: '15px', borderRadius: '10px', 
-              backgroundColor: 'var(--crayon-orange)', color: 'white',
-              border: '2px solid #e65100',
-              textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
-              boxShadow: '3px 3px 0px rgba(0,0,0,0.2)',
-              cursor: weeklyCalendarData.totalWeeklyCount > 0 ? 'pointer' : 'default',
-              transition: 'all 0.2s ease-in-out',
-              transform: expandedDay === 'week' ? 'scale(1.02)' : 'none'
-            }}>
-              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '10px' }}>當週總計</div>
-              {expandedDay === 'week' ? (
-                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px', animation: 'fadeIn 0.3s' }}>
-                  {weeklyCalendarData.weeklyPersonnelStats.map(ps => (
-                    <div key={ps.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', padding: '4px 8px', borderRadius: '5px', borderLeft: `4px solid ${ps.color}` }}>
-                      <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{ps.name}</span>
-                      <span style={{ fontSize: '1rem', fontWeight: 'bold' }}>{ps.count}</span>
-                    </div>
-                  ))}
-                </div>
+          
+          {showMonthChart ? (
+            <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '15px', border: '2px solid var(--crayon-dark)', animation: 'fadeIn 0.3s' }}>
+              <h2 style={{ margin: '0 0 20px 0', color: 'var(--crayon-dark)', fontFamily: 'Caveat, cursive', fontSize: '1.8rem', textAlign: 'center' }}>📊 {calendarWeekStart.getFullYear()}年{calendarWeekStart.getMonth() + 1}月 派送統計圖表</h2>
+              {monthlyData.length === 0 ? (
+                <div style={{ textAlign: 'center', fontSize: '1.2rem', color: '#999', padding: '50px 0' }}>本月份尚無派送單據</div>
               ) : (
-                <>
-                  <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{weeklyCalendarData.totalWeeklyCount}</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.9rem' }}>筆派送單據</span>
-                    {weeklyCalendarData.totalWeeklyCount > 0 && <span style={{ fontSize: '0.75rem', color: '#ffccbc', marginTop: '2px' }}>(點擊查看)</span>}
+                <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '300px', height: '350px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={monthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" tick={{fontFamily: 'Caveat, cursive', fontWeight: 'bold'}} angle={-45} textAnchor="end" />
+                        <YAxis allowDecimals={false} />
+                        <Tooltip contentStyle={{ borderRadius: '10px', fontWeight: 'bold' }} />
+                        <Bar dataKey="count" name="派送數量" radius={[5, 5, 0, 0]}>
+                          {monthlyData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                          <LabelList dataKey="count" position="top" style={{ fontWeight: 'bold' }} />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
-                </>
+                  <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '10px', border: '2px dashed #ccc' }}>
+                    <h4 style={{ margin: '0 0 10px 0', borderBottom: '2px solid #ddd', paddingBottom: '5px', color: 'var(--crayon-dark)', fontSize: '1.1rem' }}>人員圖例與統計</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
+                      {monthlyData.map(d => (
+                        <div key={d.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ width: '15px', height: '15px', backgroundColor: d.color, borderRadius: '4px', border: '1px solid rgba(0,0,0,0.1)' }}></div>
+                            <span style={{ fontWeight: 'bold', fontSize: '1rem', color: '#333' }}>{d.name}</span>
+                          </div>
+                          <span style={{ fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{d.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
-          </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'stretch', flexWrap: 'wrap' }}>
+              {weeklyCalendarData.days.map((day, idx) => (
+                <div key={idx} onClick={() => { if (!day.isHoliday && day.count > 0) setExpandedDay(expandedDay === day.dateStr ? null : day.dateStr) }} style={{ 
+                  flex: 1, minWidth: '120px', backgroundColor: 'white',
+                  border: '2px solid var(--crayon-dark)', borderRadius: '5px',
+                  boxShadow: '3px 3px 0px rgba(0,0,0,0.15)', overflow: 'hidden', position: 'relative',
+                  cursor: (!day.isHoliday && day.count > 0) ? 'pointer' : 'default',
+                  transition: 'all 0.2s', display: 'flex', flexDirection: 'column',
+                  transform: expandedDay === day.dateStr ? 'scale(1.02)' : 'none'
+                }}>
+                  <div style={{ 
+                    backgroundColor: day.isHoliday ? 'var(--crayon-red)' : (day.isToday ? 'var(--crayon-blue)' : '#666'), 
+                    color: 'white', width: '100%', textAlign: 'center', padding: '5px 0',
+                    fontWeight: 'bold', fontSize: '1rem', borderBottom: '2px dashed var(--crayon-dark)'
+                  }}>
+                    星期{day.dayName}
+                    {day.isToday && <span style={{ marginLeft: '5px', fontSize: '0.7rem', backgroundColor: 'white', color: 'var(--crayon-blue)', padding: '1px 5px', borderRadius: '10px', verticalAlign: 'middle' }}>今日</span>}
+                  </div>
+                  <div style={{ position: 'absolute', top: '5px', left: '15px', width: '6px', height: '12px', backgroundColor: 'white', border: '1px solid var(--crayon-dark)', borderRadius: '3px' }}></div>
+                  <div style={{ position: 'absolute', top: '5px', right: '15px', width: '6px', height: '12px', backgroundColor: 'white', border: '1px solid var(--crayon-dark)', borderRadius: '3px' }}></div>
+                  
+                  <div style={{ padding: '10px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-dark)', margin: '0', fontFamily: 'Caveat, cursive', lineHeight: '1' }}>
+                      {day.date.getDate()}
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '5px' }}>
+                      {day.date.getMonth() + 1}月
+                    </div>
+                    
+                    {day.isHoliday ? (
+                      <div style={{ color: 'var(--crayon-red)', fontWeight: 'bold', padding: '10px 0', textAlign: 'center' }}>
+                        <div style={{ fontSize: '1.2rem' }}>休假</div>
+                        {day.holidayDesc && <div style={{ fontSize: '0.9rem', marginTop: '5px' }}>{day.holidayDesc}</div>}
+                      </div>
+                    ) : (
+                      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        {day.count > 0 ? (
+                          expandedDay === day.dateStr ? (
+                            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px', animation: 'fadeIn 0.3s' }}>
+                              {day.personnelStats?.map(ps => (
+                                <div key={ps.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f5f5f5', padding: '4px 8px', borderRadius: '5px', borderLeft: `4px solid ${ps.color}` }}>
+                                  <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: ps.color }}>{ps.name}</span>
+                                  <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#333' }}>{ps.count}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <>
+                              <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{day.count}</span>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.8rem', color: '#666' }}>筆派送</span>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--crayon-blue)', marginTop: '2px' }}>(點擊查看)</span>
+                              </div>
+                            </>
+                          )
+                        ) : (
+                          <span style={{ fontSize: '1rem', color: '#999', padding: '10px 0' }}>無派送</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <div 
+                onClick={() => { if (weeklyCalendarData.totalWeeklyCount > 0) setExpandedDay(expandedDay === 'week' ? null : 'week') }} 
+                style={{ 
+                flex: 1, minWidth: '150px', backgroundColor: 'white',
+                border: '2px solid var(--crayon-dark)', borderRadius: '5px',
+                boxShadow: '3px 3px 0px rgba(0,0,0,0.15)', overflow: 'hidden', position: 'relative',
+                cursor: weeklyCalendarData.totalWeeklyCount > 0 ? 'pointer' : 'default',
+                transition: 'all 0.2s', display: 'flex', flexDirection: 'column',
+                transform: expandedDay === 'week' ? 'scale(1.02)' : 'none'
+              }}>
+                <div style={{ 
+                  backgroundColor: 'var(--crayon-orange)', 
+                  color: 'white', width: '100%', textAlign: 'center', padding: '5px 0',
+                  fontWeight: 'bold', fontSize: '1rem', borderBottom: '2px dashed var(--crayon-dark)'
+                }}>
+                  當週總計
+                </div>
+                <div style={{ position: 'absolute', top: '5px', left: '15px', width: '6px', height: '12px', backgroundColor: 'white', border: '1px solid var(--crayon-dark)', borderRadius: '3px' }}></div>
+                <div style={{ position: 'absolute', top: '5px', right: '15px', width: '6px', height: '12px', backgroundColor: 'white', border: '1px solid var(--crayon-dark)', borderRadius: '3px' }}></div>
+                
+                <div style={{ padding: '10px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  {expandedDay === 'week' ? (
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px', animation: 'fadeIn 0.3s' }}>
+                      {weeklyCalendarData.weeklyPersonnelStats.map(ps => (
+                        <div key={ps.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f5f5f5', padding: '4px 8px', borderRadius: '5px', borderLeft: `4px solid ${ps.color}` }}>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: ps.color }}>{ps.name}</span>
+                          <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#333' }}>{ps.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-orange)', fontFamily: 'Caveat, cursive', lineHeight: '1', marginBottom: '5px' }}>{weeklyCalendarData.totalWeeklyCount}</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.9rem', color: '#666' }}>筆派送單據</span>
+                        {weeklyCalendarData.totalWeeklyCount > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--crayon-orange)', marginTop: '2px' }}>(點擊查看)</span>}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 備料員盤點情況 - Moved ABOVE Chart & Restyled to Doodle Cards */}
@@ -1288,52 +1354,6 @@ export default function Dashboard() {
 
       </div>
 
-      {showMonthChart && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div className="doodle-border" style={{ backgroundColor: '#fff', padding: '30px', borderRadius: '15px', width: '90%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, color: 'var(--crayon-dark)', fontFamily: 'Caveat, cursive', fontSize: '2rem' }}>📊 {calendarWeekStart.getFullYear()}年{calendarWeekStart.getMonth() + 1}月 派送統計圖表</h2>
-              <button className="doodle-button" style={{ backgroundColor: '#ffccbc', padding: '5px 15px', fontSize: '1rem' }} onClick={() => setShowMonthChart(false)}>✖ 關閉</button>
-            </div>
-            {monthlyData.length === 0 ? (
-              <div style={{ textAlign: 'center', fontSize: '1.2rem', color: '#999', padding: '50px 0' }}>本月份尚無派送單據</div>
-            ) : (
-              <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, minWidth: '300px', height: '400px' }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={monthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" tick={{fontFamily: 'Caveat, cursive', fontWeight: 'bold'}} angle={-45} textAnchor="end" />
-                      <YAxis allowDecimals={false} />
-                      <Tooltip contentStyle={{ borderRadius: '10px', fontWeight: 'bold' }} />
-                      <Bar dataKey="count" name="派送數量" radius={[5, 5, 0, 0]}>
-                        {monthlyData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                        <LabelList dataKey="count" position="top" style={{ fontWeight: 'bold' }} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '10px', border: '2px dashed #ccc' }}>
-                  <h4 style={{ margin: '0 0 10px 0', borderBottom: '2px solid #ddd', paddingBottom: '5px', color: 'var(--crayon-dark)', fontSize: '1.1rem' }}>人員圖例與統計</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto' }}>
-                    {monthlyData.map(d => (
-                      <div key={d.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '15px', height: '15px', backgroundColor: d.color, borderRadius: '4px', border: '1px solid rgba(0,0,0,0.1)' }}></div>
-                          <span style={{ fontWeight: 'bold', fontSize: '1rem', color: '#333' }}>{d.name}</span>
-                        </div>
-                        <span style={{ fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{d.count}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+      </div>
   );
 }
