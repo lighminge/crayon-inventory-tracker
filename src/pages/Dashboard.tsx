@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { InventoryTicket, Personnel, InventoryTask, Workflow, HolidaySetting } from '../types';
 import { getTickets, getPersonnel, getTasks, getWorkflows, getHolidays } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
+import html2canvas from 'html2canvas';
 import { BarChart, Bar, LineChart, Line, ComposedChart, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, PieChart, Pie, Cell, LabelList } from 'recharts';
 
 export default function Dashboard() {
@@ -25,9 +26,18 @@ export default function Dashboard() {
     return monday;
   });
 
+  const middleOfWeek = useMemo(() => {
+    const d = new Date(calendarWeekStart);
+    d.setDate(d.getDate() + 3); // Thursday
+    return d;
+  }, [calendarWeekStart]);
+
+  const displayYear = middleOfWeek.getFullYear();
+  const displayMonth = middleOfWeek.getMonth() + 1;
+
   const handleCalYearChange = (e: any) => {
     const y = Number(e.target.value);
-    const d = new Date(y, calendarWeekStart.getMonth(), 1);
+    const d = new Date(y, displayMonth - 1, 1);
     const offset = d.getDay() === 0 ? -6 : 1 - d.getDay();
     d.setDate(d.getDate() + offset);
     setCalendarWeekStart(d);
@@ -35,10 +45,21 @@ export default function Dashboard() {
 
   const handleCalMonthChange = (e: any) => {
     const m = Number(e.target.value);
-    const d = new Date(calendarWeekStart.getFullYear(), m - 1, 1);
+    const d = new Date(displayYear, m - 1, 1);
     const offset = d.getDay() === 0 ? -6 : 1 - d.getDay();
     d.setDate(d.getDate() + offset);
     setCalendarWeekStart(d);
+  };
+
+  const handleExportMonthChartImage = async () => {
+    const el = document.getElementById('month-chart-container');
+    if (!el) return;
+    const canvas = await html2canvas(el, { scale: 1.5 });
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${displayYear}年${displayMonth}月_派送統計圖表.png`;
+    a.click();
   };
 
   const handlePrevWeek = () => {
@@ -445,9 +466,9 @@ export default function Dashboard() {
     return filteredTickets.filter(t => {
       if (!t.dispatchDate) return false;
       const d = new Date(t.dispatchDate);
-      return d.getFullYear() === calendarWeekStart.getFullYear() && d.getMonth() === calendarWeekStart.getMonth();
+      return d.getFullYear() === displayYear && d.getMonth() === displayMonth - 1;
     }).length;
-  }, [filteredTickets, calendarWeekStart]);
+  }, [filteredTickets, displayYear, displayMonth]);
 
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [showMonthChart, setShowMonthChart] = useState(false);
@@ -456,7 +477,7 @@ export default function Dashboard() {
     const monthTickets = filteredTickets.filter(t => {
       if (!t.dispatchDate) return false;
       const d = new Date(t.dispatchDate);
-      return d.getFullYear() === calendarWeekStart.getFullYear() && d.getMonth() === calendarWeekStart.getMonth();
+      return d.getFullYear() === displayYear && d.getMonth() === displayMonth - 1;
     });
     const map: Record<string, number> = {};
     monthTickets.forEach(t => {
@@ -634,18 +655,21 @@ export default function Dashboard() {
                   <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '1rem', backgroundColor: '#ffe0b2' }} onClick={handleNextWeek}>▶</button>
                 </div>
               )}
-              <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white', padding: '2px 5px', fontSize: '0.9rem' }} value={calendarWeekStart.getFullYear()} onChange={handleCalYearChange}>
+              <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white', padding: '2px 5px', fontSize: '0.9rem' }} value={displayYear} onChange={handleCalYearChange}>
                 {yearOptions.map(y => <option key={y} value={y}>{y} 年</option>)}
               </select>
-              <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white', padding: '2px 5px', fontSize: '0.9rem' }} value={calendarWeekStart.getMonth() + 1} onChange={handleCalMonthChange}>
+              <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white', padding: '2px 5px', fontSize: '0.9rem' }} value={displayMonth} onChange={handleCalMonthChange}>
                 {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>{m} 月</option>)}
               </select>
             </div>
           </div>
           
           {showMonthChart ? (
-            <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '15px', border: '2px solid var(--crayon-dark)', animation: 'fadeIn 0.3s' }}>
-              <h2 style={{ margin: '0 0 20px 0', color: 'var(--crayon-dark)', fontFamily: 'Caveat, cursive', fontSize: '1.8rem', textAlign: 'center' }}>📊 {calendarWeekStart.getFullYear()}年{calendarWeekStart.getMonth() + 1}月 派送統計圖表</h2>
+            <div id="month-chart-container" style={{ backgroundColor: 'white', padding: '20px', borderRadius: '15px', border: '2px solid var(--crayon-dark)', animation: 'fadeIn 0.3s' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ margin: 0, color: 'var(--crayon-dark)', fontFamily: 'Caveat, cursive', fontSize: '1.8rem' }}>📊 {displayYear}年{displayMonth}月 派送統計圖表</h2>
+                <button className="doodle-button" style={{ padding: '4px 10px', fontSize: '0.9rem', backgroundColor: 'var(--crayon-blue)', color: 'white' }} onClick={handleExportMonthChartImage}>🖼️ 匯出圖檔</button>
+              </div>
               {monthlyData.length === 0 ? (
                 <div style={{ textAlign: 'center', fontSize: '1.2rem', color: '#999', padding: '50px 0' }}>本月份尚無派送單據</div>
               ) : (
@@ -678,6 +702,10 @@ export default function Dashboard() {
                           <span style={{ fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{d.count}</span>
                         </div>
                       ))}
+                    </div>
+                    <div style={{ borderTop: '2px dashed #ddd', paddingTop: '10px', marginTop: '5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--crayon-dark)' }}>當月總計</span>
+                      <span style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-orange)' }}>{monthTotalTickets}</span>
                     </div>
                   </div>
                 </div>
