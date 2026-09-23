@@ -192,21 +192,22 @@ export default function InventoryTicketsPage() {
     const newStageDates = { ...updatingTicket.stageDates, [selectedStageId]: timestamp };
     
     const currentIndex = workflows.findIndex(w => w.id === selectedStageId);
+    const isFirstStage = currentIndex === 0;
     const isLastStage = currentIndex === workflows.length - 1;
     
     try {
-      if (isLastStage) {
-        const processingDays = updatingTicket.dispatchDate ? 
-          calculateBusinessDays(updatingTicket.dispatchDate, timestamp) : 0;
-        await updateTicket(updatingTicket.id, { 
-          stageDates: newStageDates,
-          closeDate: timestamp,
-          managerName: managerName,
-          totalProcessingDays: processingDays
-        });
-      } else {
-        await updateTicket(updatingTicket.id, { stageDates: newStageDates });
+      const updates: any = { stageDates: newStageDates };
+      if (isFirstStage) {
+        updates.dispatchDate = timestamp;
       }
+      if (isLastStage) {
+        const dDate = isFirstStage ? timestamp : updatingTicket.dispatchDate;
+        updates.closeDate = timestamp;
+        updates.managerName = managerName;
+        updates.totalProcessingDays = dDate ? calculateBusinessDays(dDate, timestamp) : 0;
+      }
+      await updateTicket(updatingTicket.id, updates);
+      
       setUpdatingTicket(null);
       loadData();
     } catch (e) {
@@ -278,7 +279,16 @@ export default function InventoryTicketsPage() {
         }
       });
 
+      const firstWorkflowId = workflows.length > 0 ? workflows[0].id : null;
       const lastWorkflowId = workflows.length > 0 ? workflows[workflows.length - 1].id : null;
+      
+      let calculatedDispatchDate = editFormData.dispatchDateStr ? new Date(editFormData.dispatchDateStr).getTime() : null;
+      if (firstWorkflowId && newStageDates[firstWorkflowId]) {
+         calculatedDispatchDate = newStageDates[firstWorkflowId];
+      } else if (firstWorkflowId && !newStageDates[firstWorkflowId]) {
+         calculatedDispatchDate = null;
+      }
+      
       const newCloseDate = lastWorkflowId && newStageDates[lastWorkflowId] ? newStageDates[lastWorkflowId] : null;
 
       if (editFormData.id !== editingTicket.id) {
@@ -287,7 +297,7 @@ export default function InventoryTicketsPage() {
             title: editFormData.id, 
             ticketType: editFormData.ticketType,
             assigneeId: editFormData.assigneeId,
-            dispatchDate: editFormData.dispatchDateStr ? new Date(editFormData.dispatchDateStr).getTime() : null,
+            dispatchDate: calculatedDispatchDate,
             stageDates: newStageDates,
             closeDate: newCloseDate,
             managerName: editingTicket.managerName,
@@ -302,7 +312,7 @@ export default function InventoryTicketsPage() {
          const updates: any = {
            ticketType: editFormData.ticketType,
            assigneeId: editFormData.assigneeId,
-           dispatchDate: editFormData.dispatchDateStr ? new Date(editFormData.dispatchDateStr).getTime() : null,
+           dispatchDate: calculatedDispatchDate,
            stageDates: newStageDates,
            closeDate: newCloseDate,
            itemCount: editFormData.itemCount ? Number(editFormData.itemCount) : null,
