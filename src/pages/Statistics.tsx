@@ -44,7 +44,9 @@ export default function Statistics() {
           '狀態': t.closeDate ? '已結案' : '處理中',
           '項目數': itemCount,
           '派送日期': t.dispatchDate ? new Date(t.dispatchDate).toLocaleDateString('zh-TW') : '-',
+          '盤點完成日': getInventoryInfo(t).date ? new Date(getInventoryInfo(t).date!).toLocaleDateString('zh-TW') : '-',
           '結案日期': t.closeDate ? new Date(t.closeDate).toLocaleDateString('zh-TW') : '-',
+          '盤點日數': getInventoryInfo(t).days !== null ? getInventoryInfo(t).days : '-',
           '處理天數': processingDays !== null ? processingDays : '-'
         };
         
@@ -66,7 +68,7 @@ export default function Statistics() {
       const avgDaysStr = closedWithDays.length > 0 ? `平均 ${(totalDays / closedWithDays.length).toFixed(1)} 天` : '-';
       
       exportData.push({
-        '序號': '', '單號': '總計', '任務': `共 ${taskCount} 筆`, '盤點類型': '', '狀態': `共 ${totalTickets} 單`, '項目數': `共 ${totalItems} 項`, '派送日期': '', '結案日期': '', '處理天數': avgDaysStr
+        '序號': '', '單號': '總計', '任務': `共 ${taskCount} 筆`, '盤點類型': '', '狀態': `共 ${totalTickets} 單`, '項目數': `共 ${totalItems} 項`, '派送日期': '', '盤點完成日': '', '結案日期': '', '盤點日數': '', '處理天數': avgDaysStr
       });
       
       const ws = wb.addWorksheet(stat.name.substring(0, 31));
@@ -92,7 +94,9 @@ export default function Statistics() {
         '狀態': row['狀態'],
         '項目數': row['項目數'],
         '派送日期': row['派送日期'],
+        '盤點完成日': row['盤點完成日'],
         '結案日期': row['結案日期'],
+        '盤點日數': row['盤點日數'],
         '處理天數': row['處理天數']
       }));
       
@@ -111,7 +115,9 @@ export default function Statistics() {
           '狀態': '',
           '項目數': `項目數: ${s['項目總數']}`,
           '派送日期': '',
+          '盤點完成日': '',
           '結案日期': '',
+          '盤點日數': '',
           '處理天數': ''
         });
         grandTotalTickets += s['單據總數'];
@@ -127,7 +133,9 @@ export default function Statistics() {
         '狀態': '',
         '項目數': `共 ${grandTotalItems} 項`,
         '派送日期': '',
+        '盤點完成日': '',
         '結案日期': '',
+        '盤點日數': '',
         '處理天數': ''
       });
       
@@ -222,7 +230,9 @@ export default function Statistics() {
           '狀態': t.closeDate ? '已結案' : '處理中',
           '項目數': t.itemCount || 0,
           '派送日期': t.dispatchDate ? new Date(t.dispatchDate).toLocaleDateString('zh-TW') : '-',
+          '盤點完成日': getInventoryInfo(t).date ? new Date(getInventoryInfo(t).date!).toLocaleDateString('zh-TW') : '-',
           '結案日期': t.closeDate ? new Date(t.closeDate).toLocaleDateString('zh-TW') : '-',
+          '盤點日數': getInventoryInfo(t).days !== null ? getInventoryInfo(t).days : '-',
           '處理天數': processingDays !== null ? processingDays : '-'
         };
       });
@@ -235,7 +245,7 @@ export default function Statistics() {
       const avgDaysStr = closedWithDays.length > 0 ? `平均 ${(totalDays / closedWithDays.length).toFixed(1)} 天` : '-';
       
       exportData.push({
-        '序號': '', '單號': '總計', '任務': `共 ${taskCount} 筆`, '盤點類型': '', '狀態': `共 ${totalTickets} 單`, '項目數': `共 ${totalItems} 項`, '派送日期': '', '結案日期': '', '處理天數': avgDaysStr
+        '序號': '', '單號': '總計', '任務': `共 ${taskCount} 筆`, '盤點類型': '', '狀態': `共 ${totalTickets} 單`, '項目數': `共 ${totalItems} 項`, '派送日期': '', '盤點完成日': '', '結案日期': '', '盤點日數': '', '處理天數': avgDaysStr
       });
       
     const wb = new ExcelJS.Workbook();
@@ -330,6 +340,14 @@ export default function Statistics() {
       console.error(e);
       alert('讀取資料失敗');
     }
+  };
+
+  const getInventoryInfo = (t: InventoryTicket): { date: number | null; days: number | null } => {
+    const idx = workflows.findIndex(w => w.name === '盤點中');
+    if (idx < 0 || !t.stageDates || !t.stageDates[workflows[idx].id]) return { date: null, days: null };
+    const date = t.stageDates[workflows[idx].id];
+    const prev = idx === 0 ? t.dispatchDate : t.stageDates[workflows[idx - 1].id];
+    return { date, days: prev ? calculateBusinessDays(prev, date, holidays) : null };
   };
 
   const getFirstStageDate = (t: InventoryTicket) => {
