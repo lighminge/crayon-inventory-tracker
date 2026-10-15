@@ -19,6 +19,30 @@ export default function Statistics() {
   const [holidays, setHolidays] = useState<HolidaySetting[]>([]);
 
 
+  const avgOfInvDays = (rows: any[]) => {
+    const v = rows.map(r => r['盤點日數']).filter(x => typeof x === 'number');
+    return v.length > 0 ? `平均 ${(v.reduce((s: number, x: number) => s + x, 0) / v.length).toFixed(1)} 天` : '-';
+  };
+
+  const styleWorksheet = (ws: ExcelJS.Worksheet, boldFromRow: number, skipRows: number[] = []) => {
+    const thin = { style: 'thin' as const };
+    const border = { top: thin, left: thin, bottom: thin, right: thin };
+    const colWidths: number[] = [];
+    ws.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        const text = cell.value === null || cell.value === undefined ? '' : String(cell.value);
+        let len = 0;
+        for (const ch of text) len += ch.charCodeAt(0) > 255 ? 2 : 1;
+        colWidths[colNumber] = Math.max(colWidths[colNumber] || 0, len);
+        if (skipRows.includes(rowNumber)) return;
+        cell.font = { size: 14, bold: rowNumber === 1 || (boldFromRow > 0 && rowNumber >= boldFromRow) };
+        cell.border = border;
+        cell.alignment = { vertical: 'middle' };
+      });
+    });
+    colWidths.forEach((w, i) => { if (w !== undefined) ws.getColumn(i).width = Math.max(12, Math.ceil(w * 1.35) + 4); });
+  };
+
   const handleExportAllExcel = async () => {
     const wb = new ExcelJS.Workbook();
     let allTicketsData: any[] = [];
@@ -57,7 +81,8 @@ export default function Statistics() {
       personSummaries.push({
         '負責人': stat.name,
         '單據總數': stat.pTickets.length,
-        '項目總數': pTotalItems
+        '項目總數': pTotalItems,
+        '盤點平均': avgOfInvDays(exportData)
       });
       
       const totalTickets = exportData.length;
@@ -66,15 +91,17 @@ export default function Statistics() {
       const closedWithDays = exportData.filter((row: any) => row['處理天數'] !== '-');
       const totalDays = closedWithDays.reduce((sum: number, row: any) => sum + row['處理天數'], 0);
       const avgDaysStr = closedWithDays.length > 0 ? `平均 ${(totalDays / closedWithDays.length).toFixed(1)} 天` : '-';
+      const invAvgStr = avgOfInvDays(exportData);
       
       exportData.push({
-        '序號': '', '單號': '總計', '任務': `共 ${taskCount} 筆`, '盤點類型': '', '狀態': `共 ${totalTickets} 單`, '項目數': `共 ${totalItems} 項`, '派送日期': '', '盤點完成日': '', '結案日期': '', '盤點日數': '', '處理天數': avgDaysStr
+        '序號': '', '單號': '總計', '任務': `共 ${taskCount} 筆`, '盤點類型': '', '狀態': `共 ${totalTickets} 單`, '項目數': `共 ${totalItems} 項`, '派送日期': '', '盤點完成日': '', '結案日期': '', '盤點日數': invAvgStr, '處理天數': avgDaysStr
       });
       
       const ws = wb.addWorksheet(stat.name.substring(0, 31));
       if (exportData.length > 0) {
         ws.columns = Object.keys(exportData[0]).map(k => ({ header: k, key: k }));
         exportData.forEach(d => ws.addRow(d));
+        styleWorksheet(ws, ws.rowCount);
       }
     });
     
@@ -117,7 +144,7 @@ export default function Statistics() {
           '派送日期': '',
           '盤點完成日': '',
           '結案日期': '',
-          '盤點日數': '',
+          '盤點日數': s['盤點平均'],
           '處理天數': ''
         });
         grandTotalTickets += s['單據總數'];
@@ -135,7 +162,7 @@ export default function Statistics() {
         '派送日期': '',
         '盤點完成日': '',
         '結案日期': '',
-        '盤點日數': '',
+        '盤點日數': avgOfInvDays(allTicketsData),
         '處理天數': ''
       });
       
@@ -143,6 +170,7 @@ export default function Statistics() {
       if (allExportData.length > 0) {
         wsAll.columns = Object.keys(allExportData[0] || {}).map(k => ({ header: k, key: k }));
         allExportData.forEach(d => wsAll.addRow(d));
+        styleWorksheet(wsAll, allTicketsData.length + 3, [allTicketsData.length + 2]);
       }
     }
     
@@ -243,9 +271,10 @@ export default function Statistics() {
       const closedWithDays = exportData.filter((row: any) => row['處理天數'] !== '-');
       const totalDays = closedWithDays.reduce((sum: number, row: any) => sum + row['處理天數'], 0);
       const avgDaysStr = closedWithDays.length > 0 ? `平均 ${(totalDays / closedWithDays.length).toFixed(1)} 天` : '-';
+      const invAvgStr = avgOfInvDays(exportData);
       
       exportData.push({
-        '序號': '', '單號': '總計', '任務': `共 ${taskCount} 筆`, '盤點類型': '', '狀態': `共 ${totalTickets} 單`, '項目數': `共 ${totalItems} 項`, '派送日期': '', '盤點完成日': '', '結案日期': '', '盤點日數': '', '處理天數': avgDaysStr
+        '序號': '', '單號': '總計', '任務': `共 ${taskCount} 筆`, '盤點類型': '', '狀態': `共 ${totalTickets} 單`, '項目數': `共 ${totalItems} 項`, '派送日期': '', '盤點完成日': '', '結案日期': '', '盤點日數': invAvgStr, '處理天數': avgDaysStr
       });
       
     const wb = new ExcelJS.Workbook();
@@ -253,6 +282,7 @@ export default function Statistics() {
     if (exportData.length > 0) {
       ws.columns = Object.keys(exportData[0]).map(k => ({ header: k, key: k }));
       exportData.forEach(d => ws.addRow(d));
+      styleWorksheet(ws, ws.rowCount);
     }
     
     const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
