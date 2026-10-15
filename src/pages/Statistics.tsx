@@ -19,6 +19,11 @@ export default function Statistics() {
   const [holidays, setHolidays] = useState<HolidaySetting[]>([]);
 
 
+  const avgOfProcDays = (rows: any[]) => {
+    const v = rows.map(r => r['處理天數']).filter(x => typeof x === 'number');
+    return v.length > 0 ? `平均 ${(v.reduce((s: number, x: number) => s + x, 0) / v.length).toFixed(1)} 天` : '-';
+  };
+
   const avgOfInvDays = (rows: any[]) => {
     const v = rows.map(r => r['盤點日數']).filter(x => typeof x === 'number');
     return v.length > 0 ? `平均 ${(v.reduce((s: number, x: number) => s + x, 0) / v.length).toFixed(1)} 天` : '-';
@@ -82,7 +87,8 @@ export default function Statistics() {
         '負責人': stat.name,
         '單據總數': stat.pTickets.length,
         '項目總數': pTotalItems,
-        '盤點平均': avgOfInvDays(exportData)
+        '盤點平均': avgOfInvDays(exportData),
+        '處理平均': avgOfProcDays(exportData)
       });
       
       const totalTickets = exportData.length;
@@ -145,7 +151,7 @@ export default function Statistics() {
           '盤點完成日': '',
           '結案日期': '',
           '盤點日數': s['盤點平均'],
-          '處理天數': ''
+          '處理天數': s['處理平均']
         });
         grandTotalTickets += s['單據總數'];
         grandTotalItems += s['項目總數'];
@@ -163,7 +169,7 @@ export default function Statistics() {
         '盤點完成日': '',
         '結案日期': '',
         '盤點日數': avgOfInvDays(allTicketsData),
-        '處理天數': ''
+        '處理天數': avgOfProcDays(allTicketsData)
       });
       
       const wsAll = wb.addWorksheet('全部');
