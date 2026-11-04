@@ -92,6 +92,16 @@ export default function AdditionalTickets() {
       return setSystemAlert({ message: '請填寫完整資訊' });
     }
 
+    if (!ticketType && !subType) {
+      return setSystemAlert({ message: '請選擇「盤點類型」與「單據種類」' });
+    }
+    if (!ticketType) {
+      return setSystemAlert({ message: '請選擇「盤點類型」' });
+    }
+    if (!subType) {
+      return setSystemAlert({ message: '請選擇「單據種類」' });
+    }
+
     if (!editingTicketId && tickets.some(t => t.id === newId.trim())) {
       return setSystemAlert({ message: '此單號已存在' });
     }
@@ -107,7 +117,7 @@ export default function AdditionalTickets() {
         await updateTicket(editingTicketId, {
           assigneeId: targetPerson.id,
           itemCount: count,
-          subType: subType as any || undefined,
+          subType: (subType as any) || null,
           ticketType: ticketType as any || '追加',
           closeDate: timestamp,
           dispatchDate: timestamp
@@ -116,7 +126,7 @@ export default function AdditionalTickets() {
         const ticket: InventoryTicket = {
           id: newId.trim(),
           title: newId.trim(),
-          subType: subType as any || undefined,
+          subType: (subType as any) || null,
           ticketType: ticketType as any || '追加',
           isAdditional: true,
           assigneeId: targetPerson.id,
