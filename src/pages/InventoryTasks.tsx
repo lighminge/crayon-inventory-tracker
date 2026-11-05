@@ -216,10 +216,14 @@ export default function InventoryTasks() {
 
       // Calculate total days spent based on completed tickets
       let totalDaysSpent: number | null = null;
+      let completedDate: number | null = null;
       if (completedLinkedTickets.length > 0) {
         const maxCloseDate = Math.max(...completedLinkedTickets.map(t => t.closeDate || 0));
         if (maxCloseDate > 0) {
           totalDaysSpent = calculateBusinessDays(task.startDate, maxCloseDate, holidays);
+          if (completionRate === 100) {
+            completedDate = maxCloseDate;
+          }
         }
       }
 
@@ -233,7 +237,8 @@ export default function InventoryTasks() {
         isExpired,
         mappedTickets,
         assigneeList,
-        totalDaysSpent
+        totalDaysSpent,
+        completedDate
       };
     });
   }, [tasks, tickets, personnel, holidays]);
@@ -633,7 +638,7 @@ export default function InventoryTasks() {
                     <button 
                       className="doodle-button" 
                       style={{ backgroundColor: 'var(--crayon-blue)', color: 'white', padding: '5px 15px', display: 'flex', alignItems: 'center', gap: '5px', minHeight: 'auto' }}
-                      onClick={() => navigate('/calendar', { state: { targetDate: task.startDate } })}
+                      onClick={() => navigate('/calendar', { state: { targetDate: (task.completionRate === 100 && task.completedDate) ? task.completedDate : task.startDate } })}
                     >
                       📅 在行事曆中查看
                     </button>

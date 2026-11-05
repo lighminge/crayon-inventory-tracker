@@ -25,6 +25,7 @@ export default function WorkflowTickets() {
   const [fastQueryId, setFastQueryId] = useState('');
   const [filterTicketType, setFilterTicketType] = useState('');
   const [filterTaskId, setFilterTaskId] = useState('');
+  const [taskStatusFilter, setTaskStatusFilter] = useState<'all' | 'active' | 'expired'>('active');
   const [filterAssignee, setFilterAssignee] = useState('');
 
   // Modals State
@@ -352,11 +353,36 @@ export default function WorkflowTickets() {
               <option value="TKW">TKW</option>
             </select>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <label style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>📋 盤點任務：</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#fff', padding: '4px 10px', borderRadius: '8px', border: '2px dashed var(--crayon-dark)' }}>
+              {[
+                { value: 'all', label: '全部' },
+                { value: 'expired', label: '已到期' },
+                { value: 'active', label: '未到期' }
+              ].map(opt => (
+                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem', color: taskStatusFilter === opt.value ? 'var(--crayon-blue)' : 'var(--crayon-dark)' }}>
+                  <input
+                    type="checkbox"
+                    style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    checked={taskStatusFilter === opt.value}
+                    onChange={() => {
+                      setTaskStatusFilter(opt.value as 'all' | 'active' | 'expired');
+                      setFilterTaskId('');
+                    }}
+                  />
+                  {opt.label}
+                </label>
+              ))}
+            </div>
             <select className="doodle-input" style={{ fontSize: '1.2rem', width: '150px' }} value={filterTaskId} onChange={e => setFilterTaskId(e.target.value)}>
               <option value="">全部任務</option>
-              {tasks.filter(tk => tk.endDate >= new Date().getTime() - (24 * 60 * 60 * 1000)).map(tk => (
+              {tasks.filter(tk => {
+                const isExpired = tk.endDate < new Date().getTime() - (24 * 60 * 60 * 1000);
+                if (taskStatusFilter === 'active') return !isExpired;
+                if (taskStatusFilter === 'expired') return isExpired;
+                return true;
+              }).map(tk => (
                 <option key={tk.id} value={tk.id}>{tk.name}</option>
               ))}
             </select>

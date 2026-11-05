@@ -83,7 +83,7 @@ export default function Dashboard() {
   
   // Dashboard Chart State
   const [chartType, setChartType] = useState<'bar' | 'line' | 'composed'>('bar');
-  const [chartMetric, setChartMetric] = useState<'ticketCount' | 'itemCount' | 'all'>('ticketCount');
+  const [chartMetric, setChartMetric] = useState<'ticketCount' | 'itemCount' | 'all'>('all');
   
   // Dashboard Unclosed State
   const [unclosedAssigneeFilter, setUnclosedAssigneeFilter] = useState<string>('all');
@@ -1292,7 +1292,7 @@ export default function Dashboard() {
                       </div>
                       
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        {assigneeTickets.map((t, index) => {
+                        {[...assigneeTickets].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true })).map((t, index) => {
                           const startMs = getFirstStageDate(t);
                           let daysSpent = 0;
                           if (startMs) {
