@@ -213,6 +213,7 @@ export default function Dashboard() {
         return currentStageName === '盤點中';
       });
       const doingCount = doingTickets.length;
+      const doingItemCount = doingTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
       
       // 本月派送
       const monthTickets = pTickets.filter(t => {
@@ -251,6 +252,7 @@ export default function Dashboard() {
         incompleteCount,
         doingTickets,
         doingCount,
+        doingItemCount,
         monthDispatch,
         monthCompleted,
         monthCompletionRate,
@@ -933,18 +935,32 @@ export default function Dashboard() {
                       >
                         🏃 盤點中
                         {p.doingCount > 0 && (
-                          <span style={{
-                            position: 'absolute', top: '-15px', right: '-15px',
-                            backgroundColor: 'var(--crayon-purple)', color: 'white',
-                            border: '3px solid var(--crayon-dark)',
-                            borderRadius: '50%', width: '32px', height: '32px',
-                            fontSize: '1.2rem', fontWeight: '900', display: 'flex', 
-                            alignItems: 'center', justifyContent: 'center', zIndex: 1,
-                            boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
-                            transform: 'rotate(-5deg)'
-                          }}>
-                            {p.doingCount}
-                          </span>
+                          <>
+                            <span style={{
+                              position: 'absolute', top: '-15px', right: '-15px',
+                              backgroundColor: 'var(--crayon-purple)', color: 'white',
+                              border: '3px solid var(--crayon-dark)',
+                              borderRadius: '50%', width: '32px', height: '32px',
+                              fontSize: '1.2rem', fontWeight: '900', display: 'flex', 
+                              alignItems: 'center', justifyContent: 'center', zIndex: 1,
+                              boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                              transform: 'rotate(-5deg)'
+                            }}>
+                              {p.doingCount}
+                            </span>
+                            <span style={{
+                              position: 'absolute', bottom: '-14px', right: '-10px',
+                              backgroundColor: 'var(--crayon-yellow)', color: 'var(--crayon-dark)',
+                              border: '2px solid var(--crayon-dark)',
+                              borderRadius: '12px', padding: '1px 7px',
+                              fontSize: '0.85rem', fontWeight: '900', lineHeight: '1.2',
+                              whiteSpace: 'nowrap', zIndex: 1,
+                              boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                              transform: 'rotate(3deg)'
+                            }}>
+                              {p.doingItemCount}項
+                            </span>
+                          </>
                         )}
                       </button>
                     </div>

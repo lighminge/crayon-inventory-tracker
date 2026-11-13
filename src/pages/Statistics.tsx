@@ -334,11 +334,13 @@ export default function Statistics() {
   const [enableTypeFilter, setEnableTypeFilter] = useState(false);
   const [enableDaysFilter, setEnableDaysFilter] = useState(false);
   const [enableStatusFilter, setEnableStatusFilter] = useState(false);
+  const [enableWorkflowFilter, setEnableWorkflowFilter] = useState(false);
 
   // Multi-select state
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedDaysFilter, setSelectedDaysFilter] = useState('0');
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState('');
 
   // Chart configuration state
   const [chartType, setChartType] = useState<'bar' | 'pie' | 'line' | 'composed'>('bar');
@@ -444,6 +446,13 @@ export default function Statistics() {
         if (daysFilterTicketStatus === 'unclosed' && t.closeDate) return false;
       }
 
+      // Workflow stage filter
+      if (enableWorkflowFilter && selectedWorkflowId) {
+        if (t.closeDate) return false;
+        const currentStage = workflows.find(w => !t.stageDates || !t.stageDates[w.id]);
+        if (!currentStage || currentStage.id !== selectedWorkflowId) return false;
+      }
+
       // Days filter
       if (enableDaysFilter && selectedDaysFilter) {
         const start = getFirstStageDate(t);
@@ -460,7 +469,7 @@ export default function Statistics() {
 
       return true;
     });
-  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskIds, selectedTypes, selectedDaysFilter, enableDateFilter, enableTicketFilter, enableTaskFilter, enableTypeFilter, enableDaysFilter, enableStatusFilter, holidays, globalYear, categoryFilter, additionalTypeFilter, dateFilterType, daysFilterTicketStatus, workflows]);
+  }, [tickets, startDate, endDate, startTicketId, endTicketId, selectedTaskIds, selectedTypes, selectedDaysFilter, enableDateFilter, enableTicketFilter, enableTaskFilter, enableTypeFilter, enableDaysFilter, enableStatusFilter, enableWorkflowFilter, selectedWorkflowId, holidays, globalYear, categoryFilter, additionalTypeFilter, dateFilterType, daysFilterTicketStatus, workflows]);
 
   // Derive tasks to show in the "依盤點任務" list
   const filteredTasksList = useMemo(() => {
@@ -896,6 +905,7 @@ export default function Statistics() {
             </div>
           </div>
 
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* 單號狀態區塊 */}
           <div className="doodle-border" style={{ 
             backgroundColor: '#fff9c4', 
@@ -916,6 +926,30 @@ export default function Statistics() {
                 </select>
               </div>
             </div>
+          </div>
+
+          {/* 盤點單流程區塊 */}
+          <div className="doodle-border" style={{ 
+            backgroundColor: '#e8eaf6', 
+            padding: '15px', transform: 'rotate(-0.5deg)',
+            opacity: enableWorkflowFilter ? 1 : 0.6
+          }}>
+            <h4 style={{ margin: '0 0 10px 0', color: '#283593', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <input type="checkbox" checked={enableWorkflowFilter} onChange={e => setEnableWorkflowFilter(e.target.checked)} style={{ transform: 'scale(1.5)', cursor: 'pointer' }} />
+              📌 依盤點單流程
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', pointerEvents: enableWorkflowFilter ? 'auto' : 'none' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>目前所在流程：</label>
+                <select className="doodle-input" style={{ width: '100%', padding: '5px', backgroundColor: 'white' }} value={selectedWorkflowId} onChange={e => setSelectedWorkflowId(e.target.value)}>
+                  <option value="">-- 全部流程 --</option>
+                  {workflows.map(w => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
           </div>
 
           {/* 盤點類型區塊 */}
