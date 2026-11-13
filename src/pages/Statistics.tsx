@@ -177,6 +177,41 @@ export default function Statistics() {
         wsAll.columns = Object.keys(allExportData[0] || {}).map(k => ({ header: k, key: k }));
         allExportData.forEach(d => wsAll.addRow(d));
         styleWorksheet(wsAll, allTicketsData.length + 3, [allTicketsData.length + 2]);
+
+        const personPalette = [
+          'FFE3F2FD', // 淺藍
+          'FFFCE4EC', // 淺粉
+          'FFE8F5E9', // 淺綠
+          'FFFFF3E0', // 淺橘
+          'FFF3E5F5', // 淺紫
+          'FFE0F7FA', // 淺青
+          'FFFFF9C4', // 淺黃
+          'FFE8EAF6', // 淺靛藍
+          'FFF1F8E9', // 淺萊姆
+          'FFFFEBEE', // 淺紅
+          'FFE0F2F1', // 淺藍綠
+          'FFFFF8E1', // 淺琥珀
+          'FFEDE7F6', // 淺深紫
+          'FFFBE9E7', // 淺珊瑚
+          'FFECEFF1', // 淺藍灰
+          'FFFFFDE7'  // 淺米黃
+        ];
+        const personColorMap = new Map<string, string>();
+        allTicketsData.forEach((row, idx) => {
+          const person = row['負責人'] || '';
+          if (!personColorMap.has(person)) {
+            personColorMap.set(person, personPalette[personColorMap.size % personPalette.length]);
+          }
+          const argb = personColorMap.get(person)!;
+          const wsRow = wsAll.getRow(idx + 2);
+          wsRow.eachCell({ includeEmpty: true }, (cell) => {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb }
+            };
+          });
+        });
       }
     }
     
