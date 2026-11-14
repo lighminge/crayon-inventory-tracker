@@ -42,9 +42,11 @@ export default function Statistics() {
         const scaledLen = isHeaderOrSummary ? Math.ceil(len * (16 / 14)) : len;
         colWidths[colNumber] = Math.max(colWidths[colNumber] || 0, scaledLen);
         if (skipRows.includes(rowNumber)) return;
+        const colKey = ws.getColumn(colNumber).key;
+        const isCentered = rowNumber === 1 || colKey === '序號' || colKey === '項目數';
         cell.font = { size: isHeaderOrSummary ? 16 : 14, bold: true };
         cell.border = border;
-        cell.alignment = colNumber === 1
+        cell.alignment = isCentered
           ? { vertical: 'middle', horizontal: 'center' }
           : { vertical: 'middle' };
       });
