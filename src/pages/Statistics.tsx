@@ -70,6 +70,7 @@ export default function Statistics() {
           '單號': t.id,
           '任務': t.taskId ? (tasks.find(tsk => tsk.id === t.taskId)?.name || '未知任務') : '無任務',
           '盤點類型': t.ticketType,
+          '盤點單流程': getCurrentWorkflowName(t),
           '狀態': t.closeDate ? '已結案' : '處理中',
           '項目數': itemCount,
           '派送日期': t.dispatchDate ? new Date(t.dispatchDate).toLocaleDateString('zh-TW') : '-',
@@ -100,7 +101,7 @@ export default function Statistics() {
       const invAvgStr = avgOfInvDays(exportData);
       
       exportData.push({
-        '序號': '', '單號': '總計', '任務': `共 ${taskCount} 筆`, '盤點類型': '', '狀態': `共 ${totalTickets} 單`, '項目數': `共 ${totalItems} 項`, '派送日期': '', '盤點完成日': '', '結案日期': '', '盤點日數': invAvgStr, '處理天數': avgDaysStr
+        '序號': '', '單號': '總計', '任務': `共 ${taskCount} 筆`, '盤點類型': '', '盤點單流程': '', '狀態': `共 ${totalTickets} 單`, '項目數': `共 ${totalItems} 項`, '派送日期': '', '盤點完成日': '', '結案日期': '', '盤點日數': invAvgStr, '處理天數': avgDaysStr
       });
       
       const ws = wb.addWorksheet(stat.name.substring(0, 31));
@@ -124,6 +125,7 @@ export default function Statistics() {
         '單號': row['單號'],
         '任務': row['任務'],
         '盤點類型': row['盤點類型'],
+        '盤點單流程': row['盤點單流程'],
         '狀態': row['狀態'],
         '項目數': row['項目數'],
         '派送日期': row['派送日期'],
@@ -145,6 +147,7 @@ export default function Statistics() {
           '單號': `單據數: ${s['單據總數']}`,
           '任務': '',
           '盤點類型': '',
+          '盤點單流程': '',
           '狀態': '',
           '項目數': `項目數: ${s['項目總數']}`,
           '派送日期': '',
@@ -163,6 +166,7 @@ export default function Statistics() {
         '單號': `共 ${grandTotalTickets} 單`,
         '任務': '',
         '盤點類型': '',
+        '盤點單流程': '',
         '狀態': '',
         '項目數': `共 ${grandTotalItems} 項`,
         '派送日期': '',
@@ -179,22 +183,22 @@ export default function Statistics() {
         styleWorksheet(wsAll, allTicketsData.length + 3, [allTicketsData.length + 2]);
 
         const personPalette = [
-          'FFE3F2FD', // 淺藍
-          'FFFCE4EC', // 淺粉
-          'FFE8F5E9', // 淺綠
-          'FFFFF3E0', // 淺橘
-          'FFF3E5F5', // 淺紫
-          'FFE0F7FA', // 淺青
-          'FFFFF9C4', // 淺黃
-          'FFE8EAF6', // 淺靛藍
-          'FFF1F8E9', // 淺萊姆
-          'FFFFEBEE', // 淺紅
-          'FFE0F2F1', // 淺藍綠
-          'FFFFF8E1', // 淺琥珀
-          'FFEDE7F6', // 淺深紫
-          'FFFBE9E7', // 淺珊瑚
-          'FFECEFF1', // 淺藍灰
-          'FFFFFDE7'  // 淺米黃
+          'FF90CAF9', // 藍
+          'FFF48FB1', // 粉紅
+          'FFA5D6A7', // 綠
+          'FFFFCC80', // 橘
+          'FFCE93D8', // 紫
+          'FF80DEEA', // 青
+          'FFFFF176', // 黃
+          'FF9FA8DA', // 靛藍
+          'FFC5E1A5', // 萊姆綠
+          'FFEF9A9A', // 紅
+          'FF80CBC4', // 藍綠
+          'FFFFE082', // 琥珀黃
+          'FFB39DDB', // 深紫
+          'FFFFAB91', // 珊瑚橘
+          'FFB0BEC5', // 藍灰
+          'FFDCE775'  // 黃綠
         ];
         const personColorMap = new Map<string, string>();
         allTicketsData.forEach((row, idx) => {
@@ -296,6 +300,7 @@ export default function Statistics() {
           '單號': t.id,
           '任務': t.taskId ? (tasks.find(tsk => tsk.id === t.taskId)?.name || '未知任務') : '無任務',
           '盤點類型': t.ticketType,
+          '盤點單流程': getCurrentWorkflowName(t),
           '狀態': t.closeDate ? '已結案' : '處理中',
           '項目數': t.itemCount || 0,
           '派送日期': t.dispatchDate ? new Date(t.dispatchDate).toLocaleDateString('zh-TW') : '-',
@@ -315,7 +320,7 @@ export default function Statistics() {
       const invAvgStr = avgOfInvDays(exportData);
       
       exportData.push({
-        '序號': '', '單號': '總計', '任務': `共 ${taskCount} 筆`, '盤點類型': '', '狀態': `共 ${totalTickets} 單`, '項目數': `共 ${totalItems} 項`, '派送日期': '', '盤點完成日': '', '結案日期': '', '盤點日數': invAvgStr, '處理天數': avgDaysStr
+        '序號': '', '單號': '總計', '任務': `共 ${taskCount} 筆`, '盤點類型': '', '盤點單流程': '', '狀態': `共 ${totalTickets} 單`, '項目數': `共 ${totalItems} 項`, '派送日期': '', '盤點完成日': '', '結案日期': '', '盤點日數': invAvgStr, '處理天數': avgDaysStr
       });
       
     const wb = new ExcelJS.Workbook();
@@ -413,6 +418,12 @@ export default function Statistics() {
       console.error(e);
       alert('讀取資料失敗');
     }
+  };
+
+  const getCurrentWorkflowName = (t: InventoryTicket): string => {
+    if (t.closeDate) return '已結案';
+    const currentStage = workflows.find(w => !t.stageDates || !t.stageDates[w.id]);
+    return currentStage ? currentStage.name : '等候結案';
   };
 
   const getInventoryInfo = (t: InventoryTicket): { date: number | null; days: number | null } => {
