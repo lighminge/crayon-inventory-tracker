@@ -34,15 +34,19 @@ export default function Statistics() {
     const border = { top: thin, left: thin, bottom: thin, right: thin };
     const colWidths: number[] = [];
     ws.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      const isHeaderOrSummary = rowNumber === 1 || (boldFromRow > 0 && rowNumber >= boldFromRow);
       row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
         const text = cell.value === null || cell.value === undefined ? '' : String(cell.value);
         let len = 0;
         for (const ch of text) len += ch.charCodeAt(0) > 255 ? 2 : 1;
-        colWidths[colNumber] = Math.max(colWidths[colNumber] || 0, len);
+        const scaledLen = isHeaderOrSummary ? Math.ceil(len * (16 / 14)) : len;
+        colWidths[colNumber] = Math.max(colWidths[colNumber] || 0, scaledLen);
         if (skipRows.includes(rowNumber)) return;
-        cell.font = { size: 14, bold: rowNumber === 1 || (boldFromRow > 0 && rowNumber >= boldFromRow) };
+        cell.font = { size: isHeaderOrSummary ? 16 : 14, bold: true };
         cell.border = border;
-        cell.alignment = { vertical: 'middle' };
+        cell.alignment = colNumber === 1
+          ? { vertical: 'middle', horizontal: 'center' }
+          : { vertical: 'middle' };
       });
     });
     colWidths.forEach((w, i) => { if (w !== undefined) ws.getColumn(i).width = Math.max(12, Math.ceil(w * 1.35) + 4); });
