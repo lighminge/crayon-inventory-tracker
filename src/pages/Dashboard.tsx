@@ -689,16 +689,20 @@ export default function Dashboard() {
                 <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                   <div style={{ flex: 1, minWidth: '300px', height: '350px' }}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={monthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                      <BarChart data={monthlyData} margin={{ top: 25, right: 30, left: 20, bottom: 60 }}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="name" tick={{fontFamily: 'Caveat, cursive', fontWeight: 'bold'}} angle={-45} textAnchor="end" />
                         <YAxis allowDecimals={false} />
                         <Tooltip contentStyle={{ borderRadius: '10px', fontWeight: 'bold' }} />
-                        <Bar dataKey="count" name="派送數量" radius={[5, 5, 0, 0]}>
+                        <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '10px', fontWeight: 'bold' }} />
+                        <Bar dataKey="count" name="派送數量" fill="var(--crayon-blue)" radius={[5, 5, 0, 0]}>
                           {monthlyData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
-                          <LabelList dataKey="count" position="top" style={{ fontWeight: 'bold' }} />
+                          <LabelList dataKey="count" position="top" style={{ fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                        </Bar>
+                        <Bar dataKey="itemCount" name="盤點項目數" fill="var(--crayon-orange)" radius={[5, 5, 0, 0]}>
+                          <LabelList dataKey="itemCount" position="top" style={{ fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
