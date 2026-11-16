@@ -709,10 +709,7 @@ export default function Dashboard() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
                       {monthlyData.map(d => (
                         <div key={d.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '15px', height: '15px', backgroundColor: d.color, borderRadius: '4px', border: '1px solid rgba(0,0,0,0.1)' }}></div>
-                            <span style={{ fontWeight: 'bold', fontSize: '1rem', color: '#333' }}>{d.name}</span>
-                          </div>
+                          <span style={{ fontWeight: 'bold', fontSize: '1rem', color: '#333' }}>{d.name}</span>
                           <span style={{ fontWeight: 'bold', color: 'var(--crayon-blue)', fontSize: '0.95rem' }}>{d.count} 筆 / {d.itemCount} 項</span>
                         </div>
                       ))}
