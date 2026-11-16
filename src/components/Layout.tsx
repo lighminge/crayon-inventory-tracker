@@ -215,6 +215,58 @@ export default function Layout() {
       </div>
       
       <FloatingCalculator />
+
+      <button
+        type="button"
+        title="回到頂部"
+        aria-label="回到頂部"
+        onClick={() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+          document.body.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+        style={{
+          position: 'fixed',
+          right: '25px',
+          bottom: '25px',
+          width: '54px',
+          height: '54px',
+          borderRadius: '50%',
+          backgroundColor: 'var(--crayon-blue)',
+          color: 'white',
+          border: '3px solid var(--crayon-dark)',
+          boxShadow: '4px 4px 0px var(--crayon-dark)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 999,
+          transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+          padding: 0
+        }}
+        onMouseOver={e => {
+          e.currentTarget.style.transform = 'translateY(-3px) scale(1.05)';
+          e.currentTarget.style.boxShadow = '6px 6px 0px var(--crayon-dark)';
+        }}
+        onMouseOut={e => {
+          e.currentTarget.style.transform = 'translateY(0) scale(1)';
+          e.currentTarget.style.boxShadow = '4px 4px 0px var(--crayon-dark)';
+        }}
+      >
+        <svg
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M12 19V5" />
+          <path d="M5 12l7-7 7 7" />
+        </svg>
+      </button>
     </div>
   );
 }
