@@ -696,9 +696,6 @@ export default function Dashboard() {
                         <Tooltip contentStyle={{ borderRadius: '10px', fontWeight: 'bold' }} />
                         <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '10px', fontWeight: 'bold' }} />
                         <Bar dataKey="count" name="派送數量" fill="var(--crayon-blue)" radius={[5, 5, 0, 0]}>
-                          {monthlyData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
                           <LabelList dataKey="count" position="top" style={{ fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
                         </Bar>
                         <Bar dataKey="itemCount" name="盤點項目數" fill="var(--crayon-orange)" radius={[5, 5, 0, 0]}>
