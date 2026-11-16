@@ -777,11 +777,11 @@ export default function Dashboard() {
                             </div>
                           ) : (
                             <>
-                              <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{day.count}</span>
+                              <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--crayon-blue)' }}>{day.count}</span>
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                 <span style={{ fontSize: '0.8rem', color: '#666' }}>筆派送</span>
-                                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--crayon-purple)', marginTop: '2px' }}>共 {day.itemCount} 項</span>
-                                <span style={{ fontSize: '0.75rem', color: 'var(--crayon-blue)', marginTop: '2px' }}>(點擊查看)</span>
+                                <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--crayon-purple)', marginTop: '4px', lineHeight: '1.2' }}>共 {day.itemCount} 項</span>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--crayon-blue)', marginTop: '4px' }}>(點擊查看)</span>
                               </div>
                             </>
                           )
@@ -828,8 +828,8 @@ export default function Dashboard() {
                       <div style={{ fontSize: '3.2rem', fontWeight: '900', color: 'var(--crayon-orange)', fontFamily: 'Caveat, cursive', lineHeight: '1', marginBottom: '4px', textShadow: '2px 2px 0px rgba(0,0,0,0.1)' }}>{weeklyCalendarData.totalWeeklyCount}</div>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.9rem', color: '#666' }}>筆派送單據</span>
-                        <span style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--crayon-purple)', marginTop: '4px' }}>共 {weeklyCalendarData.totalWeeklyItems} 項</span>
-                        {weeklyCalendarData.totalWeeklyCount > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--crayon-orange)', marginTop: '2px' }}>(點擊查看)</span>}
+                        <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--crayon-purple)', marginTop: '4px', lineHeight: '1.2' }}>共 {weeklyCalendarData.totalWeeklyItems} 項</span>
+                        {weeklyCalendarData.totalWeeklyCount > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--crayon-orange)', marginTop: '4px' }}>(點擊查看)</span>}
                       </div>
                     </>
                   )}
