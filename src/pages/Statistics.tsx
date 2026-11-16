@@ -54,6 +54,201 @@ export default function Statistics() {
     colWidths.forEach((w, i) => { if (w !== undefined) ws.getColumn(i).width = Math.max(12, Math.ceil(w * 1.35) + 4); });
   };
 
+  const buildPersonChartPoints = (pTickets: InventoryTicket[]) => {
+    const dateStats: Record<string, { tickets: number; items: number }> = {};
+    pTickets.forEach(t => {
+      let dateStr = '未填日期';
+      if (t.dispatchDate) {
+        const d = new Date(t.dispatchDate);
+        dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+      if (!dateStats[dateStr]) {
+        dateStats[dateStr] = { tickets: 0, items: 0 };
+      }
+      dateStats[dateStr].tickets += 1;
+      dateStats[dateStr].items += (t.itemCount || 0);
+    });
+    return Object.keys(dateStats).sort().map(dateStr => ({
+      label: dateStr,
+      tickets: dateStats[dateStr].tickets,
+      items: dateStats[dateStr].items
+    }));
+  };
+
+  const addChartToWorksheet = (
+    wb: ExcelJS.Workbook,
+    ws: ExcelJS.Worksheet,
+    title: string,
+    data: { label: string; tickets: number; items: number }[]
+  ) => {
+    if (data.length === 0) return;
+    const scale = 2;
+    const width = Math.max(760, Math.min(1500, data.length * 85 + 180));
+    const height = 420;
+    const canvas = document.createElement('canvas');
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.scale(scale, scale);
+
+    const fontStack = '"Microsoft JhengHei", "PingFang TC", sans-serif';
+
+    // Background & outer frame
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, width, height);
+    ctx.strokeStyle = '#2B2D42';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, width - 2, height - 2);
+
+    // Title
+    ctx.fillStyle = '#2B2D42';
+    ctx.font = `bold 20px ${fontStack}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`📊 ${title}`, width / 2, 28);
+
+    // Legend
+    const legendY = 58;
+    ctx.font = `bold 14px ${fontStack}`;
+    // Series 1: 盤點單數量
+    ctx.fillStyle = '#FB8C00';
+    ctx.fillRect(width / 2 - 190, legendY - 8, 18, 16);
+    ctx.strokeStyle = '#E65100';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(width / 2 - 190, legendY - 8, 18, 16);
+    ctx.fillStyle = '#E65100';
+    ctx.textAlign = 'left';
+    ctx.fillText('盤點單數量 (左軸)', width / 2 - 166, legendY);
+
+    // Series 2: 盤點項目數量
+    ctx.fillStyle = '#42A5F5';
+    ctx.fillRect(width / 2 + 20, legendY - 8, 18, 16);
+    ctx.strokeStyle = '#1565C0';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(width / 2 + 20, legendY - 8, 18, 16);
+    ctx.fillStyle = '#1565C0';
+    ctx.textAlign = 'left';
+    ctx.fillText('盤點項目數量 (右軸)', width / 2 + 44, legendY);
+
+    const left = 75;
+    const right = width - 75;
+    const top = 92;
+    const bottom = height - 85;
+    const plotW = right - left;
+    const plotH = bottom - top;
+
+    const rawMaxTickets = Math.max(...data.map(d => d.tickets), 1);
+    const rawMaxItems = Math.max(...data.map(d => d.items), 1);
+    const steps = 5;
+    const maxTickets = Math.max(steps, Math.ceil((rawMaxTickets * 1.2) / steps) * steps);
+    const maxItems = Math.max(steps, Math.ceil((rawMaxItems * 1.2) / steps) * steps);
+
+    // Gridlines & Y-axis labels
+    ctx.font = `bold 13px ${fontStack}`;
+    for (let i = 0; i <= steps; i++) {
+      const y = bottom - (i / steps) * plotH;
+      ctx.save();
+      ctx.strokeStyle = i === 0 ? '#2B2D42' : '#CCCCCC';
+      ctx.lineWidth = i === 0 ? 2 : 1;
+      if (i > 0) ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(left, y);
+      ctx.lineTo(right, y);
+      ctx.stroke();
+      ctx.restore();
+
+      const tVal = Math.round((maxTickets * i) / steps);
+      ctx.fillStyle = '#E65100';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`${tVal}`, left - 10, y);
+
+      const iVal = Math.round((maxItems * i) / steps);
+      ctx.fillStyle = '#1565C0';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`${iVal}`, right + 10, y);
+    }
+
+    // Left & Right Y-axis vertical lines
+    ctx.strokeStyle = '#2B2D42';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(left, top);
+    ctx.lineTo(left, bottom);
+    ctx.moveTo(right, top);
+    ctx.lineTo(right, bottom);
+    ctx.stroke();
+
+    // Bars & X-axis labels
+    const groupW = plotW / data.length;
+    const barW = Math.min(34, Math.max(12, groupW * 0.34));
+    const rotateLabels = data.length > 6 || data.some(d => d.label.length > 6);
+
+    data.forEach((d, idx) => {
+      const cx = left + (idx + 0.5) * groupW;
+
+      // Tickets bar (left)
+      const h1 = (d.tickets / maxTickets) * plotH;
+      const x1 = cx - barW - 2;
+      const y1 = bottom - h1;
+      ctx.fillStyle = '#FB8C00';
+      ctx.fillRect(x1, y1, barW, h1);
+      ctx.strokeStyle = '#E65100';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(x1, y1, barW, h1);
+
+      ctx.fillStyle = '#BF360C';
+      ctx.font = `bold 13px ${fontStack}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(`${d.tickets}`, x1 + barW / 2, y1 - 4);
+
+      // Items bar (right)
+      const h2 = (d.items / maxItems) * plotH;
+      const x2 = cx + 2;
+      const y2 = bottom - h2;
+      ctx.fillStyle = '#42A5F5';
+      ctx.fillRect(x2, y2, barW, h2);
+      ctx.strokeStyle = '#1565C0';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(x2, y2, barW, h2);
+
+      ctx.fillStyle = '#0D47A1';
+      ctx.font = `bold 13px ${fontStack}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(`${d.items}`, x2 + barW / 2, y2 - 4);
+
+      // X-axis label
+      ctx.save();
+      ctx.fillStyle = '#2B2D42';
+      ctx.font = `bold 13px ${fontStack}`;
+      if (rotateLabels) {
+        ctx.translate(cx, bottom + 12);
+        ctx.rotate(-Math.PI / 6);
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillText(d.label, 0, 0);
+      } else {
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(d.label, cx, bottom + 14);
+      }
+      ctx.restore();
+    });
+
+    const imageId = wb.addImage({
+      base64: canvas.toDataURL('image/png'),
+      extension: 'png'
+    });
+    ws.addImage(imageId, {
+      tl: { col: 0, row: ws.rowCount + 1 },
+      ext: { width, height }
+    });
+  };
+
   const handleExportAllExcel = async () => {
     const wb = new ExcelJS.Workbook();
     let allTicketsData: any[] = [];
@@ -115,6 +310,12 @@ export default function Statistics() {
         ws.columns = Object.keys(exportData[0]).map(k => ({ header: k, key: k }));
         exportData.forEach(d => ws.addRow(d));
         styleWorksheet(ws, ws.rowCount);
+        addChartToWorksheet(
+          wb,
+          ws,
+          `${stat.name} - 盤點單數與項目數統計圖`,
+          buildPersonChartPoints(stat.pTickets)
+        );
       }
     });
     
@@ -222,6 +423,17 @@ export default function Statistics() {
             };
           });
         });
+
+        addChartToWorksheet(
+          wb,
+          wsAll,
+          '全部人員 - 盤點單數與項目數統計圖',
+          personSummaries.map(s => ({
+            label: s['負責人'],
+            tickets: s['單據總數'],
+            items: s['項目總數']
+          }))
+        );
       }
     }
     
@@ -335,6 +547,12 @@ export default function Statistics() {
       ws.columns = Object.keys(exportData[0]).map(k => ({ header: k, key: k }));
       exportData.forEach(d => ws.addRow(d));
       styleWorksheet(ws, ws.rowCount);
+      addChartToWorksheet(
+        wb,
+        ws,
+        `${stat.name} - 盤點單數與項目數統計圖`,
+        buildPersonChartPoints(stat.pTickets)
+      );
     }
     
     const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');

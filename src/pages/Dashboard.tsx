@@ -416,7 +416,8 @@ export default function Dashboard() {
     const today = new Date();
     const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
     let totalWeeklyCount = 0;
-    const weeklyStatsMap: Record<string, number> = {};
+    let totalWeeklyItems = 0;
+    const weeklyStatsMap: Record<string, { count: number; itemCount: number }> = {};
     const days = Array.from({ length: 5 }).map((_, i) => {
       const d = new Date(calendarWeekStart);
       d.setDate(calendarWeekStart.getDate() + i);
@@ -432,17 +433,24 @@ export default function Dashboard() {
         return tdStr === dateStr;
       });
       const count = dayTickets.length;
+      const itemCount = dayTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
       totalWeeklyCount += count;
+      totalWeeklyItems += itemCount;
 
-      const statsMap: Record<string, number> = {};
+      const statsMap: Record<string, { count: number; itemCount: number }> = {};
       dayTickets.forEach(t => {
         const pName = personnel.find(p => p.id === t.assigneeId)?.name || '未知人員';
-        statsMap[pName] = (statsMap[pName] || 0) + 1;
-        weeklyStatsMap[pName] = (weeklyStatsMap[pName] || 0) + 1;
+        const items = t.itemCount || 0;
+        if (!statsMap[pName]) statsMap[pName] = { count: 0, itemCount: 0 };
+        statsMap[pName].count += 1;
+        statsMap[pName].itemCount += items;
+        if (!weeklyStatsMap[pName]) weeklyStatsMap[pName] = { count: 0, itemCount: 0 };
+        weeklyStatsMap[pName].count += 1;
+        weeklyStatsMap[pName].itemCount += items;
       });
       
       const personnelStats = Object.keys(statsMap).map(name => ({
-        name, count: statsMap[name], color: personnelColors[name] || '#999999'
+        name, count: statsMap[name].count, itemCount: statsMap[name].itemCount, color: personnelColors[name] || '#999999'
       })).sort((a, b) => b.count - a.count);
       
       return {
@@ -453,43 +461,46 @@ export default function Dashboard() {
         holidayDesc,
         isToday: dateStr === todayStr,
         dayName: ['日', '一', '二', '三', '四', '五', '六'][d.getDay()],
-        count
+        count,
+        itemCount
       };
     });
     
     const weeklyPersonnelStats = Object.keys(weeklyStatsMap).map(name => ({
-      name, count: weeklyStatsMap[name], color: personnelColors[name] || '#999999'
+      name, count: weeklyStatsMap[name].count, itemCount: weeklyStatsMap[name].itemCount, color: personnelColors[name] || '#999999'
     })).sort((a, b) => b.count - a.count);
 
-    return { days, totalWeeklyCount, weeklyPersonnelStats };
+    return { days, totalWeeklyCount, totalWeeklyItems, weeklyPersonnelStats };
   }, [filteredTickets, holidays, calendarWeekStart, personnel, personnelColors]);
 
-  const monthTotalTickets = useMemo(() => {
+  const monthTicketsList = useMemo(() => {
     return filteredTickets.filter(t => {
       if (!t.dispatchDate) return false;
       const d = new Date(t.dispatchDate);
       return d.getFullYear() === displayYear && d.getMonth() === displayMonth - 1;
-    }).length;
+    });
   }, [filteredTickets, displayYear, displayMonth]);
+
+  const monthTotalTickets = monthTicketsList.length;
+  const monthTotalItems = useMemo(() => {
+    return monthTicketsList.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+  }, [monthTicketsList]);
 
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [showMonthChart, setShowMonthChart] = useState(false);
 
   const monthlyData = useMemo(() => {
-    const monthTickets = filteredTickets.filter(t => {
-      if (!t.dispatchDate) return false;
-      const d = new Date(t.dispatchDate);
-      return d.getFullYear() === displayYear && d.getMonth() === displayMonth - 1;
-    });
-    const map: Record<string, number> = {};
-    monthTickets.forEach(t => {
+    const map: Record<string, { count: number; itemCount: number }> = {};
+    monthTicketsList.forEach(t => {
       const pName = personnel.find(p => p.id === t.assigneeId)?.name || '未知人員';
-      map[pName] = (map[pName] || 0) + 1;
+      if (!map[pName]) map[pName] = { count: 0, itemCount: 0 };
+      map[pName].count += 1;
+      map[pName].itemCount += (t.itemCount || 0);
     });
     return Object.keys(map).map(name => ({
-      name, count: map[name], color: personnelColors[name] || '#999999'
+      name, count: map[name].count, itemCount: map[name].itemCount, color: personnelColors[name] || '#999999'
     })).sort((a, b) => b.count - a.count);
-  }, [filteredTickets, calendarWeekStart, personnel, personnelColors]);
+  }, [monthTicketsList, personnel, personnelColors]);
 
   return (
     <div>
@@ -644,7 +655,7 @@ export default function Dashboard() {
             <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--crayon-orange)', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
               📅 當週盤點單派送狀況 
               <span style={{ fontSize: '1rem', color: '#666', fontWeight: 'bold', border: '1px solid #ccc', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'white' }}>
-                本月共 {monthTotalTickets} 筆
+                本月共 {monthTotalTickets} 筆 / {monthTotalItems} 項
               </span>
               <button className="doodle-button" onClick={() => setShowMonthChart(!showMonthChart)} style={{ padding: '2px 10px', fontSize: '0.9rem', backgroundColor: showMonthChart ? '#ffccbc' : 'var(--crayon-purple)', color: showMonthChart ? 'var(--crayon-dark)' : 'white' }}>
                 {showMonthChart ? '返回當週視圖' : '📊 當月圖表檢視'}
@@ -692,7 +703,7 @@ export default function Dashboard() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                  <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '10px', border: '2px dashed #ccc' }}>
+                  <div style={{ width: '250px', display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '10px', border: '2px dashed #ccc' }}>
                     <h4 style={{ margin: '0 0 10px 0', borderBottom: '2px solid #ddd', paddingBottom: '5px', color: 'var(--crayon-dark)', fontSize: '1.1rem' }}>人員圖例與統計</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
                       {monthlyData.map(d => (
@@ -701,13 +712,13 @@ export default function Dashboard() {
                             <div style={{ width: '15px', height: '15px', backgroundColor: d.color, borderRadius: '4px', border: '1px solid rgba(0,0,0,0.1)' }}></div>
                             <span style={{ fontWeight: 'bold', fontSize: '1rem', color: '#333' }}>{d.name}</span>
                           </div>
-                          <span style={{ fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{d.count}</span>
+                          <span style={{ fontWeight: 'bold', color: 'var(--crayon-blue)', fontSize: '0.95rem' }}>{d.count} 筆 / {d.itemCount} 項</span>
                         </div>
                       ))}
                     </div>
                     <div style={{ borderTop: '2px dashed #ddd', paddingTop: '10px', marginTop: '5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--crayon-dark)' }}>當月總計</span>
-                      <span style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--crayon-orange)' }}>{monthTotalTickets}</span>
+                      <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--crayon-orange)' }}>{monthTotalTickets} 筆 / {monthTotalItems} 項</span>
                     </div>
                   </div>
                 </div>
@@ -756,7 +767,7 @@ export default function Dashboard() {
                               {day.personnelStats?.map(ps => (
                                 <div key={ps.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f5f5f5', padding: '4px 8px', borderRadius: '5px', borderLeft: `4px solid ${ps.color}` }}>
                                   <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: ps.color }}>{ps.name}</span>
-                                  <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#333' }}>{ps.count}</span>
+                                  <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#333' }}>{ps.count}筆 / {ps.itemCount}項</span>
                                 </div>
                               ))}
                             </div>
@@ -765,6 +776,7 @@ export default function Dashboard() {
                               <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--crayon-blue)' }}>{day.count}</span>
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                                 <span style={{ fontSize: '0.8rem', color: '#666' }}>筆派送</span>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--crayon-purple)', marginTop: '2px' }}>共 {day.itemCount} 項</span>
                                 <span style={{ fontSize: '0.75rem', color: 'var(--crayon-blue)', marginTop: '2px' }}>(點擊查看)</span>
                               </div>
                             </>
@@ -803,15 +815,16 @@ export default function Dashboard() {
                       {weeklyCalendarData.weeklyPersonnelStats.map(ps => (
                         <div key={ps.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f5f5f5', padding: '4px 8px', borderRadius: '5px', borderLeft: `4px solid ${ps.color}` }}>
                           <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: ps.color }}>{ps.name}</span>
-                          <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#333' }}>{ps.count}</span>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#333' }}>{ps.count}筆 / {ps.itemCount}項</span>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <>
-                      <div style={{ fontSize: '3.5rem', fontWeight: '900', color: 'var(--crayon-orange)', fontFamily: 'Caveat, cursive', lineHeight: '1', marginBottom: '5px', textShadow: '2px 2px 0px rgba(0,0,0,0.1)' }}>{weeklyCalendarData.totalWeeklyCount}</div>
+                      <div style={{ fontSize: '3.2rem', fontWeight: '900', color: 'var(--crayon-orange)', fontFamily: 'Caveat, cursive', lineHeight: '1', marginBottom: '4px', textShadow: '2px 2px 0px rgba(0,0,0,0.1)' }}>{weeklyCalendarData.totalWeeklyCount}</div>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <span style={{ fontSize: '0.9rem', color: '#666' }}>筆派送單據</span>
+                        <span style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--crayon-purple)', marginTop: '4px' }}>共 {weeklyCalendarData.totalWeeklyItems} 項</span>
                         {weeklyCalendarData.totalWeeklyCount > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--crayon-orange)', marginTop: '2px' }}>(點擊查看)</span>}
                       </div>
                     </>
