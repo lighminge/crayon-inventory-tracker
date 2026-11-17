@@ -1217,7 +1217,7 @@ export default function Dashboard() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-              <h3 style={{ margin: 0 }}>
+              <h3 style={{ margin: 0, fontSize: '1.8rem' }}>
                 ⏳ 未結案盤點單狀態
               </h3>
               <div style={{ display: 'flex', backgroundColor: '#fff', padding: '3px', borderRadius: '8px', border: '2px solid var(--crayon-dark)' }}>
@@ -1345,7 +1345,7 @@ export default function Dashboard() {
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid var(--crayon-dark)', paddingBottom: '10px', flexWrap: 'wrap', gap: '10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: 'bold', fontSize: '1.4rem', color: 'var(--crayon-dark)' }}>
+                          <span style={{ fontWeight: 'bold', fontSize: '1.8rem', color: 'var(--crayon-dark)' }}>
                             👤 {assigneeName}
                           </span>
                           {Object.entries(typeStats).map(([type, count]) => (

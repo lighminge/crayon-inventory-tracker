@@ -671,8 +671,17 @@ export default function Statistics() {
     if (categoryFilter === '追加' && additionalTypeFilter !== '全部') {
       baseTickets = baseTickets.filter(t => t.subType === additionalTypeFilter);
     }
-    const startMs = startDate ? new Date(startDate).getTime() : 0;
-    const endMs = endDate ? new Date(endDate).getTime() + 24 * 60 * 60 * 1000 - 1 : Infinity;
+    const toLocalDateStr = (ts: number) => {
+      const dt = new Date(ts);
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    };
+    const isInDateRange = (ts: number | null | undefined) => {
+      if (!ts) return false;
+      const dStr = toLocalDateStr(ts);
+      if (startDate && dStr < startDate) return false;
+      if (endDate && dStr > endDate) return false;
+      return true;
+    };
 
     return baseTickets.filter(t => {
       // Global Year Filter
@@ -683,43 +692,26 @@ export default function Statistics() {
 
       // Date filter
       if (enableDateFilter) {
-        let d: number | null | undefined = null;
-        if (dateFilterType === 'dispatch') {
-          d = t.dispatchDate;
-        } else if (dateFilterType === 'close') {
-          d = t.closeDate;
-        } else if (dateFilterType === 'inventory') {
-          const invIdx = workflows.findIndex(w => w.name === '盤點中');
-          const invStage = invIdx >= 0 ? workflows[invIdx] : undefined;
-          d = invStage ? t.stageDates?.[invStage.id] : null;
-          if (!d && enableWorkflowFilter && invStage && selectedWorkflowId === invStage.id && !t.closeDate) {
-            const currentStage = workflows.find(w => !t.stageDates || !t.stageDates[w.id]);
-            if (currentStage && currentStage.id === invStage.id) {
-              d = invIdx > 0 ? (t.stageDates?.[workflows[invIdx - 1].id] ?? t.dispatchDate) : t.dispatchDate;
-            }
-          }
-        } else if (dateFilterType === 'workflow') {
+        if (dateFilterType === 'workflow') {
           const activeWorkflowId = enableWorkflowFilter ? selectedWorkflowId : '';
           if (activeWorkflowId) {
-            const wIdx = workflows.findIndex(w => w.id === activeWorkflowId);
-            const currentStage = !t.closeDate ? workflows.find(w => !t.stageDates || !t.stageDates[w.id]) : undefined;
-            if (currentStage && currentStage.id === activeWorkflowId) {
-              d = wIdx > 0 ? (t.stageDates?.[workflows[wIdx - 1].id] ?? t.dispatchDate) : t.dispatchDate;
-            } else {
-              d = t.stageDates?.[activeWorkflowId] ?? null;
-            }
+            if (!isInDateRange(t.stageDates?.[activeWorkflowId])) return false;
           } else {
-            const currentStage = !t.closeDate ? workflows.find(w => !t.stageDates || !t.stageDates[w.id]) : undefined;
-            if (currentStage) {
-              const cIdx = workflows.findIndex(w => w.id === currentStage.id);
-              d = cIdx > 0 ? (t.stageDates?.[workflows[cIdx - 1].id] ?? t.dispatchDate) : t.dispatchDate;
-            } else {
-              d = t.closeDate ?? t.dispatchDate;
-            }
+            const hasMatchingStageDate = t.stageDates && Object.values(t.stageDates).some(ts => isInDateRange(ts));
+            if (!hasMatchingStageDate) return false;
           }
+        } else {
+          let d: number | null | undefined = null;
+          if (dateFilterType === 'dispatch') {
+            d = t.dispatchDate;
+          } else if (dateFilterType === 'close') {
+            d = t.closeDate;
+          } else if (dateFilterType === 'inventory') {
+            const invStage = workflows.find(w => w.name === '盤點中');
+            d = invStage ? t.stageDates?.[invStage.id] : null;
+          }
+          if (!isInDateRange(d)) return false;
         }
-        if (!d) return false;
-        if (d < startMs || d > endMs) return false;
       }
 
       // Ticket ID filter (string comparison)
@@ -744,8 +736,8 @@ export default function Statistics() {
         if (daysFilterTicketStatus === 'unclosed' && t.closeDate) return false;
       }
 
-      // Workflow stage filter
-      if (enableWorkflowFilter && selectedWorkflowId) {
+      // Workflow stage filter (when date filter is by workflow stage date, include tickets that completed that stage even if they moved on or closed)
+      if (enableWorkflowFilter && selectedWorkflowId && !(enableDateFilter && dateFilterType === 'workflow')) {
         if (t.closeDate) return false;
         const currentStage = workflows.find(w => !t.stageDates || !t.stageDates[w.id]);
         if (!currentStage || currentStage.id !== selectedWorkflowId) return false;
