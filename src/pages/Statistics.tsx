@@ -699,13 +699,14 @@ export default function Statistics() {
             }
           }
         } else if (dateFilterType === 'workflow') {
-          if (selectedWorkflowId) {
-            const wIdx = workflows.findIndex(w => w.id === selectedWorkflowId);
+          const activeWorkflowId = enableWorkflowFilter ? selectedWorkflowId : '';
+          if (activeWorkflowId) {
+            const wIdx = workflows.findIndex(w => w.id === activeWorkflowId);
             const currentStage = !t.closeDate ? workflows.find(w => !t.stageDates || !t.stageDates[w.id]) : undefined;
-            if (currentStage && currentStage.id === selectedWorkflowId) {
+            if (currentStage && currentStage.id === activeWorkflowId) {
               d = wIdx > 0 ? (t.stageDates?.[workflows[wIdx - 1].id] ?? t.dispatchDate) : t.dispatchDate;
             } else {
-              d = t.stageDates?.[selectedWorkflowId] ?? null;
+              d = t.stageDates?.[activeWorkflowId] ?? null;
             }
           } else {
             const currentStage = !t.closeDate ? workflows.find(w => !t.stageDates || !t.stageDates[w.id]) : undefined;
@@ -844,14 +845,25 @@ export default function Statistics() {
 
     filteredTickets.forEach(t => {
       if (!t.dispatchDate) return;
+      const currentStage = !t.closeDate ? workflows.find(st => !t.stageDates || !t.stageDates[st.id]) : undefined;
       workflows.forEach((w, index) => {
-        if (t.stageDates && t.stageDates[w.id]) {
-          const previousDate = index === 0 ? t.dispatchDate : t.stageDates[workflows[index - 1].id];
-          if (previousDate) {
-            const days = calculateDays(previousDate, t.stageDates[w.id]);
-            stageStats[w.id].totalDays += days;
-            stageStats[w.id].count += 1;
+        let previousDate: number | null | undefined = t.dispatchDate;
+        for (let prevIdx = index - 1; prevIdx >= 0; prevIdx--) {
+          if (t.stageDates && t.stageDates[workflows[prevIdx].id]) {
+            previousDate = t.stageDates[workflows[prevIdx].id];
+            break;
           }
+        }
+        if (!previousDate) return;
+
+        if (t.stageDates && t.stageDates[w.id]) {
+          const days = calculateDays(previousDate, t.stageDates[w.id]);
+          stageStats[w.id].totalDays += days;
+          stageStats[w.id].count += 1;
+        } else if (currentStage && currentStage.id === w.id) {
+          const days = calculateDays(previousDate, Date.now());
+          stageStats[w.id].totalDays += days;
+          stageStats[w.id].count += 1;
         }
       });
     });
@@ -865,7 +877,7 @@ export default function Statistics() {
         count: stageStats[w.id].count
       };
     });
-  }, [filteredTickets, workflows]);
+  }, [filteredTickets, workflows, holidays]);
 
   // Colors for Pie Chart
   // Colors for Pie Chart
@@ -1026,7 +1038,7 @@ export default function Statistics() {
                   <option value="dispatch">派送日</option>
                   <option value="inventory">盤點完成日</option>
                   <option value="workflow">
-                    盤點單流程{selectedWorkflowId ? ` (${workflows.find(w => w.id === selectedWorkflowId)?.name || ''})` : ''}
+                    盤點單流程{enableWorkflowFilter && selectedWorkflowId ? ` (${workflows.find(w => w.id === selectedWorkflowId)?.name || ''})` : ''}
                   </option>
                   <option value="close">結案日</option>
                 </select>

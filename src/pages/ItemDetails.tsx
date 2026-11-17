@@ -21,6 +21,7 @@ export default function ItemDetails() {
   });
   const [filterEndDate, setFilterEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [filterTicketId, setFilterTicketId] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<'全部' | '一般' | '追加'>('一般');
   const [filterTicketType, setFilterTicketType] = useState('all');
   const [useDateFilter, setUseDateFilter] = useState(true);
   const [useTicketIdFilter, setUseTicketIdFilter] = useState(true);
@@ -64,7 +65,7 @@ export default function ItemDetails() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStartDate, filterEndDate, filterTicketId, filterTicketType, filterTicketStatus, sortMethod, itemsPerPage, useDateFilter, useTicketIdFilter]);
+  }, [filterStartDate, filterEndDate, filterTicketId, categoryFilter, filterTicketType, filterTicketStatus, sortMethod, itemsPerPage, useDateFilter, useTicketIdFilter]);
 
   const loadData = async () => {
     try {
@@ -96,6 +97,8 @@ export default function ItemDetails() {
   }, []);
 
   const filteredTickets = tickets.filter(t => {
+    if (categoryFilter === '一般' && t.isAdditional) return false;
+    if (categoryFilter === '追加' && !t.isAdditional) return false;
     if (useTicketIdFilter && filterTicketId && !t.id.includes(filterTicketId)) return false;
     if (filterTicketType !== 'all' && t.ticketType !== filterTicketType) return false;
     
@@ -775,6 +778,14 @@ export default function ItemDetails() {
             <input className="doodle-input" style={{ width: '150px', opacity: useTicketIdFilter ? 1 : 0.4 }} value={filterTicketId} onChange={e => setFilterTicketId(e.target.value)} placeholder="輸入單號" disabled={!useTicketIdFilter} />
           </div>
           <div>
+            <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>盤點種類：</label>
+            <select className="doodle-input" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value as '全部' | '一般' | '追加')}>
+              <option value="全部">全部</option>
+              <option value="一般">一般</option>
+              <option value="追加">追加</option>
+            </select>
+          </div>
+          <div>
             <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '5px' }}>盤點類型：</label>
             <select className="doodle-input" value={filterTicketType} onChange={e => setFilterTicketType(e.target.value)}>
               <option value="all">全部</option>
@@ -792,7 +803,7 @@ export default function ItemDetails() {
           </div>
           <div style={{ marginLeft: 'auto' }}>
             <button className="doodle-button" style={{ height: '42px' }} onClick={() => {
-              setFilterTicketId(''); setFilterTicketType('all'); setFilterTicketStatus('all');
+              setFilterTicketId(''); setCategoryFilter('一般'); setFilterTicketType('all'); setFilterTicketStatus('all');
               const d = new Date();
               setFilterEndDate(d.toISOString().split('T')[0]);
               d.setMonth(d.getMonth() - 1);
