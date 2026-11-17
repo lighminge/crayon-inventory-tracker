@@ -149,6 +149,8 @@ export default function Dashboard() {
     ticketTypeFilter: string;
   } | null>(null);
   const printCardRef = useRef<HTMLDivElement>(null);
+  const [printingAllPersonnel, setPrintingAllPersonnel] = useState<boolean>(false);
+  const printAllPersonnelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!printingCard || !printCardRef.current) return;
@@ -175,6 +177,31 @@ export default function Dashboard() {
     capture();
     return () => { cancelled = true; };
   }, [printingCard]);
+
+  useEffect(() => {
+    if (!printingAllPersonnel || !printAllPersonnelRef.current) return;
+    let cancelled = false;
+    const capture = async () => {
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      if (cancelled || !printAllPersonnelRef.current) return;
+      try {
+        const canvas = await html2canvas(printAllPersonnelRef.current, { scale: 2, backgroundColor: '#e0f7fa' });
+        const url = canvas.toDataURL('image/png');
+        const dateStr = new Date().toISOString().split('T')[0];
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `備料員盤點情況_所有人員_${dateStr}.png`;
+        a.click();
+      } catch (err) {
+        console.error(err);
+        alert('列印圖檔失敗');
+      } finally {
+        if (!cancelled) setPrintingAllPersonnel(false);
+      }
+    };
+    capture();
+    return () => { cancelled = true; };
+  }, [printingAllPersonnel]);
 
   useEffect(() => {
     loadData();
@@ -1032,6 +1059,16 @@ export default function Dashboard() {
               >
                 {personnelCollapsed ? '🔽 展開' : '🔼 收合'}
               </button>
+              <button
+                type="button"
+                className="doodle-button"
+                style={{ padding: '4px 12px', fontSize: '0.95rem', backgroundColor: 'var(--crayon-blue)', color: 'white' }}
+                onClick={() => setPrintingAllPersonnel(true)}
+                disabled={personnelStats.length === 0}
+                title="列印所有備料員的盤點情況圖檔"
+              >
+                🖨️ 列印
+              </button>
             </div>
             <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -1574,24 +1611,33 @@ export default function Dashboard() {
         </div>
       )}
 
-      {printingCard && (
-        <div style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1 }}>
+      {(printingAllPersonnel || printingCard) && (() => {
+        const renderPrintablePersonCard = (
+          person: any,
+          tab: 'stats' | 'incomplete' | 'doing',
+          ticketsList: InventoryTicket[],
+          taskFilterId: string,
+          ticketTypeFilter: string,
+          extraStyle?: React.CSSProperties,
+          cardRef?: React.RefObject<HTMLDivElement | null>
+        ) => (
           <div
-            ref={printCardRef}
+            ref={cardRef}
+            key={person.id}
             className="doodle-border"
             style={{
-              width: '500px',
               padding: '20px',
               backgroundColor: 'white',
               display: 'flex',
               flexDirection: 'column',
-              gap: '12px'
+              gap: '12px',
+              ...extraStyle
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #ccc', paddingBottom: '8px', gap: '10px', flexWrap: 'wrap' }}>
               <h4 style={{ margin: 0, fontSize: '1.8rem', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                <span>{printingCard.person.name}</span>
-                <span style={{ fontSize: '0.95rem', color: '#888' }}>({printingCard.person.title})</span>
+                <span>{person.name}</span>
+                <span style={{ fontSize: '0.95rem', color: '#888' }}>({person.title})</span>
               </h4>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{
@@ -1603,7 +1649,7 @@ export default function Dashboard() {
                   fontWeight: 'bold',
                   fontSize: '0.95rem'
                 }}>
-                  {printingCard.tab === 'stats' ? '📊 統計數據' : printingCard.tab === 'doing' ? '🏃 盤點中' : '📋 未完成'}
+                  {tab === 'stats' ? '📊 統計數據' : tab === 'doing' ? '🏃 盤點中' : '📋 未完成'}
                 </span>
                 <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#555' }}>
                   {selectedYear}年{selectedMonthNum}月
@@ -1611,46 +1657,46 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {printingCard.tab === 'stats' ? (
+            {tab === 'stats' ? (
               <>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                   <div style={{ backgroundColor: '#f5f5f5', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
                     <div style={{ fontSize: '0.85rem', color: '#666' }}>本月派送</div>
-                    <div style={{ fontSize: '2rem', fontWeight: '900' }}>{printingCard.person.monthDispatch}</div>
+                    <div style={{ fontSize: '2rem', fontWeight: '900' }}>{person.monthDispatch}</div>
                   </div>
                   <div style={{ backgroundColor: '#f5f5f5', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
                     <div style={{ fontSize: '0.85rem', color: '#666' }}>本月完成</div>
-                    <div style={{ fontSize: '2rem', fontWeight: '900' }}>{printingCard.person.monthCompleted}</div>
+                    <div style={{ fontSize: '2rem', fontWeight: '900' }}>{person.monthCompleted}</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
                   <div style={{ flex: 1, backgroundColor: '#e8eaf6', padding: '10px', borderRadius: '10px', textAlign: 'center', border: '2px dashed var(--crayon-blue)' }}>
                     <div style={{ fontSize: '0.9rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>本月完成項目數</div>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{printingCard.person.monthCompletedItems || 0}</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{person.monthCompletedItems || 0}</div>
                   </div>
                   <div style={{ flex: 1, backgroundColor: '#e8eaf6', padding: '10px', borderRadius: '10px', textAlign: 'center', border: '2px dashed var(--crayon-blue)' }}>
                     <div style={{ fontSize: '0.9rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
                       {selectedTaskId ? '此任務已盤點項目數' : '已完成總項目數'}
                     </div>
-                    <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{printingCard.person.totalCompletedItems}</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{person.totalCompletedItems}</div>
                   </div>
                 </div>
 
                 <div style={{ marginTop: '5px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', marginBottom: '5px' }}>
                     <strong>完成率</strong>
-                    <span style={{ fontSize: '1.5rem', fontWeight: '900' }}>{printingCard.person.monthCompletionRate}%</span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: '900' }}>{person.monthCompletionRate}%</span>
                   </div>
                   <div style={{ width: '100%', height: '10px', backgroundColor: '#eee', borderRadius: '5px', overflow: 'hidden', border: '1px solid #ccc' }}>
-                    <div style={{ width: `${printingCard.person.monthCompletionRate}%`, height: '100%', backgroundColor: printingCard.person.monthCompletionRate === 100 ? 'var(--crayon-green)' : 'var(--crayon-blue)' }}></div>
+                    <div style={{ width: `${person.monthCompletionRate}%`, height: '100%', backgroundColor: person.monthCompletionRate === 100 ? 'var(--crayon-green)' : 'var(--crayon-blue)' }}></div>
                   </div>
                 </div>
 
                 <div style={{ textAlign: 'right', fontSize: '0.9rem' }}>
                   <strong>平均：</strong>
-                  <span style={{ color: printingCard.person.monthCompleted > 0 ? 'var(--crayon-red)' : '#888', fontWeight: 'bold', fontSize: '1.1rem' }}>
-                    {printingCard.person.monthCompleted > 0 ? `${printingCard.person.avgDays.toFixed(2)} 天` : '-'}
+                  <span style={{ color: person.monthCompleted > 0 ? 'var(--crayon-red)' : '#888', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                    {person.monthCompleted > 0 ? `${person.avgDays.toFixed(2)} 天` : '-'}
                   </span>
                 </div>
               </>
@@ -1666,22 +1712,22 @@ export default function Dashboard() {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
                   <span style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>
-                    總計：{printingCard.ticketsList.length} 件 / {printingCard.ticketsList.reduce((sum, t) => sum + (t.itemCount || 0), 0)} 項
+                    總計：{ticketsList.length} 件 / {ticketsList.reduce((sum, t) => sum + (t.itemCount || 0), 0)} 項
                   </span>
                   <div style={{ display: 'flex', gap: '6px', fontSize: '0.85rem', fontWeight: 'bold', color: '#555' }}>
-                    <span>任務：{printingCard.taskFilterId ? (tasks.find(tk => tk.id === printingCard.taskFilterId)?.name || '指定任務') : '所有任務'}</span>
+                    <span>任務：{taskFilterId ? (tasks.find(tk => tk.id === taskFilterId)?.name || '指定任務') : '所有任務'}</span>
                     <span>｜</span>
-                    <span>類型：{printingCard.ticketTypeFilter || '全部類型'}</span>
+                    <span>類型：{ticketTypeFilter || '全部類型'}</span>
                   </div>
                 </div>
 
-                {printingCard.ticketsList.length === 0 ? (
+                {ticketsList.length === 0 ? (
                   <div style={{ textAlign: 'center', color: '#888', padding: '20px 0' }}>
-                    太棒了！目前沒有{printingCard.tab === 'doing' ? '盤點中' : '未完成'}的單據 🎉
+                    太棒了！目前沒有{tab === 'doing' ? '盤點中' : '未完成'}的單據 🎉
                   </div>
                 ) : (
                   <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {printingCard.ticketsList.map((t, idx) => {
+                    {ticketsList.map((t, idx) => {
                       const { currentStageName, currentAssigneeName } = getTicketStageInfo(t);
                       return (
                         <li key={t.id} style={{
@@ -1716,8 +1762,90 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-        </div>
-      )}
+        );
+
+        return (
+          <>
+            {printingAllPersonnel && (
+              <div style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1 }}>
+                <div
+                  ref={printAllPersonnelRef}
+                  className="doodle-border"
+                  style={{
+                    width: '1080px',
+                    padding: '24px',
+                    backgroundColor: '#e0f7fa',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px dashed var(--crayon-dark)', paddingBottom: '10px', flexWrap: 'wrap', gap: '10px' }}>
+                    <h3 style={{ margin: 0, fontSize: '1.8rem' }}>👥 備料員盤點情況 (所有人員)</h3>
+                    <div style={{ fontWeight: 'bold', fontSize: '1.05rem', color: 'var(--crayon-dark)' }}>
+                      查詢期間：{selectedYear}年{selectedMonthNum}月 ｜ 盤點類型：{personnelTicketType || '全部'} ｜ 列印日期：{new Date().toLocaleDateString('zh-TW')}
+                    </div>
+                  </div>
+
+                  {personnelStats.length > 0 && (
+                    <div className="doodle-border" style={{
+                      backgroundColor: 'var(--crayon-yellow)', padding: '15px 20px',
+                      display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+                      flexWrap: 'wrap', gap: '15px', border: '3px solid var(--crayon-dark)'
+                    }}>
+                      <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>🌟 全員總計</div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>總未完成</div>
+                        <div style={{ fontSize: '2rem', color: 'var(--crayon-red)', fontWeight: 'bold' }}>{personnelTotals.incompleteCount} 件</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>已完成總項目數</div>
+                        <div style={{ fontSize: '2rem', color: 'var(--crayon-orange)', fontWeight: 'bold' }}>{personnelTotals.totalCompletedItems} 項</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月總派送</div>
+                        <div style={{ fontSize: '2rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>{personnelTotals.monthDispatch} 件</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月總完成</div>
+                        <div style={{ fontSize: '2rem', color: 'var(--crayon-green)', fontWeight: 'bold' }}>{personnelTotals.monthCompleted} 件</div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', alignItems: 'start' }}>
+                    {personnelStats.map(p => {
+                      const tab = activeTab[p.id] || 'stats';
+                      const typeFilter = cardTicketType[p.id] || '';
+                      const taskFilter = cardTaskFilter[p.id] || '';
+                      const targetTickets = tab === 'doing' ? p.doingTickets : p.incompleteTickets;
+                      let list = typeFilter ? targetTickets.filter((t: InventoryTicket) => t.ticketType === typeFilter) : targetTickets;
+                      if (taskFilter) {
+                        list = list.filter((t: InventoryTicket) => t.taskId === taskFilter);
+                      }
+                      return renderPrintablePersonCard(p, tab, list, taskFilter, typeFilter);
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {printingCard && (
+              <div style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1 }}>
+                {renderPrintablePersonCard(
+                  printingCard.person,
+                  printingCard.tab,
+                  printingCard.ticketsList,
+                  printingCard.taskFilterId,
+                  printingCard.ticketTypeFilter,
+                  { width: '500px' },
+                  printCardRef
+                )}
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       </div>
   );
