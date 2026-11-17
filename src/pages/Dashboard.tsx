@@ -1379,28 +1379,28 @@ export default function Dashboard() {
           padding: '20px', backgroundColor: 'var(--crayon-paper)',
           transform: 'rotate(-0.5deg)', boxShadow: '5px 5px 0px rgba(0,0,0,0.15)'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>
-            <h3 style={{ margin: 0 }}>📈 近六個月盤點數量</h3>
-            <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div>
-                <label style={{ fontWeight: 'bold', marginRight: '5px' }}>盤點單狀態：</label>
-                <select className="doodle-input" style={{ width: 'auto' }} value={chartStatusFilter} onChange={e => setChartStatusFilter(e.target.value as 'all' | 'closed' | 'unclosed')}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px', gap: '10px', flexWrap: 'wrap' }}>
+            <h3 style={{ margin: 0, whiteSpace: 'nowrap', flexShrink: 0 }}>📈 近六個月盤點數量</h3>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'nowrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                <label style={{ fontWeight: 'bold', marginRight: '4px', fontSize: '0.95rem' }}>盤點單狀態：</label>
+                <select className="doodle-input" style={{ width: 'auto', padding: '4px 8px', fontSize: '0.95rem' }} value={chartStatusFilter} onChange={e => setChartStatusFilter(e.target.value as 'all' | 'closed' | 'unclosed')}>
                   <option value="all">全部</option>
                   <option value="closed">已結案</option>
                   <option value="unclosed">未結案</option>
                 </select>
               </div>
-              <div>
-                <label style={{ fontWeight: 'bold', marginRight: '5px' }}>統計數據：</label>
-                <select className="doodle-input" style={{ width: 'auto' }} value={chartMetric} onChange={e => setChartMetric(e.target.value as any)}>
+              <div style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                <label style={{ fontWeight: 'bold', marginRight: '4px', fontSize: '0.95rem' }}>統計數據：</label>
+                <select className="doodle-input" style={{ width: 'auto', padding: '4px 8px', fontSize: '0.95rem' }} value={chartMetric} onChange={e => setChartMetric(e.target.value as any)}>
                   <option value="ticketCount">盤點數量 (件)</option>
                   <option value="itemCount">盤點項目數量 (項)</option>
                   <option value="all">全部顯示</option>
                 </select>
               </div>
-              <div>
-                <label style={{ fontWeight: 'bold', marginRight: '5px' }}>圖表類型：</label>
-                <select className="doodle-input" style={{ width: 'auto' }} value={chartType} onChange={e => setChartType(e.target.value as any)}>
+              <div style={{ display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                <label style={{ fontWeight: 'bold', marginRight: '4px', fontSize: '0.95rem' }}>圖表類型：</label>
+                <select className="doodle-input" style={{ width: 'auto', padding: '4px 8px', fontSize: '0.95rem' }} value={chartType} onChange={e => setChartType(e.target.value as any)}>
                   <option value="bar">長條圖</option>
                   <option value="line">折線圖</option>
                   <option value="composed">二者並存</option>

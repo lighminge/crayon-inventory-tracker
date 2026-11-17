@@ -584,7 +584,7 @@ export default function Statistics() {
     return d.toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [dateFilterType, setDateFilterType] = useState<'dispatch' | 'inventory' | 'close'>('dispatch');
+  const [dateFilterType, setDateFilterType] = useState<'dispatch' | 'inventory' | 'workflow' | 'close'>('dispatch');
   const [daysFilterTicketStatus, setDaysFilterTicketStatus] = useState<'all' | 'closed' | 'unclosed'>('all');
 
   // Ticket ID range state
@@ -684,11 +684,38 @@ export default function Statistics() {
       // Date filter
       if (enableDateFilter) {
         let d: number | null | undefined = null;
-        if (dateFilterType === 'dispatch') d = t.dispatchDate;
-        else if (dateFilterType === 'close') d = t.closeDate;
-        else if (dateFilterType === 'inventory') {
-          const invStage = workflows.find(w => w.name === '盤點中');
-          d = invStage ? t.stageDates[invStage.id] : null;
+        if (dateFilterType === 'dispatch') {
+          d = t.dispatchDate;
+        } else if (dateFilterType === 'close') {
+          d = t.closeDate;
+        } else if (dateFilterType === 'inventory') {
+          const invIdx = workflows.findIndex(w => w.name === '盤點中');
+          const invStage = invIdx >= 0 ? workflows[invIdx] : undefined;
+          d = invStage ? t.stageDates?.[invStage.id] : null;
+          if (!d && enableWorkflowFilter && invStage && selectedWorkflowId === invStage.id && !t.closeDate) {
+            const currentStage = workflows.find(w => !t.stageDates || !t.stageDates[w.id]);
+            if (currentStage && currentStage.id === invStage.id) {
+              d = invIdx > 0 ? (t.stageDates?.[workflows[invIdx - 1].id] ?? t.dispatchDate) : t.dispatchDate;
+            }
+          }
+        } else if (dateFilterType === 'workflow') {
+          if (selectedWorkflowId) {
+            const wIdx = workflows.findIndex(w => w.id === selectedWorkflowId);
+            const currentStage = !t.closeDate ? workflows.find(w => !t.stageDates || !t.stageDates[w.id]) : undefined;
+            if (currentStage && currentStage.id === selectedWorkflowId) {
+              d = wIdx > 0 ? (t.stageDates?.[workflows[wIdx - 1].id] ?? t.dispatchDate) : t.dispatchDate;
+            } else {
+              d = t.stageDates?.[selectedWorkflowId] ?? null;
+            }
+          } else {
+            const currentStage = !t.closeDate ? workflows.find(w => !t.stageDates || !t.stageDates[w.id]) : undefined;
+            if (currentStage) {
+              const cIdx = workflows.findIndex(w => w.id === currentStage.id);
+              d = cIdx > 0 ? (t.stageDates?.[workflows[cIdx - 1].id] ?? t.dispatchDate) : t.dispatchDate;
+            } else {
+              d = t.closeDate ?? t.dispatchDate;
+            }
+          }
         }
         if (!d) return false;
         if (d < startMs || d > endMs) return false;
@@ -998,6 +1025,9 @@ export default function Statistics() {
                 <select className="doodle-input" style={{ width: '100%' }} value={dateFilterType} onChange={e => setDateFilterType(e.target.value as any)}>
                   <option value="dispatch">派送日</option>
                   <option value="inventory">盤點完成日</option>
+                  <option value="workflow">
+                    盤點單流程{selectedWorkflowId ? ` (${workflows.find(w => w.id === selectedWorkflowId)?.name || ''})` : ''}
+                  </option>
                   <option value="close">結案日</option>
                 </select>
               </div>
