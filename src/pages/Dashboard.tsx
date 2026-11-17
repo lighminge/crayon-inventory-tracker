@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import type { InventoryTicket, Personnel, InventoryTask, Workflow, HolidaySetting } from '../types';
 import { getTickets, getPersonnel, getTasks, getWorkflows, getHolidays } from '../services/api';
 import { calculateBusinessDays } from '../utils/dateUtils';
@@ -95,6 +95,40 @@ export default function Dashboard() {
   const d = new Date();
   const [selectedYear, setSelectedYear] = useState<number>(d.getFullYear());
   const [selectedMonthNum, setSelectedMonthNum] = useState<number>(d.getMonth() + 1);
+  const [printingCard, setPrintingCard] = useState<{
+    person: any;
+    tab: 'stats' | 'incomplete' | 'doing';
+    ticketsList: InventoryTicket[];
+    taskFilterId: string;
+    ticketTypeFilter: string;
+  } | null>(null);
+  const printCardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!printingCard || !printCardRef.current) return;
+    let cancelled = false;
+    const capture = async () => {
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      if (cancelled || !printCardRef.current) return;
+      try {
+        const canvas = await html2canvas(printCardRef.current, { scale: 2, backgroundColor: '#ffffff' });
+        const url = canvas.toDataURL('image/png');
+        const tabLabel = printingCard.tab === 'stats' ? '統計數據' : printingCard.tab === 'doing' ? '盤點中' : '未完成';
+        const dateStr = new Date().toISOString().split('T')[0];
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${printingCard.person.name}_${tabLabel}_${dateStr}.png`;
+        a.click();
+      } catch (err) {
+        console.error(err);
+        alert('列印圖檔失敗');
+      } finally {
+        if (!cancelled) setPrintingCard(null);
+      }
+    };
+    capture();
+    return () => { cancelled = true; };
+  }, [printingCard]);
 
   useEffect(() => {
     loadData();
@@ -152,6 +186,16 @@ export default function Dashboard() {
   const getAssigneeName = (id: string) => {
     const p = personnel.find(p => p.id === id);
     return p ? p.name : '未知人員';
+  };
+
+  const getTicketStageInfo = (t: InventoryTicket) => {
+    const nextStage = getNextStage(t);
+    if (!nextStage) {
+      return { currentStageName: '等候結案', currentAssigneeName: '主管' };
+    }
+    const currentStageName = (t.stageDates && Object.keys(t.stageDates).length > 0) ? nextStage.name : '未開始';
+    const currentAssigneeName = getAssigneeName(nextStage.assigneeId === 'DYNAMIC_ASSIGNEE' ? t.assigneeId : (nextStage.assigneeId || ''));
+    return { currentStageName, currentAssigneeName };
   };
 
   const stats = useMemo(() => {
@@ -909,9 +953,27 @@ export default function Dashboard() {
 
                 return (
                   <div key={p.id} className="doodle-border" style={{ padding: '15px', backgroundColor: 'white', position: 'relative', display: 'flex', flexDirection: 'column' }}>
-                    <h4 style={{ margin: '0 0 15px 0', fontSize: '1.3rem', borderBottom: '2px solid #ccc', paddingBottom: '5px' }}>
-                      {p.name} <span style={{ fontSize: '0.9rem', color: '#888' }}>({p.title})</span>
-                    </h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 15px 0', borderBottom: '2px solid #ccc', paddingBottom: '8px', gap: '10px', flexWrap: 'wrap' }}>
+                      <h4 style={{ margin: 0, fontSize: '1.8rem', display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
+                        <span>{p.name}</span>
+                        <span style={{ fontSize: '0.95rem', color: '#888' }}>({p.title})</span>
+                      </h4>
+                      <button
+                        type="button"
+                        className="doodle-button"
+                        style={{ padding: '4px 12px', fontSize: '0.95rem', backgroundColor: 'var(--crayon-blue)', color: 'white', whiteSpace: 'nowrap' }}
+                        onClick={() => setPrintingCard({
+                          person: p,
+                          tab: currentTab,
+                          ticketsList: filteredTicketsList,
+                          taskFilterId: taskFilter || '',
+                          ticketTypeFilter: typeFilter || ''
+                        })}
+                        title="依目前所選功能內容匯出圖檔"
+                      >
+                        🖨️ 列印
+                      </button>
+                    </div>
                     
                     <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
                       <button 
@@ -1079,19 +1141,7 @@ export default function Dashboard() {
                             <>
                               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
                                 {paginatedTickets.map((t: InventoryTicket, idx: number) => {
-                                  const nextStage = getNextStage(t);
-                                  let currentStageName = '未開始';
-                                  let currentAssigneeName = '未知';
-                                  
-                                  if (!nextStage) {
-                                    currentStageName = '等候結案';
-                                    currentAssigneeName = '主管';
-                                  } else {
-                                    if (t.stageDates && Object.keys(t.stageDates).length > 0) {
-                                      currentStageName = nextStage.name;
-                                    }
-                                    currentAssigneeName = getAssigneeName(nextStage.assigneeId === 'DYNAMIC_ASSIGNEE' ? t.assigneeId : (nextStage.assigneeId || ''));
-                                  }
+                                  const { currentStageName, currentAssigneeName } = getTicketStageInfo(t);
                                   
                                   return (
                                     <li key={t.id} style={{ 
@@ -1419,6 +1469,151 @@ export default function Dashboard() {
         </div>
 
       </div>
+
+      {printingCard && (
+        <div style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1 }}>
+          <div
+            ref={printCardRef}
+            className="doodle-border"
+            style={{
+              width: '500px',
+              padding: '20px',
+              backgroundColor: 'white',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #ccc', paddingBottom: '8px', gap: '10px', flexWrap: 'wrap' }}>
+              <h4 style={{ margin: 0, fontSize: '1.8rem', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                <span>{printingCard.person.name}</span>
+                <span style={{ fontSize: '0.95rem', color: '#888' }}>({printingCard.person.title})</span>
+              </h4>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{
+                  backgroundColor: 'var(--crayon-green)',
+                  color: 'var(--crayon-dark)',
+                  border: '2px solid var(--crayon-dark)',
+                  borderRadius: '8px',
+                  padding: '2px 10px',
+                  fontWeight: 'bold',
+                  fontSize: '0.95rem'
+                }}>
+                  {printingCard.tab === 'stats' ? '📊 統計數據' : printingCard.tab === 'doing' ? '🏃 盤點中' : '📋 未完成'}
+                </span>
+                <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#555' }}>
+                  {selectedYear}年{selectedMonthNum}月
+                </span>
+              </div>
+            </div>
+
+            {printingCard.tab === 'stats' ? (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div style={{ backgroundColor: '#f5f5f5', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.85rem', color: '#666' }}>本月派送</div>
+                    <div style={{ fontSize: '2rem', fontWeight: '900' }}>{printingCard.person.monthDispatch}</div>
+                  </div>
+                  <div style={{ backgroundColor: '#f5f5f5', padding: '10px', borderRadius: '10px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.85rem', color: '#666' }}>本月完成</div>
+                    <div style={{ fontSize: '2rem', fontWeight: '900' }}>{printingCard.person.monthCompleted}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
+                  <div style={{ flex: 1, backgroundColor: '#e8eaf6', padding: '10px', borderRadius: '10px', textAlign: 'center', border: '2px dashed var(--crayon-blue)' }}>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>本月完成項目數</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{printingCard.person.monthCompletedItems || 0}</div>
+                  </div>
+                  <div style={{ flex: 1, backgroundColor: '#e8eaf6', padding: '10px', borderRadius: '10px', textAlign: 'center', border: '2px dashed var(--crayon-blue)' }}>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
+                      {selectedTaskId ? '此任務已盤點項目數' : '已完成總項目數'}
+                    </div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>{printingCard.person.totalCompletedItems}</div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '5px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', marginBottom: '5px' }}>
+                    <strong>完成率</strong>
+                    <span style={{ fontSize: '1.5rem', fontWeight: '900' }}>{printingCard.person.monthCompletionRate}%</span>
+                  </div>
+                  <div style={{ width: '100%', height: '10px', backgroundColor: '#eee', borderRadius: '5px', overflow: 'hidden', border: '1px solid #ccc' }}>
+                    <div style={{ width: `${printingCard.person.monthCompletionRate}%`, height: '100%', backgroundColor: printingCard.person.monthCompletionRate === 100 ? 'var(--crayon-green)' : 'var(--crayon-blue)' }}></div>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right', fontSize: '0.9rem' }}>
+                  <strong>平均：</strong>
+                  <span style={{ color: printingCard.person.monthCompleted > 0 ? 'var(--crayon-red)' : '#888', fontWeight: 'bold', fontSize: '1.1rem' }}>
+                    {printingCard.person.monthCompleted > 0 ? `${printingCard.person.avgDays.toFixed(2)} 天` : '-'}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#fff3e0',
+                border: '2px dashed var(--crayon-orange)',
+                borderRadius: '10px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+                  <span style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--crayon-red)' }}>
+                    總計：{printingCard.ticketsList.length} 件 / {printingCard.ticketsList.reduce((sum, t) => sum + (t.itemCount || 0), 0)} 項
+                  </span>
+                  <div style={{ display: 'flex', gap: '6px', fontSize: '0.85rem', fontWeight: 'bold', color: '#555' }}>
+                    <span>任務：{printingCard.taskFilterId ? (tasks.find(tk => tk.id === printingCard.taskFilterId)?.name || '指定任務') : '所有任務'}</span>
+                    <span>｜</span>
+                    <span>類型：{printingCard.ticketTypeFilter || '全部類型'}</span>
+                  </div>
+                </div>
+
+                {printingCard.ticketsList.length === 0 ? (
+                  <div style={{ textAlign: 'center', color: '#888', padding: '20px 0' }}>
+                    太棒了！目前沒有{printingCard.tab === 'doing' ? '盤點中' : '未完成'}的單據 🎉
+                  </div>
+                ) : (
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {printingCard.ticketsList.map((t, idx) => {
+                      const { currentStageName, currentAssigneeName } = getTicketStageInfo(t);
+                      return (
+                        <li key={t.id} style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          backgroundColor: t.taskId ? '#e1f5fe' : 'white', padding: '6px 10px',
+                          border: `2px solid ${t.taskId ? 'var(--crayon-blue)' : 'var(--crayon-dark)'}`, borderRadius: '8px'
+                        }}>
+                          <span style={{ fontWeight: 'bold', fontSize: '1rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '5px' }}>
+                            <span style={{ color: 'var(--crayon-blue)', marginRight: '5px' }}>{idx + 1}.</span>
+                            {t.id}
+                            {t.ticketType && (
+                              <span style={{ fontSize: '0.8rem', color: t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)', border: `1px solid ${t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)'}`, borderRadius: '4px', padding: '1px 6px' }}>
+                                {t.ticketType}
+                              </span>
+                            )}
+                            <span style={{ fontSize: '0.9rem', color: 'var(--crayon-paper)', backgroundColor: 'var(--crayon-dark)', padding: '2px 8px', borderRadius: '4px', border: '2px solid var(--crayon-dark)', fontWeight: 'bold' }}>
+                              {currentStageName} ({currentAssigneeName})
+                            </span>
+                          </span>
+                          <span style={{
+                            backgroundColor: '#e1bee7', padding: '2px 8px',
+                            borderRadius: '10px', fontSize: '0.85rem', fontWeight: 'bold',
+                            border: '1px dashed var(--crayon-dark)', color: 'var(--crayon-purple)'
+                          }}>
+                            📦 {t.itemCount || 0}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       </div>
   );

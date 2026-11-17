@@ -845,23 +845,17 @@ export default function Statistics() {
 
     filteredTickets.forEach(t => {
       if (!t.dispatchDate) return;
-      const currentStage = !t.closeDate ? workflows.find(st => !t.stageDates || !t.stageDates[st.id]) : undefined;
       workflows.forEach((w, index) => {
+        if (!t.stageDates || !t.stageDates[w.id]) return;
         let previousDate: number | null | undefined = t.dispatchDate;
         for (let prevIdx = index - 1; prevIdx >= 0; prevIdx--) {
-          if (t.stageDates && t.stageDates[workflows[prevIdx].id]) {
+          if (t.stageDates[workflows[prevIdx].id]) {
             previousDate = t.stageDates[workflows[prevIdx].id];
             break;
           }
         }
-        if (!previousDate) return;
-
-        if (t.stageDates && t.stageDates[w.id]) {
+        if (previousDate) {
           const days = calculateDays(previousDate, t.stageDates[w.id]);
-          stageStats[w.id].totalDays += days;
-          stageStats[w.id].count += 1;
-        } else if (currentStage && currentStage.id === w.id) {
-          const days = calculateDays(previousDate, Date.now());
           stageStats[w.id].totalDays += days;
           stageStats[w.id].count += 1;
         }
