@@ -140,6 +140,7 @@ export default function Dashboard() {
   const d = new Date();
   const [selectedYear, setSelectedYear] = useState<number>(d.getFullYear());
   const [selectedMonthNum, setSelectedMonthNum] = useState<number>(d.getMonth() + 1);
+  const [personnelCollapsed, setPersonnelCollapsed] = useState<boolean>(false);
   const [printingCard, setPrintingCard] = useState<{
     person: any;
     tab: 'stats' | 'incomplete' | 'doing';
@@ -1020,8 +1021,18 @@ export default function Dashboard() {
 
         {/* 備料員盤點情況 - Moved ABOVE Chart & Restyled to Doodle Cards */}
         <div className="doodle-border" style={{ padding: '20px', backgroundColor: '#e0f7fa' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px dashed var(--crayon-dark)', paddingBottom: '10px', flexWrap: 'wrap', gap: '15px' }}>
-            <h3 style={{ margin: 0, fontSize: '1.8rem' }}>👥 備料員盤點情況</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: personnelCollapsed ? 'none' : '3px dashed var(--crayon-dark)', paddingBottom: personnelCollapsed ? '0' : '10px', flexWrap: 'wrap', gap: '15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <h3 style={{ margin: 0, fontSize: '1.8rem' }}>👥 備料員盤點情況</h3>
+              <button
+                type="button"
+                className="doodle-button"
+                style={{ padding: '4px 12px', fontSize: '0.95rem', backgroundColor: personnelCollapsed ? 'var(--crayon-green)' : '#ffe0b2', color: 'var(--crayon-dark)' }}
+                onClick={() => setPersonnelCollapsed(prev => !prev)}
+              >
+                {personnelCollapsed ? '🔽 展開' : '🔼 收合'}
+              </button>
+            </div>
             <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                 <label style={{ fontWeight: 'bold' }}>盤點類型：</label>
@@ -1043,6 +1054,7 @@ export default function Dashboard() {
             </div>
           </div>
           
+          {!personnelCollapsed && (
           <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             {/* 總計列設計成顯眼置頂的塗鴉風格面板 */}
             {personnelStats.length > 0 && (
@@ -1113,7 +1125,7 @@ export default function Dashboard() {
                       </button>
                     </div>
                     
-                    <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: '22px' }}>
                       <button 
                         className={`doodle-button ${currentTab === 'stats' ? 'success' : ''}`} 
                         style={{ flex: 1, padding: '5px', minHeight: 'auto' }}
@@ -1163,13 +1175,14 @@ export default function Dashboard() {
                               {p.doingCount}
                             </span>
                             <span style={{
-                              position: 'absolute', bottom: '-14px', right: '-10px',
+                              position: 'absolute', bottom: '-18px', right: '-14px',
                               backgroundColor: 'var(--crayon-yellow)', color: 'var(--crayon-dark)',
-                              border: '2px solid var(--crayon-dark)',
-                              borderRadius: '12px', padding: '1px 7px',
-                              fontSize: '0.85rem', fontWeight: '900', lineHeight: '1.2',
+                              border: '3px solid var(--crayon-dark)',
+                              borderRadius: '14px', padding: '2px 9px',
+                              fontSize: '1.15rem', fontWeight: '900', lineHeight: '1.2',
                               whiteSpace: 'nowrap', zIndex: 1,
                               boxShadow: '2px 2px 0px rgba(0,0,0,0.3)',
+                              textShadow: '0.5px 0 0 currentColor',
                               transform: 'rotate(3deg)'
                             }}>
                               {p.doingItemCount}項
@@ -1346,6 +1359,7 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+          )}
         </div>
 
         {/* 所有未結案盤點單狀態 */}
