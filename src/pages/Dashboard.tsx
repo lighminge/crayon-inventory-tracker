@@ -84,6 +84,7 @@ export default function Dashboard() {
   // Dashboard Chart State
   const [chartType, setChartType] = useState<'bar' | 'line' | 'composed'>('bar');
   const [chartMetric, setChartMetric] = useState<'ticketCount' | 'itemCount' | 'all'>('all');
+  const [chartStatusFilter, setChartStatusFilter] = useState<'all' | 'closed' | 'unclosed'>('closed');
   
   // Dashboard Unclosed State
   const [unclosedAssigneeFilter, setUnclosedAssigneeFilter] = useState<string>('all');
@@ -176,6 +177,8 @@ export default function Dashboard() {
       const monthStr = `${d.getMonth() + 1}月`;
       const monthTickets = filteredTickets.filter(t => {
         if (!t.dispatchDate) return false;
+        if (chartStatusFilter === 'closed' && !t.closeDate) return false;
+        if (chartStatusFilter === 'unclosed' && t.closeDate) return false;
         const td = new Date(t.dispatchDate);
         return td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth();
       });
@@ -185,7 +188,7 @@ export default function Dashboard() {
     }
 
     return { total, totalItems, closed, closedItems, inProgress, inProgressItems, completionRate, itemCompletionRate, avgDays, chartData };
-  }, [filteredTickets, holidays, calendarWeekStart]);
+  }, [filteredTickets, holidays, calendarWeekStart, chartStatusFilter]);
 
   // Personnel specific stats for selected month
   const personnelStats = useMemo(() => {
@@ -1379,6 +1382,14 @@ export default function Dashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px' }}>
             <h3 style={{ margin: 0 }}>📈 近六個月盤點數量</h3>
             <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div>
+                <label style={{ fontWeight: 'bold', marginRight: '5px' }}>盤點單狀態：</label>
+                <select className="doodle-input" style={{ width: 'auto' }} value={chartStatusFilter} onChange={e => setChartStatusFilter(e.target.value as 'all' | 'closed' | 'unclosed')}>
+                  <option value="all">全部</option>
+                  <option value="closed">已結案</option>
+                  <option value="unclosed">未結案</option>
+                </select>
+              </div>
               <div>
                 <label style={{ fontWeight: 'bold', marginRight: '5px' }}>統計數據：</label>
                 <select className="doodle-input" style={{ width: 'auto' }} value={chartMetric} onChange={e => setChartMetric(e.target.value as any)}>
