@@ -14,7 +14,8 @@ export default function WorkflowManagement() {
   const [formData, setFormData] = useState<Omit<Workflow, 'id'>>({
     name: '',
     order: 0,
-    assigneeId: ''
+    assigneeId: '',
+    workingDays: 0
   });
 
   useEffect(() => {
@@ -35,12 +36,17 @@ export default function WorkflowManagement() {
   const handleOpenForm = (workflow?: Workflow) => {
     if (workflow) {
       setEditingWorkflow(workflow);
-      setFormData({ name: workflow.name, order: workflow.order, assigneeId: workflow.assigneeId || '' });
+      setFormData({
+        name: workflow.name,
+        order: workflow.order,
+        assigneeId: workflow.assigneeId || '',
+        workingDays: workflow.workingDays ?? 0
+      });
     } else {
       setEditingWorkflow(null);
       const defaultInsertId = workflows.length > 1 ? workflows[workflows.length - 2].id : (workflows.length > 0 ? workflows[0].id : '');
       setInsertAfterId(defaultInsertId);
-      setFormData({ name: '', order: 0, assigneeId: '' });
+      setFormData({ name: '', order: 0, assigneeId: '', workingDays: 0 });
     }
     setIsFormOpen(true);
   };
@@ -138,7 +144,11 @@ export default function WorkflowManagement() {
                     {isFirst && <span style={{ fontSize: '0.8rem', color: '#d32f2f', border: '1px solid #d32f2f', borderRadius: '5px', padding: '2px 5px', marginLeft: '10px' }}>🔒 系統鎖定 (起點)</span>}
                     {isLast && <span style={{ fontSize: '0.8rem', color: '#d32f2f', border: '1px solid #d32f2f', borderRadius: '5px', padding: '2px 5px', marginLeft: '10px' }}>🔒 系統鎖定 (終點)</span>}
                   </h3>
-                  <p style={{ margin: '5px 0 0 0', color: '#555' }}>預設負責人：{getPersonnelName(w.assigneeId)}</p>
+                  <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', marginTop: '5px', color: '#555' }}>
+                    <span>預設負責人：{getPersonnelName(w.assigneeId)}</span>
+                    <span>｜</span>
+                    <span>工作日數：<strong style={{ color: 'var(--crayon-blue)' }}>{w.workingDays ?? 0} 天</strong></span>
+                  </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '10px' }}>
@@ -188,6 +198,16 @@ export default function WorkflowManagement() {
                   <option value="DYNAMIC_ASSIGNEE">-- 動態帶入單據負責人員 --</option>
                   {personnel.map(p => <option key={p.id} value={p.id}>{p.name} ({p.title})</option>)}
                 </select>
+              </div>
+              <div>
+                <label>工作日數 (預計辦理日數)：</label>
+                <input
+                  type="number"
+                  min={0}
+                  className="doodle-input"
+                  value={formData.workingDays ?? 0}
+                  onChange={e => setFormData({ ...formData, workingDays: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                />
               </div>
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                 <button type="submit" className="doodle-button success" style={{ flex: 1 }}>儲存</button>

@@ -12,6 +12,7 @@ export interface Workflow {
   name: string;
   order: number;
   assigneeId?: string;
+  workingDays?: number;
 }
 
 export interface InventoryTask {

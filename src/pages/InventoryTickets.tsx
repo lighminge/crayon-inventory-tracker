@@ -574,13 +574,16 @@ export default function InventoryTicketsPage() {
                       const isCurrent = !isFinished && nextStage?.id === w.id;
                       
                       let spentDaysText = '';
+                      let spentDays = 0;
                       if (isDone) {
                         const previousDate = wIndex === 0 ? t.dispatchDate : (t.stageDates && t.stageDates[workflows[wIndex-1].id]);
                         if (previousDate) {
                           const days = calculateDays(previousDate, t.stageDates[w.id]);
+                          spentDays = days;
                           spentDaysText = days === 0 ? '0天' : `${days}天`;
                         }
                       }
+                      const isWithinWorkingDays = spentDays <= (w.workingDays ?? 0);
 
                       return (
                         <React.Fragment key={w.id}>
@@ -639,7 +642,7 @@ export default function InventoryTicketsPage() {
                             <div style={{ 
                               marginTop: '8px', fontSize: '0.9rem', fontWeight: 'bold', 
                               color: 'var(--crayon-dark)',
-                              backgroundColor: spentDaysText === '0天' ? '#c8e6c9' : '#ffcdd2', 
+                              backgroundColor: isWithinWorkingDays ? '#c8e6c9' : '#ffcdd2', 
                               padding: '4px 10px', 
                               borderRadius: '4px', 
                               border: '2px solid var(--crayon-dark)',
