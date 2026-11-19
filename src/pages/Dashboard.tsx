@@ -26,6 +26,16 @@ export default function Dashboard() {
     return monday;
   });
 
+  const [completedWeekStart, setCompletedWeekStart] = useState<Date>(() => {
+    const today = new Date();
+    const currentDay = today.getDay();
+    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + mondayOffset);
+    monday.setHours(0,0,0,0);
+    return monday;
+  });
+
   const middleOfWeek = useMemo(() => {
     const d = new Date(calendarWeekStart);
     d.setDate(d.getDate() + 3); // Thursday
@@ -34,6 +44,15 @@ export default function Dashboard() {
 
   const displayYear = middleOfWeek.getFullYear();
   const displayMonth = middleOfWeek.getMonth() + 1;
+
+  const completedMiddleOfWeek = useMemo(() => {
+    const d = new Date(completedWeekStart);
+    d.setDate(d.getDate() + 3); // Thursday
+    return d;
+  }, [completedWeekStart]);
+
+  const completedDisplayYear = completedMiddleOfWeek.getFullYear();
+  const completedDisplayMonth = completedMiddleOfWeek.getMonth() + 1;
 
   const handleCalYearChange = (e: any) => {
     const y = Number(e.target.value);
@@ -51,6 +70,22 @@ export default function Dashboard() {
     setCalendarWeekStart(d);
   };
 
+  const handleCompletedCalYearChange = (e: any) => {
+    const y = Number(e.target.value);
+    const d = new Date(y, completedDisplayMonth - 1, 4);
+    const offset = d.getDay() === 0 ? -6 : 1 - d.getDay();
+    d.setDate(d.getDate() + offset);
+    setCompletedWeekStart(d);
+  };
+
+  const handleCompletedCalMonthChange = (e: any) => {
+    const m = Number(e.target.value);
+    const d = new Date(completedDisplayYear, m - 1, 4);
+    const offset = d.getDay() === 0 ? -6 : 1 - d.getDay();
+    d.setDate(d.getDate() + offset);
+    setCompletedWeekStart(d);
+  };
+
   const handleExportMonthChartImage = async () => {
     const el = document.getElementById('month-chart-container');
     if (!el) return;
@@ -59,6 +94,17 @@ export default function Dashboard() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `${displayYear}年${displayMonth}月_派送統計圖表.png`;
+    a.click();
+  };
+
+  const handleExportCompletedMonthChartImage = async () => {
+    const el = document.getElementById('completed-month-chart-container');
+    if (!el) return;
+    const canvas = await html2canvas(el, { scale: 1.5 });
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${completedDisplayYear}年${completedDisplayMonth}月_完成統計圖表.png`;
     a.click();
   };
 
@@ -72,6 +118,18 @@ export default function Dashboard() {
     const d = new Date(calendarWeekStart);
     d.setDate(d.getDate() + 7);
     setCalendarWeekStart(d);
+  };
+
+  const handleCompletedPrevWeek = () => {
+    const d = new Date(completedWeekStart);
+    d.setDate(d.getDate() - 7);
+    setCompletedWeekStart(d);
+  };
+
+  const handleCompletedNextWeek = () => {
+    const d = new Date(completedWeekStart);
+    d.setDate(d.getDate() + 7);
+    setCompletedWeekStart(d);
   };
   
   // Personnel Cards State
@@ -715,6 +773,183 @@ export default function Dashboard() {
     })).sort((a, b) => b.count - a.count);
   }, [monthTicketsList, personnel, personnelColors]);
 
+  // '盤點中' workflow stage ID for completed inventory ticket statistics
+  const invStageId = useMemo(() => {
+    const stage = workflows.find(w => w.name === '盤點中');
+    return stage ? stage.id : null;
+  }, [workflows]);
+
+  // Weekly completed calendar logic (based on '盤點中' workflow date)
+  const weeklyCompletedCalendarData = useMemo(() => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    let totalWeeklyCount = 0;
+    let totalWeeklyItems = 0;
+    const weeklyStatsMap: Record<string, { count: number; itemCount: number }> = {};
+    const days = Array.from({ length: 5 }).map((_, i) => {
+      const d = new Date(completedWeekStart);
+      d.setDate(completedWeekStart.getDate() + i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const holidayObj = holidays.find(h => h.date === dateStr);
+      const isHoliday = !!holidayObj;
+      const holidayDesc = holidayObj ? holidayObj.description : '';
+
+      const dayTickets = filteredTickets.filter(t => {
+        if (!invStageId || !t.stageDates || !t.stageDates[invStageId]) return false;
+        const td = new Date(t.stageDates[invStageId]);
+        const tdStr = `${td.getFullYear()}-${String(td.getMonth()+1).padStart(2,'0')}-${String(td.getDate()).padStart(2,'0')}`;
+        return tdStr === dateStr;
+      });
+      const count = dayTickets.length;
+      const itemCount = dayTickets.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+      totalWeeklyCount += count;
+      totalWeeklyItems += itemCount;
+
+      const statsMap: Record<string, { count: number; itemCount: number }> = {};
+      dayTickets.forEach(t => {
+        const pName = personnel.find(p => p.id === t.assigneeId)?.name || '未知人員';
+        const items = t.itemCount || 0;
+        if (!statsMap[pName]) statsMap[pName] = { count: 0, itemCount: 0 };
+        statsMap[pName].count += 1;
+        statsMap[pName].itemCount += items;
+        if (!weeklyStatsMap[pName]) weeklyStatsMap[pName] = { count: 0, itemCount: 0 };
+        weeklyStatsMap[pName].count += 1;
+        weeklyStatsMap[pName].itemCount += items;
+      });
+
+      const personnelStats = Object.keys(statsMap).map(name => ({
+        name, count: statsMap[name].count, itemCount: statsMap[name].itemCount, color: personnelColors[name] || '#999999'
+      })).sort((a, b) => b.count - a.count);
+
+      return {
+        personnelStats,
+        date: d,
+        dateStr,
+        isHoliday,
+        holidayDesc,
+        isToday: dateStr === todayStr,
+        dayName: ['日', '一', '二', '三', '四', '五', '六'][d.getDay()],
+        count,
+        itemCount
+      };
+    });
+
+    const weeklyPersonnelStats = Object.keys(weeklyStatsMap).map(name => ({
+      name, count: weeklyStatsMap[name].count, itemCount: weeklyStatsMap[name].itemCount, color: personnelColors[name] || '#999999'
+    })).sort((a, b) => b.count - a.count);
+
+    return { days, totalWeeklyCount, totalWeeklyItems, weeklyPersonnelStats };
+  }, [filteredTickets, holidays, completedWeekStart, personnel, personnelColors, invStageId]);
+
+  const completedMonthTicketsList = useMemo(() => {
+    return filteredTickets.filter(t => {
+      if (!invStageId || !t.stageDates || !t.stageDates[invStageId]) return false;
+      const d = new Date(t.stageDates[invStageId]);
+      return d.getFullYear() === completedDisplayYear && d.getMonth() === completedDisplayMonth - 1;
+    });
+  }, [filteredTickets, completedDisplayYear, completedDisplayMonth, invStageId]);
+
+  const completedMonthTotalTickets = completedMonthTicketsList.length;
+  const completedMonthTotalItems = useMemo(() => {
+    return completedMonthTicketsList.reduce((sum, t) => sum + (t.itemCount || 0), 0);
+  }, [completedMonthTicketsList]);
+
+  const [expandedCompletedDay, setExpandedCompletedDay] = useState<string | null>(null);
+  const [showCompletedMonthChart, setShowCompletedMonthChart] = useState(false);
+
+  const completedMonthlyData = useMemo(() => {
+    const map: Record<string, { count: number; itemCount: number }> = {};
+    completedMonthTicketsList.forEach(t => {
+      const pName = personnel.find(p => p.id === t.assigneeId)?.name || '未知人員';
+      if (!map[pName]) map[pName] = { count: 0, itemCount: 0 };
+      map[pName].count += 1;
+      map[pName].itemCount += (t.itemCount || 0);
+    });
+    return Object.keys(map).map(name => ({
+      name, count: map[name].count, itemCount: map[name].itemCount, color: personnelColors[name] || '#999999'
+    })).sort((a, b) => b.count - a.count);
+  }, [completedMonthTicketsList, personnel, personnelColors]);
+
+  // 每位盤點人員的當週盤點單完成數量 (依當週週一~週五的「盤點中」流程日期統計)
+  const personnelWeeklyCompletedList = useMemo(() => {
+    const weekDates = new Set(weeklyCompletedCalendarData.days.map(d => d.dateStr));
+    return personnelStats.map(p => {
+      const completedInWeek = filteredTickets.filter(t => {
+        if (t.assigneeId !== p.id) return false;
+        if (!invStageId || !t.stageDates || !t.stageDates[invStageId]) return false;
+        const td = new Date(t.stageDates[invStageId]);
+        const tdStr = `${td.getFullYear()}-${String(td.getMonth()+1).padStart(2,'0')}-${String(td.getDate()).padStart(2,'0')}`;
+        return weekDates.has(tdStr);
+      });
+      return {
+        id: p.id,
+        name: p.name,
+        title: p.title,
+        count: completedInWeek.length,
+        itemCount: completedInWeek.reduce((sum, t) => sum + (t.itemCount || 0), 0)
+      };
+    });
+  }, [personnelStats, filteredTickets, weeklyCompletedCalendarData.days, invStageId]);
+
+  // 判斷下方備料員是否都已切換至「盤點中」分頁
+  const isAllDoingTab = useMemo(() => {
+    if (personnelStats.length === 0) return false;
+    return personnelStats.every(p => (activeTab[p.id] || 'stats') === 'doing');
+  }, [personnelStats, activeTab]);
+
+  // 當所有備料員皆選取「盤點中」時，全員總計依所有人員在「盤點中」的盤點單統計
+  const personnelDoingTotals = useMemo(() => {
+    const tYear = selectedYear;
+    const tMonth = selectedMonthNum - 1;
+    let totalCount = 0;
+    let totalItems = 0;
+    let monthDispatchCount = 0;
+    let monthDispatchItems = 0;
+    let clampCount = 0;
+    let clampItems = 0;
+    let tkwCount = 0;
+    let tkwItems = 0;
+
+    personnelStats.forEach(p => {
+      const typeFilter = cardTicketType[p.id] || '';
+      const taskFilter = cardTaskFilter[p.id] || '';
+      let list = typeFilter ? p.doingTickets.filter((t: InventoryTicket) => t.ticketType === typeFilter) : p.doingTickets;
+      if (taskFilter) {
+        list = list.filter((t: InventoryTicket) => t.taskId === taskFilter);
+      }
+      list.forEach((t: InventoryTicket) => {
+        const items = t.itemCount || 0;
+        totalCount += 1;
+        totalItems += items;
+        if (t.ticketType === '夾鉗') {
+          clampCount += 1;
+          clampItems += items;
+        } else if (t.ticketType === 'TKW') {
+          tkwCount += 1;
+          tkwItems += items;
+        }
+        if (t.dispatchDate) {
+          const d = new Date(t.dispatchDate);
+          if (d.getFullYear() === tYear && d.getMonth() === tMonth) {
+            monthDispatchCount += 1;
+            monthDispatchItems += items;
+          }
+        }
+      });
+    });
+
+    return {
+      totalCount,
+      totalItems,
+      monthDispatchCount,
+      monthDispatchItems,
+      clampCount,
+      clampItems,
+      tkwCount,
+      tkwItems
+    };
+  }, [personnelStats, cardTicketType, cardTaskFilter, selectedYear, selectedMonthNum]);
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
@@ -1046,6 +1281,190 @@ export default function Dashboard() {
           )}
         </div>
 
+        {/* 當週盤點單完成狀況 */}
+        <div className="doodle-border" style={{ padding: '20px', backgroundColor: '#e8f5e9', transform: 'rotate(-0.4deg)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px dashed var(--crayon-green)', paddingBottom: '10px', marginBottom: '15px', flexWrap: 'wrap', gap: '15px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.5rem', color: '#2e7d32', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              📅 當週盤點單完成狀況 
+              <span style={{ fontSize: '1rem', color: '#666', fontWeight: 'bold', border: '1px solid #ccc', padding: '2px 8px', borderRadius: '12px', backgroundColor: 'white' }}>
+                本月共 {completedMonthTotalTickets} 筆 / {completedMonthTotalItems} 項
+              </span>
+              <button className="doodle-button" onClick={() => setShowCompletedMonthChart(!showCompletedMonthChart)} style={{ padding: '2px 10px', fontSize: '0.9rem', backgroundColor: showCompletedMonthChart ? '#c8e6c9' : 'var(--crayon-purple)', color: showCompletedMonthChart ? 'var(--crayon-dark)' : 'white' }}>
+                {showCompletedMonthChart ? '返回當週視圖' : '📊 當月圖表檢視'}
+              </button>
+            </h3>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              {!showCompletedMonthChart && (
+                <div style={{ display: 'flex', gap: '5px' }}>
+                  <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '1rem', backgroundColor: '#c8e6c9' }} onClick={handleCompletedPrevWeek}>◀</button>
+                  <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '1rem', backgroundColor: '#c8e6c9' }} onClick={handleCompletedNextWeek}>▶</button>
+                </div>
+              )}
+              <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white', padding: '2px 5px', fontSize: '0.9rem' }} value={completedDisplayYear} onChange={handleCompletedCalYearChange}>
+                {yearOptions.map(y => <option key={y} value={y}>{y} 年</option>)}
+              </select>
+              <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white', padding: '2px 5px', fontSize: '0.9rem' }} value={completedDisplayMonth} onChange={handleCompletedCalMonthChange}>
+                {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>{m} 月</option>)}
+              </select>
+            </div>
+          </div>
+          
+          {showCompletedMonthChart ? (
+            <div id="completed-month-chart-container" style={{ backgroundColor: 'white', padding: '20px', borderRadius: '15px', border: '2px solid var(--crayon-dark)', animation: 'fadeIn 0.3s' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ margin: 0, color: 'var(--crayon-dark)', fontFamily: 'Caveat, cursive', fontSize: '1.8rem' }}>📊 {completedDisplayYear}年{completedDisplayMonth}月 完成統計圖表</h2>
+                <button className="doodle-button" style={{ padding: '4px 10px', fontSize: '0.9rem', backgroundColor: 'var(--crayon-blue)', color: 'white' }} onClick={handleExportCompletedMonthChartImage}>🖼️ 匯出圖檔</button>
+              </div>
+              {completedMonthlyData.length === 0 ? (
+                <div style={{ textAlign: 'center', fontSize: '1.2rem', color: '#999', padding: '50px 0' }}>本月份尚無完成單據</div>
+              ) : (
+                <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '300px', height: '350px' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={completedMonthlyData} margin={{ top: 25, right: 30, left: 20, bottom: 60 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" tick={{fontFamily: 'Caveat, cursive', fontWeight: 'bold'}} angle={-45} textAnchor="end" />
+                        <YAxis allowDecimals={false} />
+                        <Tooltip contentStyle={{ borderRadius: '10px', fontWeight: 'bold' }} />
+                        <Legend verticalAlign="top" wrapperStyle={{ paddingBottom: '10px', fontWeight: 'bold' }} />
+                        <Bar dataKey="count" name="完成數量" fill="var(--crayon-green)" radius={[5, 5, 0, 0]}>
+                          <LabelList dataKey="count" position="top" style={{ fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                        </Bar>
+                        <Bar dataKey="itemCount" name="盤點項目數" fill="var(--crayon-orange)" radius={[5, 5, 0, 0]}>
+                          <LabelList dataKey="itemCount" position="top" style={{ fontWeight: 'bold', fill: 'var(--crayon-dark)' }} />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div style={{ width: '250px', display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '10px', border: '2px dashed #ccc' }}>
+                    <h4 style={{ margin: '0 0 10px 0', borderBottom: '2px solid #ddd', paddingBottom: '5px', color: 'var(--crayon-dark)', fontSize: '1.1rem' }}>人員圖例與統計</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
+                      {completedMonthlyData.map(d => (
+                        <div key={d.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontWeight: 'bold', fontSize: '1rem', color: '#333' }}>{d.name}</span>
+                          <span style={{ fontWeight: 'bold', color: '#2e7d32', fontSize: '0.95rem' }}>{d.count} 筆 / {d.itemCount} 項</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ borderTop: '2px dashed #ddd', paddingTop: '10px', marginTop: '5px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--crayon-dark)' }}>當月總計</span>
+                      <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--crayon-orange)' }}>{completedMonthTotalTickets} 筆 / {completedMonthTotalItems} 項</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'stretch', flexWrap: 'wrap' }}>
+              {weeklyCompletedCalendarData.days.map((day, idx) => (
+                <div key={idx} onClick={() => { if (!day.isHoliday && day.count > 0) setExpandedCompletedDay(expandedCompletedDay === day.dateStr ? null : day.dateStr) }} style={{ 
+                  flex: 1, minWidth: '120px', backgroundColor: 'white',
+                  border: '2px solid var(--crayon-dark)', borderRadius: '5px',
+                  boxShadow: '3px 3px 0px rgba(0,0,0,0.15)', overflow: 'hidden', position: 'relative',
+                  cursor: (!day.isHoliday && day.count > 0) ? 'pointer' : 'default',
+                  transition: 'all 0.2s', display: 'flex', flexDirection: 'column',
+                  transform: expandedCompletedDay === day.dateStr ? 'scale(1.02)' : 'none'
+                }}>
+                  <div style={{ 
+                    backgroundColor: day.isHoliday ? 'var(--crayon-red)' : (day.isToday ? 'var(--crayon-blue)' : '#666'), 
+                    color: 'white', width: '100%', textAlign: 'center', padding: '5px 0',
+                    fontWeight: 'bold', fontSize: '1rem', borderBottom: '2px dashed var(--crayon-dark)'
+                  }}>
+                    星期{day.dayName}
+                    {day.isToday && <span style={{ marginLeft: '5px', fontSize: '0.7rem', backgroundColor: 'white', color: 'var(--crayon-blue)', padding: '1px 5px', borderRadius: '10px', verticalAlign: 'middle' }}>今日</span>}
+                  </div>
+                  <div style={{ position: 'absolute', top: '5px', left: '15px', width: '6px', height: '12px', backgroundColor: 'white', border: '1px solid var(--crayon-dark)', borderRadius: '3px' }}></div>
+                  <div style={{ position: 'absolute', top: '5px', right: '15px', width: '6px', height: '12px', backgroundColor: 'white', border: '1px solid var(--crayon-dark)', borderRadius: '3px' }}></div>
+                  
+                  <div style={{ padding: '10px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--crayon-dark)', margin: '0', fontFamily: 'Caveat, cursive', lineHeight: '1' }}>
+                      {day.date.getDate()}
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '5px' }}>
+                      {day.date.getMonth() + 1}月
+                    </div>
+                    
+                    {day.isHoliday ? (
+                      <div style={{ color: 'var(--crayon-red)', fontWeight: 'bold', padding: '10px 0', textAlign: 'center' }}>
+                        <div style={{ fontSize: '1.2rem' }}>休假</div>
+                        {day.holidayDesc && <div style={{ fontSize: '0.9rem', marginTop: '5px' }}>{day.holidayDesc}</div>}
+                      </div>
+                    ) : (
+                      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        {day.count > 0 ? (
+                          expandedCompletedDay === day.dateStr ? (
+                            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px', animation: 'fadeIn 0.3s' }}>
+                              {day.personnelStats?.map(ps => (
+                                <div key={ps.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f5f5f5', padding: '4px 8px', borderRadius: '5px', borderLeft: `4px solid ${ps.color}` }}>
+                                  <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: ps.color }}>{ps.name}</span>
+                                  <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#333' }}>{ps.count}筆 / {ps.itemCount}項</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <>
+                              <span style={{ fontSize: '1.5rem', fontWeight: '900', color: '#2e7d32' }}>{day.count}</span>
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.8rem', color: '#666' }}>筆完成</span>
+                                <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--crayon-purple)', marginTop: '4px', lineHeight: '1.2' }}>共 {day.itemCount} 項</span>
+                                <span style={{ fontSize: '0.75rem', color: '#2e7d32', marginTop: '4px' }}>(點擊查看)</span>
+                              </div>
+                            </>
+                          )
+                        ) : (
+                          <span style={{ fontSize: '1rem', color: '#999', padding: '10px 0' }}>無完成</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <div 
+                onClick={() => { if (weeklyCompletedCalendarData.totalWeeklyCount > 0) setExpandedCompletedDay(expandedCompletedDay === 'week' ? null : 'week') }} 
+                style={{ 
+                flex: 1, minWidth: '150px', backgroundColor: 'white',
+                border: '2px solid var(--crayon-dark)', borderRadius: '5px',
+                boxShadow: '3px 3px 0px rgba(0,0,0,0.15)', overflow: 'hidden', position: 'relative',
+                cursor: weeklyCompletedCalendarData.totalWeeklyCount > 0 ? 'pointer' : 'default',
+                transition: 'all 0.2s', display: 'flex', flexDirection: 'column',
+                transform: expandedCompletedDay === 'week' ? 'scale(1.02)' : 'none'
+              }}>
+                <div style={{ 
+                  backgroundColor: '#2e7d32', 
+                  color: 'white', width: '100%', textAlign: 'center', padding: '5px 0',
+                  fontWeight: 'bold', fontSize: '1rem', borderBottom: '2px dashed var(--crayon-dark)'
+                }}>
+                  當週總計
+                </div>
+                <div style={{ position: 'absolute', top: '5px', left: '15px', width: '6px', height: '12px', backgroundColor: 'white', border: '1px solid var(--crayon-dark)', borderRadius: '3px' }}></div>
+                <div style={{ position: 'absolute', top: '5px', right: '15px', width: '6px', height: '12px', backgroundColor: 'white', border: '1px solid var(--crayon-dark)', borderRadius: '3px' }}></div>
+                
+                <div style={{ padding: '10px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  {expandedCompletedDay === 'week' ? (
+                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '5px', animation: 'fadeIn 0.3s' }}>
+                      {weeklyCompletedCalendarData.weeklyPersonnelStats.map(ps => (
+                        <div key={ps.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f5f5f5', padding: '4px 8px', borderRadius: '5px', borderLeft: `4px solid ${ps.color}` }}>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: ps.color }}>{ps.name}</span>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#333' }}>{ps.count}筆 / {ps.itemCount}項</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: '3.2rem', fontWeight: '900', color: '#2e7d32', fontFamily: 'Caveat, cursive', lineHeight: '1', marginBottom: '4px', textShadow: '2px 2px 0px rgba(0,0,0,0.1)' }}>{weeklyCompletedCalendarData.totalWeeklyCount}</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.9rem', color: '#666' }}>筆完成單據</span>
+                        <span style={{ fontSize: '1.5rem', fontWeight: '900', color: 'var(--crayon-purple)', marginTop: '4px', lineHeight: '1.2' }}>共 {weeklyCompletedCalendarData.totalWeeklyItems} 項</span>
+                        {weeklyCompletedCalendarData.totalWeeklyCount > 0 && <span style={{ fontSize: '0.75rem', color: '#2e7d32', marginTop: '4px' }}>(點擊查看)</span>}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* 備料員盤點情況 - Moved ABOVE Chart & Restyled to Doodle Cards */}
         <div className="doodle-border" style={{ padding: '20px', backgroundColor: '#e0f7fa' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: personnelCollapsed ? 'none' : '3px dashed var(--crayon-dark)', paddingBottom: personnelCollapsed ? '0' : '10px', flexWrap: 'wrap', gap: '15px' }}>
@@ -1095,29 +1514,97 @@ export default function Dashboard() {
           <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             {/* 總計列設計成顯眼置頂的塗鴉風格面板 */}
             {personnelStats.length > 0 && (
-              <div className="doodle-border" style={{ 
-                backgroundColor: 'var(--crayon-yellow)', padding: '15px 20px', 
-                display: 'flex', justifyContent: 'space-around', alignItems: 'center',
-                flexWrap: 'wrap', gap: '15px', border: '3px solid var(--crayon-dark)'
-              }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>🌟 全員總計</div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>總未完成</div>
-                  <div style={{ fontSize: '2rem', color: 'var(--crayon-red)', fontWeight: 'bold' }}>{personnelTotals.incompleteCount} 件</div>
+              <>
+                <div className="doodle-border" style={{ 
+                  backgroundColor: 'var(--crayon-yellow)', padding: '15px 20px', 
+                  display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+                  flexWrap: 'wrap', gap: '15px', border: '3px solid var(--crayon-dark)'
+                }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+                    🌟 全員總計{isAllDoingTab ? ' (盤點中)' : ''}
+                  </div>
+                  {isAllDoingTab ? (
+                    <>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>盤點中總單數</div>
+                        <div style={{ fontSize: '2rem', color: 'var(--crayon-red)', fontWeight: 'bold' }}>{personnelDoingTotals.totalCount} 件</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>盤點中總項目數</div>
+                        <div style={{ fontSize: '2rem', color: 'var(--crayon-orange)', fontWeight: 'bold' }}>{personnelDoingTotals.totalItems} 項</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>夾鉗 (盤點中)</div>
+                        <div style={{ fontSize: '1.7rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>{personnelDoingTotals.clampCount} 件 / {personnelDoingTotals.clampItems} 項</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>TKW (盤點中)</div>
+                        <div style={{ fontSize: '1.7rem', color: 'var(--crayon-purple)', fontWeight: 'bold' }}>{personnelDoingTotals.tkwCount} 件 / {personnelDoingTotals.tkwItems} 項</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月派送 (盤點中)</div>
+                        <div style={{ fontSize: '1.7rem', color: '#2e7d32', fontWeight: 'bold' }}>{personnelDoingTotals.monthDispatchCount} 件 / {personnelDoingTotals.monthDispatchItems} 項</div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>總未完成</div>
+                        <div style={{ fontSize: '2rem', color: 'var(--crayon-red)', fontWeight: 'bold' }}>{personnelTotals.incompleteCount} 件</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>已完成總項目數</div>
+                        <div style={{ fontSize: '2rem', color: 'var(--crayon-orange)', fontWeight: 'bold' }}>{personnelTotals.totalCompletedItems} 項</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月總派送</div>
+                        <div style={{ fontSize: '2rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>{personnelTotals.monthDispatch} 件</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月總完成</div>
+                        <div style={{ fontSize: '2rem', color: 'var(--crayon-green)', fontWeight: 'bold' }}>{personnelTotals.monthCompleted} 件</div>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>已完成總項目數</div>
-                  <div style={{ fontSize: '2rem', color: 'var(--crayon-orange)', fontWeight: 'bold' }}>{personnelTotals.totalCompletedItems} 項</div>
+
+                {/* 每位盤點人員的當週盤點單完成數量 */}
+                <div className="doodle-border" style={{
+                  backgroundColor: '#e8f5e9', padding: '12px 20px',
+                  border: '3px solid var(--crayon-dark)',
+                  display: 'flex', flexDirection: 'column', gap: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '6px' }}>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>
+                      📅 每位盤點人員的當週盤點單完成數量
+                      <span style={{ fontSize: '0.95rem', color: '#555', marginLeft: '8px' }}>
+                        ({weeklyCompletedCalendarData.days[0]?.dateStr} ~ {weeklyCompletedCalendarData.days[4]?.dateStr})
+                      </span>
+                    </div>
+                    <div style={{ fontSize: '1.05rem', fontWeight: 'bold', color: '#2e7d32', backgroundColor: 'white', padding: '3px 12px', borderRadius: '12px', border: '2px solid var(--crayon-dark)' }}>
+                      當週合計：{weeklyCompletedCalendarData.totalWeeklyCount} 件 / {weeklyCompletedCalendarData.totalWeeklyItems} 項
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'space-around' }}>
+                    {personnelWeeklyCompletedList.map(pw => (
+                      <div key={pw.id} style={{
+                        backgroundColor: 'white', padding: '8px 16px', borderRadius: '12px',
+                        border: '2px solid var(--crayon-dark)', display: 'flex', alignItems: 'center',
+                        gap: '10px', boxShadow: '2px 2px 0px rgba(0,0,0,0.15)'
+                      }}>
+                        <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>👤 {pw.name}</span>
+                        <span style={{
+                          backgroundColor: pw.count > 0 ? 'var(--crayon-yellow)' : '#eee',
+                          color: 'var(--crayon-dark)', padding: '4px 10px', borderRadius: '12px',
+                          fontWeight: 'bold', fontSize: '1.05rem', border: '2px dashed var(--crayon-dark)'
+                        }}>
+                          {pw.count} 件 / {pw.itemCount} 項
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月總派送</div>
-                  <div style={{ fontSize: '2rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>{personnelTotals.monthDispatch} 件</div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月總完成</div>
-                  <div style={{ fontSize: '2rem', color: 'var(--crayon-green)', fontWeight: 'bold' }}>{personnelTotals.monthCompleted} 件</div>
-                </div>
-              </div>
+              </>
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
@@ -1133,6 +1620,13 @@ export default function Dashboard() {
                 if (taskFilter) {
                   filteredTicketsList = filteredTicketsList.filter((t: InventoryTicket) => t.taskId === taskFilter);
                 }
+
+                let cardDoingTickets = typeFilter ? p.doingTickets.filter((t: InventoryTicket) => t.ticketType === typeFilter) : p.doingTickets;
+                if (taskFilter) {
+                  cardDoingTickets = cardDoingTickets.filter((t: InventoryTicket) => t.taskId === taskFilter);
+                }
+                const cardDoingCount = cardDoingTickets.length;
+                const cardDoingItemCount = cardDoingTickets.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0);
                 
                 const totalPages = Math.ceil(filteredTicketsList.length / itemsPerPage);
                 const startIndex = (currentPage - 1) * itemsPerPage;
@@ -1141,10 +1635,19 @@ export default function Dashboard() {
                 return (
                   <div key={p.id} className="doodle-border" style={{ padding: '15px', backgroundColor: 'white', position: 'relative', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 15px 0', borderBottom: '2px solid #ccc', paddingBottom: '8px', gap: '10px', flexWrap: 'wrap' }}>
-                      <h4 style={{ margin: 0, fontSize: '1.8rem', display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
-                        <span>{p.name}</span>
-                        <span style={{ fontSize: '0.95rem', color: '#888' }}>({p.title})</span>
-                      </h4>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <h4 style={{ margin: 0, fontSize: '1.8rem', display: 'flex', alignItems: 'baseline', gap: '6px', flexWrap: 'wrap' }}>
+                          <span>{p.name}</span>
+                          <span style={{ fontSize: '0.95rem', color: '#888' }}>({p.title})</span>
+                        </h4>
+                        <span style={{ 
+                          backgroundColor: 'var(--crayon-yellow)', padding: '5px 12px', borderRadius: '15px', 
+                          fontSize: '1.1rem', fontWeight: 'bold', border: '2px dashed var(--crayon-dark)',
+                          color: 'var(--crayon-dark)', whiteSpace: 'nowrap'
+                        }}>
+                          {cardDoingCount} 件 / {cardDoingItemCount} 項
+                        </span>
+                      </div>
                       <button
                         type="button"
                         className="doodle-button"
@@ -1635,10 +2138,31 @@ export default function Dashboard() {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #ccc', paddingBottom: '8px', gap: '10px', flexWrap: 'wrap' }}>
-              <h4 style={{ margin: 0, fontSize: '1.8rem', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                <span>{person.name}</span>
-                <span style={{ fontSize: '0.95rem', color: '#888' }}>({person.title})</span>
-              </h4>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <h4 style={{ margin: 0, fontSize: '1.8rem', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                  <span>{person.name}</span>
+                  <span style={{ fontSize: '0.95rem', color: '#888' }}>({person.title})</span>
+                </h4>
+                {(() => {
+                  let doingList = ticketTypeFilter
+                    ? (person.doingTickets || []).filter((t: InventoryTicket) => t.ticketType === ticketTypeFilter)
+                    : (person.doingTickets || []);
+                  if (taskFilterId) {
+                    doingList = doingList.filter((t: InventoryTicket) => t.taskId === taskFilterId);
+                  }
+                  const doingCnt = doingList.length;
+                  const doingItems = doingList.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0);
+                  return (
+                    <span style={{
+                      backgroundColor: 'var(--crayon-yellow)', padding: '5px 12px', borderRadius: '15px',
+                      fontSize: '1.1rem', fontWeight: 'bold', border: '2px dashed var(--crayon-dark)',
+                      color: 'var(--crayon-dark)', whiteSpace: 'nowrap'
+                    }}>
+                      {doingCnt} 件 / {doingItems} 項
+                    </span>
+                  );
+                })()}
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <span style={{
                   backgroundColor: 'var(--crayon-green)',
@@ -1788,29 +2312,97 @@ export default function Dashboard() {
                   </div>
 
                   {personnelStats.length > 0 && (
-                    <div className="doodle-border" style={{
-                      backgroundColor: 'var(--crayon-yellow)', padding: '15px 20px',
-                      display: 'flex', justifyContent: 'space-around', alignItems: 'center',
-                      flexWrap: 'wrap', gap: '15px', border: '3px solid var(--crayon-dark)'
-                    }}>
-                      <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>🌟 全員總計</div>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>總未完成</div>
-                        <div style={{ fontSize: '2rem', color: 'var(--crayon-red)', fontWeight: 'bold' }}>{personnelTotals.incompleteCount} 件</div>
+                    <>
+                      <div className="doodle-border" style={{
+                        backgroundColor: 'var(--crayon-yellow)', padding: '15px 20px',
+                        display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+                        flexWrap: 'wrap', gap: '15px', border: '3px solid var(--crayon-dark)'
+                      }}>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
+                          🌟 全員總計{isAllDoingTab ? ' (盤點中)' : ''}
+                        </div>
+                        {isAllDoingTab ? (
+                          <>
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>盤點中總單數</div>
+                              <div style={{ fontSize: '2rem', color: 'var(--crayon-red)', fontWeight: 'bold' }}>{personnelDoingTotals.totalCount} 件</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>盤點中總項目數</div>
+                              <div style={{ fontSize: '2rem', color: 'var(--crayon-orange)', fontWeight: 'bold' }}>{personnelDoingTotals.totalItems} 項</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>夾鉗 (盤點中)</div>
+                              <div style={{ fontSize: '1.7rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>{personnelDoingTotals.clampCount} 件 / {personnelDoingTotals.clampItems} 項</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>TKW (盤點中)</div>
+                              <div style={{ fontSize: '1.7rem', color: 'var(--crayon-purple)', fontWeight: 'bold' }}>{personnelDoingTotals.tkwCount} 件 / {personnelDoingTotals.tkwItems} 項</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月派送 (盤點中)</div>
+                              <div style={{ fontSize: '1.7rem', color: '#2e7d32', fontWeight: 'bold' }}>{personnelDoingTotals.monthDispatchCount} 件 / {personnelDoingTotals.monthDispatchItems} 項</div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>總未完成</div>
+                              <div style={{ fontSize: '2rem', color: 'var(--crayon-red)', fontWeight: 'bold' }}>{personnelTotals.incompleteCount} 件</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>已完成總項目數</div>
+                              <div style={{ fontSize: '2rem', color: 'var(--crayon-orange)', fontWeight: 'bold' }}>{personnelTotals.totalCompletedItems} 項</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月總派送</div>
+                              <div style={{ fontSize: '2rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>{personnelTotals.monthDispatch} 件</div>
+                            </div>
+                            <div style={{ textAlign: 'center' }}>
+                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月總完成</div>
+                              <div style={{ fontSize: '2rem', color: 'var(--crayon-green)', fontWeight: 'bold' }}>{personnelTotals.monthCompleted} 件</div>
+                            </div>
+                          </>
+                        )}
                       </div>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>已完成總項目數</div>
-                        <div style={{ fontSize: '2rem', color: 'var(--crayon-orange)', fontWeight: 'bold' }}>{personnelTotals.totalCompletedItems} 項</div>
+
+                      {/* 每位盤點人員的當週盤點單完成數量 */}
+                      <div className="doodle-border" style={{
+                        backgroundColor: '#e8f5e9', padding: '12px 20px',
+                        border: '3px solid var(--crayon-dark)',
+                        display: 'flex', flexDirection: 'column', gap: '10px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '6px' }}>
+                          <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>
+                            📅 每位盤點人員的當週盤點單完成數量
+                            <span style={{ fontSize: '0.95rem', color: '#555', marginLeft: '8px' }}>
+                              ({weeklyCompletedCalendarData.days[0]?.dateStr} ~ {weeklyCompletedCalendarData.days[4]?.dateStr})
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '1.05rem', fontWeight: 'bold', color: '#2e7d32', backgroundColor: 'white', padding: '3px 12px', borderRadius: '12px', border: '2px solid var(--crayon-dark)' }}>
+                            當週合計：{weeklyCompletedCalendarData.totalWeeklyCount} 件 / {weeklyCompletedCalendarData.totalWeeklyItems} 項
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'space-around' }}>
+                          {personnelWeeklyCompletedList.map(pw => (
+                            <div key={pw.id} style={{
+                              backgroundColor: 'white', padding: '8px 16px', borderRadius: '12px',
+                              border: '2px solid var(--crayon-dark)', display: 'flex', alignItems: 'center',
+                              gap: '10px', boxShadow: '2px 2px 0px rgba(0,0,0,0.15)'
+                            }}>
+                              <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--crayon-dark)' }}>👤 {pw.name}</span>
+                              <span style={{
+                                backgroundColor: pw.count > 0 ? 'var(--crayon-yellow)' : '#eee',
+                                color: 'var(--crayon-dark)', padding: '4px 10px', borderRadius: '12px',
+                                fontWeight: 'bold', fontSize: '1.05rem', border: '2px dashed var(--crayon-dark)'
+                              }}>
+                                {pw.count} 件 / {pw.itemCount} 項
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月總派送</div>
-                        <div style={{ fontSize: '2rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>{personnelTotals.monthDispatch} 件</div>
-                      </div>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月總完成</div>
-                        <div style={{ fontSize: '2rem', color: 'var(--crayon-green)', fontWeight: 'bold' }}>{personnelTotals.monthCompleted} 件</div>
-                      </div>
-                    </div>
+                    </>
                   )}
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', alignItems: 'start' }}>
