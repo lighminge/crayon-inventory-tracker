@@ -891,13 +891,18 @@ export default function Dashboard() {
     });
   }, [personnelStats, filteredTickets, weeklyCompletedCalendarData.days, invStageId]);
 
-  // 判斷下方備料員是否都已切換至「盤點中」分頁
+  // 判斷下方備料員是否都已切換至「盤點中」或「未完成」分頁
   const isAllDoingTab = useMemo(() => {
     if (personnelStats.length === 0) return false;
     return personnelStats.every(p => (activeTab[p.id] || 'stats') === 'doing');
   }, [personnelStats, activeTab]);
 
-  // 當所有備料員皆選取「盤點中」時，全員總計依所有人員在「盤點中」的盤點單統計
+  const isAllIncompleteTab = useMemo(() => {
+    if (personnelStats.length === 0) return false;
+    return personnelStats.every(p => (activeTab[p.id] || 'stats') === 'incomplete');
+  }, [personnelStats, activeTab]);
+
+  // 當所有備料員皆選取「盤點中」或「未完成」時，全員總計依所有人員在該狀態的盤點單統計
   const personnelDoingTotals = useMemo(() => {
     const tYear = selectedYear;
     const tMonth = selectedMonthNum - 1;
@@ -913,7 +918,8 @@ export default function Dashboard() {
     personnelStats.forEach(p => {
       const typeFilter = cardTicketType[p.id] || '';
       const taskFilter = cardTaskFilter[p.id] || '';
-      let list = typeFilter ? p.doingTickets.filter((t: InventoryTicket) => t.ticketType === typeFilter) : p.doingTickets;
+      const baseList = isAllIncompleteTab ? p.incompleteTickets : p.doingTickets;
+      let list = typeFilter ? baseList.filter((t: InventoryTicket) => t.ticketType === typeFilter) : baseList;
       if (taskFilter) {
         list = list.filter((t: InventoryTicket) => t.taskId === taskFilter);
       }
@@ -948,7 +954,7 @@ export default function Dashboard() {
       tkwCount,
       tkwItems
     };
-  }, [personnelStats, cardTicketType, cardTaskFilter, selectedYear, selectedMonthNum]);
+  }, [personnelStats, cardTicketType, cardTaskFilter, selectedYear, selectedMonthNum, isAllIncompleteTab]);
 
   return (
     <div>
@@ -1521,28 +1527,28 @@ export default function Dashboard() {
                   flexWrap: 'wrap', gap: '15px', border: '3px solid var(--crayon-dark)'
                 }}>
                   <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
-                    🌟 全員總計{isAllDoingTab ? ' (盤點中)' : ''}
+                    🌟 全員總計{isAllDoingTab ? ' (盤點中)' : isAllIncompleteTab ? ' (未完成)' : ''}
                   </div>
-                  {isAllDoingTab ? (
+                  {(isAllDoingTab || isAllIncompleteTab) ? (
                     <>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>盤點中總單數</div>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>{isAllIncompleteTab ? '未完成總單數' : '盤點中總單數'}</div>
                         <div style={{ fontSize: '2rem', color: 'var(--crayon-red)', fontWeight: 'bold' }}>{personnelDoingTotals.totalCount} 件</div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>盤點中總項目數</div>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>{isAllIncompleteTab ? '未完成總項目數' : '盤點中總項目數'}</div>
                         <div style={{ fontSize: '2rem', color: 'var(--crayon-orange)', fontWeight: 'bold' }}>{personnelDoingTotals.totalItems} 項</div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>夾鉗 (盤點中)</div>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>夾鉗 ({isAllIncompleteTab ? '未完成' : '盤點中'})</div>
                         <div style={{ fontSize: '1.7rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>{personnelDoingTotals.clampCount} 件 / {personnelDoingTotals.clampItems} 項</div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>TKW (盤點中)</div>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>TKW ({isAllIncompleteTab ? '未完成' : '盤點中'})</div>
                         <div style={{ fontSize: '1.7rem', color: 'var(--crayon-purple)', fontWeight: 'bold' }}>{personnelDoingTotals.tkwCount} 件 / {personnelDoingTotals.tkwItems} 項</div>
                       </div>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月派送 (盤點中)</div>
+                        <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月派送 ({isAllIncompleteTab ? '未完成' : '盤點中'})</div>
                         <div style={{ fontSize: '1.7rem', color: '#2e7d32', fontWeight: 'bold' }}>{personnelDoingTotals.monthDispatchCount} 件 / {personnelDoingTotals.monthDispatchItems} 項</div>
                       </div>
                     </>
@@ -1621,12 +1627,10 @@ export default function Dashboard() {
                   filteredTicketsList = filteredTicketsList.filter((t: InventoryTicket) => t.taskId === taskFilter);
                 }
 
-                let cardDoingTickets = typeFilter ? p.doingTickets.filter((t: InventoryTicket) => t.ticketType === typeFilter) : p.doingTickets;
-                if (taskFilter) {
-                  cardDoingTickets = cardDoingTickets.filter((t: InventoryTicket) => t.taskId === taskFilter);
-                }
-                const cardDoingCount = cardDoingTickets.length;
-                const cardDoingItemCount = cardDoingTickets.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0);
+                const cardBadgeCount = currentTab === 'stats' ? p.monthCompleted : filteredTicketsList.length;
+                const cardBadgeItemCount = currentTab === 'stats'
+                  ? (p.monthCompletedItems || 0)
+                  : filteredTicketsList.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0);
                 
                 const totalPages = Math.ceil(filteredTicketsList.length / itemsPerPage);
                 const startIndex = (currentPage - 1) * itemsPerPage;
@@ -1645,7 +1649,7 @@ export default function Dashboard() {
                           fontSize: '1.1rem', fontWeight: 'bold', border: '2px dashed var(--crayon-dark)',
                           color: 'var(--crayon-dark)', whiteSpace: 'nowrap'
                         }}>
-                          {cardDoingCount} 件 / {cardDoingItemCount} 項
+                          {cardBadgeCount} 件 / {cardBadgeItemCount} 項
                         </span>
                       </div>
                       <button
@@ -2144,21 +2148,17 @@ export default function Dashboard() {
                   <span style={{ fontSize: '0.95rem', color: '#888' }}>({person.title})</span>
                 </h4>
                 {(() => {
-                  let doingList = ticketTypeFilter
-                    ? (person.doingTickets || []).filter((t: InventoryTicket) => t.ticketType === ticketTypeFilter)
-                    : (person.doingTickets || []);
-                  if (taskFilterId) {
-                    doingList = doingList.filter((t: InventoryTicket) => t.taskId === taskFilterId);
-                  }
-                  const doingCnt = doingList.length;
-                  const doingItems = doingList.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0);
+                  const badgeCnt = tab === 'stats' ? person.monthCompleted : ticketsList.length;
+                  const badgeItems = tab === 'stats'
+                    ? (person.monthCompletedItems || 0)
+                    : ticketsList.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0);
                   return (
                     <span style={{
                       backgroundColor: 'var(--crayon-yellow)', padding: '5px 12px', borderRadius: '15px',
                       fontSize: '1.1rem', fontWeight: 'bold', border: '2px dashed var(--crayon-dark)',
                       color: 'var(--crayon-dark)', whiteSpace: 'nowrap'
                     }}>
-                      {doingCnt} 件 / {doingItems} 項
+                      {badgeCnt} 件 / {badgeItems} 項
                     </span>
                   );
                 })()}
@@ -2319,28 +2319,28 @@ export default function Dashboard() {
                         flexWrap: 'wrap', gap: '15px', border: '3px solid var(--crayon-dark)'
                       }}>
                         <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>
-                          🌟 全員總計{isAllDoingTab ? ' (盤點中)' : ''}
+                          🌟 全員總計{isAllDoingTab ? ' (盤點中)' : isAllIncompleteTab ? ' (未完成)' : ''}
                         </div>
-                        {isAllDoingTab ? (
+                        {(isAllDoingTab || isAllIncompleteTab) ? (
                           <>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>盤點中總單數</div>
+                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>{isAllIncompleteTab ? '未完成總單數' : '盤點中總單數'}</div>
                               <div style={{ fontSize: '2rem', color: 'var(--crayon-red)', fontWeight: 'bold' }}>{personnelDoingTotals.totalCount} 件</div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>盤點中總項目數</div>
+                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>{isAllIncompleteTab ? '未完成總項目數' : '盤點中總項目數'}</div>
                               <div style={{ fontSize: '2rem', color: 'var(--crayon-orange)', fontWeight: 'bold' }}>{personnelDoingTotals.totalItems} 項</div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>夾鉗 (盤點中)</div>
+                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>夾鉗 ({isAllIncompleteTab ? '未完成' : '盤點中'})</div>
                               <div style={{ fontSize: '1.7rem', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>{personnelDoingTotals.clampCount} 件 / {personnelDoingTotals.clampItems} 項</div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>TKW (盤點中)</div>
+                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>TKW ({isAllIncompleteTab ? '未完成' : '盤點中'})</div>
                               <div style={{ fontSize: '1.7rem', color: 'var(--crayon-purple)', fontWeight: 'bold' }}>{personnelDoingTotals.tkwCount} 件 / {personnelDoingTotals.tkwItems} 項</div>
                             </div>
                             <div style={{ textAlign: 'center' }}>
-                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月派送 (盤點中)</div>
+                              <div style={{ fontSize: '1rem', color: '#555', fontWeight: 'bold' }}>本月派送 ({isAllIncompleteTab ? '未完成' : '盤點中'})</div>
                               <div style={{ fontSize: '1.7rem', color: '#2e7d32', fontWeight: 'bold' }}>{personnelDoingTotals.monthDispatchCount} 件 / {personnelDoingTotals.monthDispatchItems} 項</div>
                             </div>
                           </>
