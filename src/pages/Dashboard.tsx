@@ -1510,6 +1510,33 @@ export default function Dashboard() {
               >
                 🖨️ 列印
               </button>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <label style={{ fontWeight: 'bold' }}>全部切換：</label>
+                <button
+                  type="button"
+                  className={`doodle-button ${isAllStatsTab ? 'success' : ''}`}
+                  style={{ padding: '4px 10px', fontSize: '0.9rem', minHeight: 'auto', backgroundColor: isAllStatsTab ? undefined : 'white', color: 'var(--crayon-dark)' }}
+                  onClick={() => handleSwitchAllPersonnelTab('stats')}
+                >
+                  📊 統計數據
+                </button>
+                <button
+                  type="button"
+                  className={`doodle-button ${isAllIncompleteTab ? 'success' : ''}`}
+                  style={{ padding: '4px 10px', fontSize: '0.9rem', minHeight: 'auto', backgroundColor: isAllIncompleteTab ? undefined : 'white', color: 'var(--crayon-dark)' }}
+                  onClick={() => handleSwitchAllPersonnelTab('incomplete')}
+                >
+                  📋 未完成
+                </button>
+                <button
+                  type="button"
+                  className={`doodle-button ${isAllDoingTab ? 'success' : ''}`}
+                  style={{ padding: '4px 10px', fontSize: '0.9rem', minHeight: 'auto', backgroundColor: isAllDoingTab ? undefined : 'white', color: 'var(--crayon-dark)' }}
+                  onClick={() => handleSwitchAllPersonnelTab('doing')}
+                >
+                  🏃 盤點中
+                </button>
+              </div>
             </div>
             <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -1528,33 +1555,6 @@ export default function Dashboard() {
                 <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={selectedMonthNum} onChange={e => setSelectedMonthNum(Number(e.target.value))}>
                   {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>{m} 月</option>)}
                 </select>
-              </div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <label style={{ fontWeight: 'bold' }}>全部切換：</label>
-                <button
-                  type="button"
-                  className={`doodle-button ${isAllStatsTab ? 'success' : ''}`}
-                  style={{ padding: '4px 10px', fontSize: '0.9rem', minHeight: 'auto', backgroundColor: isAllStatsTab ? undefined : 'white' }}
-                  onClick={() => handleSwitchAllPersonnelTab('stats')}
-                >
-                  📊 統計數據
-                </button>
-                <button
-                  type="button"
-                  className={`doodle-button ${isAllIncompleteTab ? 'success' : ''}`}
-                  style={{ padding: '4px 10px', fontSize: '0.9rem', minHeight: 'auto', backgroundColor: isAllIncompleteTab ? undefined : 'white' }}
-                  onClick={() => handleSwitchAllPersonnelTab('incomplete')}
-                >
-                  📋 未完成
-                </button>
-                <button
-                  type="button"
-                  className={`doodle-button ${isAllDoingTab ? 'success' : ''}`}
-                  style={{ padding: '4px 10px', fontSize: '0.9rem', minHeight: 'auto', backgroundColor: isAllDoingTab ? undefined : 'white' }}
-                  onClick={() => handleSwitchAllPersonnelTab('doing')}
-                >
-                  🏃 盤點中
-                </button>
               </div>
             </div>
           </div>
