@@ -1489,13 +1489,13 @@ export default function Dashboard() {
 
         {/* 備料員盤點情況 - Moved ABOVE Chart & Restyled to Doodle Cards */}
         <div className="doodle-border" style={{ padding: '20px', backgroundColor: '#e0f7fa' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: personnelCollapsed ? 'none' : '3px dashed var(--crayon-dark)', paddingBottom: personnelCollapsed ? '0' : '10px', flexWrap: 'wrap', gap: '15px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <h3 style={{ margin: 0, fontSize: '1.8rem' }}>👥 備料員盤點情況</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: personnelCollapsed ? 'none' : '3px dashed var(--crayon-dark)', paddingBottom: personnelCollapsed ? '0' : '10px', flexWrap: 'nowrap', gap: '10px', overflowX: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              <h3 style={{ margin: 0, fontSize: '1.8rem', whiteSpace: 'nowrap' }}>👥 備料員盤點情況</h3>
               <button
                 type="button"
                 className="doodle-button"
-                style={{ padding: '4px 12px', fontSize: '0.95rem', backgroundColor: personnelCollapsed ? 'var(--crayon-green)' : '#ffe0b2', color: 'var(--crayon-dark)' }}
+                style={{ padding: '4px 10px', fontSize: '0.9rem', backgroundColor: personnelCollapsed ? 'var(--crayon-green)' : '#ffe0b2', color: 'var(--crayon-dark)', whiteSpace: 'nowrap' }}
                 onClick={() => setPersonnelCollapsed(prev => !prev)}
               >
                 {personnelCollapsed ? '🔽 展開' : '🔼 收合'}
@@ -1503,7 +1503,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 className="doodle-button"
-                style={{ padding: '4px 12px', fontSize: '0.95rem', backgroundColor: 'var(--crayon-blue)', color: 'white' }}
+                style={{ padding: '4px 10px', fontSize: '0.9rem', backgroundColor: 'var(--crayon-blue)', color: 'white', whiteSpace: 'nowrap' }}
                 onClick={() => setPrintingAllPersonnel(true)}
                 disabled={personnelStats.length === 0}
                 title="列印所有備料員的盤點情況圖檔"
@@ -1511,30 +1511,30 @@ export default function Dashboard() {
                 🖨️ 列印
               </button>
             </div>
-            <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <label style={{ fontWeight: 'bold' }}>盤點類型：</label>
-                <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={personnelTicketType} onChange={e => setPersonnelTicketType(e.target.value)}>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'nowrap' }}>
+                <label style={{ fontWeight: 'bold', fontSize: '0.95rem', whiteSpace: 'nowrap' }}>盤點類型：</label>
+                <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white', padding: '4px 8px', fontSize: '0.95rem' }} value={personnelTicketType} onChange={e => setPersonnelTicketType(e.target.value)}>
                   <option value="">全部</option>
                   <option value="夾鉗">夾鉗</option>
                   <option value="TKW">TKW</option>
                 </select>
               </div>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <label style={{ fontWeight: 'bold' }}>查詢期間：</label>
-                <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'nowrap' }}>
+                <label style={{ fontWeight: 'bold', fontSize: '0.95rem', whiteSpace: 'nowrap' }}>查詢期間：</label>
+                <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white', padding: '4px 8px', fontSize: '0.95rem' }} value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}>
                   {yearOptions.map(y => <option key={y} value={y}>{y} 年</option>)}
                 </select>
-                <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={selectedMonthNum} onChange={e => setSelectedMonthNum(Number(e.target.value))}>
+                <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white', padding: '4px 8px', fontSize: '0.95rem' }} value={selectedMonthNum} onChange={e => setSelectedMonthNum(Number(e.target.value))}>
                   {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>{m} 月</option>)}
                 </select>
               </div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <label style={{ fontWeight: 'bold' }}>全部切換：</label>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'nowrap' }}>
+                <label style={{ fontWeight: 'bold', fontSize: '0.95rem', whiteSpace: 'nowrap' }}>全部切換：</label>
                 <button
                   type="button"
                   className={`doodle-button ${isAllStatsTab ? 'success' : ''}`}
-                  style={{ padding: '4px 10px', fontSize: '0.9rem', minHeight: 'auto', backgroundColor: isAllStatsTab ? undefined : 'white' }}
+                  style={{ padding: '4px 10px', fontSize: '0.9rem', minHeight: 'auto', whiteSpace: 'nowrap' }}
                   onClick={() => handleSwitchAllPersonnelTab('stats')}
                 >
                   📊 統計數據
@@ -1542,7 +1542,7 @@ export default function Dashboard() {
                 <button
                   type="button"
                   className={`doodle-button ${isAllIncompleteTab ? 'success' : ''}`}
-                  style={{ padding: '4px 10px', fontSize: '0.9rem', minHeight: 'auto', backgroundColor: isAllIncompleteTab ? undefined : 'white' }}
+                  style={{ padding: '4px 10px', fontSize: '0.9rem', minHeight: 'auto', whiteSpace: 'nowrap' }}
                   onClick={() => handleSwitchAllPersonnelTab('incomplete')}
                 >
                   📋 未完成
@@ -1550,7 +1550,7 @@ export default function Dashboard() {
                 <button
                   type="button"
                   className={`doodle-button ${isAllDoingTab ? 'success' : ''}`}
-                  style={{ padding: '4px 10px', fontSize: '0.9rem', minHeight: 'auto', backgroundColor: isAllDoingTab ? undefined : 'white' }}
+                  style={{ padding: '4px 10px', fontSize: '0.9rem', minHeight: 'auto', whiteSpace: 'nowrap' }}
                   onClick={() => handleSwitchAllPersonnelTab('doing')}
                 >
                   🏃 盤點中
