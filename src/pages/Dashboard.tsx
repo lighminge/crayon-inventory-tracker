@@ -891,7 +891,12 @@ export default function Dashboard() {
     });
   }, [personnelStats, filteredTickets, weeklyCompletedCalendarData.days, invStageId]);
 
-  // 判斷下方備料員是否都已切換至「盤點中」或「未完成」分頁
+  // 判斷下方備料員是否都已切換至「統計數據」、「盤點中」或「未完成」分頁
+  const isAllStatsTab = useMemo(() => {
+    if (personnelStats.length === 0) return false;
+    return personnelStats.every(p => (activeTab[p.id] || 'stats') === 'stats');
+  }, [personnelStats, activeTab]);
+
   const isAllDoingTab = useMemo(() => {
     if (personnelStats.length === 0) return false;
     return personnelStats.every(p => (activeTab[p.id] || 'stats') === 'doing');
@@ -901,6 +906,17 @@ export default function Dashboard() {
     if (personnelStats.length === 0) return false;
     return personnelStats.every(p => (activeTab[p.id] || 'stats') === 'incomplete');
   }, [personnelStats, activeTab]);
+
+  const handleSwitchAllPersonnelTab = (targetTab: 'stats' | 'incomplete' | 'doing') => {
+    const nextTabMap: Record<string, 'stats' | 'incomplete' | 'doing'> = {};
+    personnel.forEach(p => {
+      nextTabMap[p.id] = targetTab;
+    });
+    personnelStats.forEach(p => {
+      nextTabMap[p.id] = targetTab;
+    });
+    setActiveTab(nextTabMap);
+  };
 
   // 當所有備料員皆選取「盤點中」或「未完成」時，全員總計依所有人員在該狀態的盤點單統計
   const personnelDoingTotals = useMemo(() => {
@@ -1512,6 +1528,33 @@ export default function Dashboard() {
                 <select className="doodle-input" style={{ width: 'auto', backgroundColor: 'white' }} value={selectedMonthNum} onChange={e => setSelectedMonthNum(Number(e.target.value))}>
                   {Array.from({length: 12}, (_, i) => i + 1).map(m => <option key={m} value={m}>{m} 月</option>)}
                 </select>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <label style={{ fontWeight: 'bold' }}>全部切換：</label>
+                <button
+                  type="button"
+                  className={`doodle-button ${isAllStatsTab ? 'success' : ''}`}
+                  style={{ padding: '4px 10px', fontSize: '0.9rem', minHeight: 'auto', backgroundColor: isAllStatsTab ? undefined : 'white' }}
+                  onClick={() => handleSwitchAllPersonnelTab('stats')}
+                >
+                  📊 統計數據
+                </button>
+                <button
+                  type="button"
+                  className={`doodle-button ${isAllIncompleteTab ? 'success' : ''}`}
+                  style={{ padding: '4px 10px', fontSize: '0.9rem', minHeight: 'auto', backgroundColor: isAllIncompleteTab ? undefined : 'white' }}
+                  onClick={() => handleSwitchAllPersonnelTab('incomplete')}
+                >
+                  📋 未完成
+                </button>
+                <button
+                  type="button"
+                  className={`doodle-button ${isAllDoingTab ? 'success' : ''}`}
+                  style={{ padding: '4px 10px', fontSize: '0.9rem', minHeight: 'auto', backgroundColor: isAllDoingTab ? undefined : 'white' }}
+                  onClick={() => handleSwitchAllPersonnelTab('doing')}
+                >
+                  🏃 盤點中
+                </button>
               </div>
             </div>
           </div>
