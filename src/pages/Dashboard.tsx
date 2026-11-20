@@ -209,6 +209,7 @@ export default function Dashboard() {
   const printCardRef = useRef<HTMLDivElement>(null);
   const [printingAllPersonnel, setPrintingAllPersonnel] = useState<boolean>(false);
   const [personnelPrintMode, setPersonnelPrintMode] = useState<'detail' | 'summary'>('detail');
+  const [excludeZeroPersonnel, setExcludeZeroPersonnel] = useState<boolean>(false);
   const printAllPersonnelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -1524,6 +1525,29 @@ export default function Dashboard() {
                 <option value="detail">詳細</option>
                 <option value="summary">統計數據</option>
               </select>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontWeight: 'bold',
+                  fontSize: '0.95rem',
+                  cursor: 'pointer',
+                  backgroundColor: 'white',
+                  padding: '4px 10px',
+                  borderRadius: '10px',
+                  border: '2px solid var(--crayon-dark)',
+                  userSelect: 'none'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={excludeZeroPersonnel}
+                  onChange={e => setExcludeZeroPersonnel(e.target.checked)}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+                排除數值為0
+              </label>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <label style={{ fontWeight: 'bold' }}>全部切換：</label>
                 <button
@@ -1649,7 +1673,9 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'space-around' }}>
-                    {personnelWeeklyCompletedList.map(pw => (
+                    {personnelWeeklyCompletedList
+                      .filter(pw => !excludeZeroPersonnel || pw.count > 0 || pw.itemCount > 0)
+                      .map(pw => (
                       <div key={pw.id} style={{
                         backgroundColor: 'white', padding: '8px 16px', borderRadius: '12px',
                         border: '2px solid var(--crayon-dark)', display: 'flex', alignItems: 'center',
@@ -1688,6 +1714,13 @@ export default function Dashboard() {
                 const cardBadgeItemCount = currentTab === 'stats'
                   ? (p.monthCompletedItems || 0)
                   : filteredTicketsList.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0);
+
+                if (excludeZeroPersonnel) {
+                  const isZero = currentTab === 'stats'
+                    ? (p.monthDispatch === 0 && p.monthCompleted === 0 && (p.monthCompletedItems || 0) === 0)
+                    : (cardBadgeCount === 0 && cardBadgeItemCount === 0);
+                  if (isZero) return null;
+                }
                 
                 const totalPages = Math.ceil(filteredTicketsList.length / itemsPerPage);
                 const startIndex = (currentPage - 1) * itemsPerPage;
@@ -2366,7 +2399,7 @@ export default function Dashboard() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', width: '100%', paddingBottom: '8px' }}>
                       <div style={{ flex: 1 }}></div>
-                      <div style={{ flex: 2, textAlign: 'center', fontSize: '18pt', fontWeight: 'bold', color: '#000000' }}>
+                      <div style={{ flex: 2, textAlign: 'center', fontSize: '22pt', fontWeight: 'bold', color: '#000000' }}>
                         本週盤點數量統計表
                       </div>
                       <div style={{ flex: 1, textAlign: 'right', fontSize: '14pt', fontWeight: 'bold', color: '#000000' }}>
@@ -2375,7 +2408,7 @@ export default function Dashboard() {
                     </div>
 
                     {(() => {
-                      const rows = personnelStats.map(p => {
+                      const allRows = personnelStats.map(p => {
                         const weeklyComp = personnelWeeklyCompletedList.find(pw => pw.id === p.id);
                         const completedCount = weeklyComp ? weeklyComp.count : 0;
                         const completedItems = weeklyComp ? weeklyComp.itemCount : 0;
@@ -2408,6 +2441,10 @@ export default function Dashboard() {
                         };
                       });
 
+                      const rows = excludeZeroPersonnel
+                        ? allRows.filter(r => r.dueCount > 0 || r.dueItems > 0)
+                        : allRows;
+
                       const totals = rows.reduce(
                         (acc, r) => ({
                           dueCount: acc.dueCount + r.dueCount,
@@ -2428,7 +2465,7 @@ export default function Dashboard() {
                       );
 
                       const thStyle: React.CSSProperties = {
-                        fontSize: '14pt',
+                        fontSize: '18pt',
                         fontWeight: 'bold',
                         border: '1px solid #000000',
                         padding: '12px 16px',
@@ -2438,7 +2475,8 @@ export default function Dashboard() {
                       };
 
                       const tdStyle: React.CSSProperties = {
-                        fontSize: '14pt',
+                        fontSize: '16pt',
+                        fontWeight: 'bold',
                         border: '1px solid #000000',
                         padding: '12px 16px',
                         textAlign: 'center',
@@ -2570,7 +2608,9 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'space-around' }}>
-                          {personnelWeeklyCompletedList.map(pw => (
+                          {personnelWeeklyCompletedList
+                            .filter(pw => !excludeZeroPersonnel || pw.count > 0 || pw.itemCount > 0)
+                            .map(pw => (
                             <div key={pw.id} style={{
                               backgroundColor: 'white', padding: '8px 16px', borderRadius: '12px',
                               border: '2px solid var(--crayon-dark)', display: 'flex', alignItems: 'center',
@@ -2600,6 +2640,12 @@ export default function Dashboard() {
                       let list = typeFilter ? targetTickets.filter((t: InventoryTicket) => t.ticketType === typeFilter) : targetTickets;
                       if (taskFilter) {
                         list = list.filter((t: InventoryTicket) => t.taskId === taskFilter);
+                      }
+                      if (excludeZeroPersonnel) {
+                        const isZero = tab === 'stats'
+                          ? (p.monthDispatch === 0 && p.monthCompleted === 0 && (p.monthCompletedItems || 0) === 0)
+                          : list.length === 0;
+                        if (isZero) return null;
                       }
                       return renderPrintablePersonCard(p, tab, list, taskFilter, typeFilter);
                     })}
