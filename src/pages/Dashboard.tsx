@@ -208,6 +208,7 @@ export default function Dashboard() {
   } | null>(null);
   const printCardRef = useRef<HTMLDivElement>(null);
   const [printingAllPersonnel, setPrintingAllPersonnel] = useState<boolean>(false);
+  const [personnelPrintMode, setPersonnelPrintMode] = useState<'detail' | 'summary'>('detail');
   const printAllPersonnelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -243,12 +244,15 @@ export default function Dashboard() {
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
       if (cancelled || !printAllPersonnelRef.current) return;
       try {
-        const canvas = await html2canvas(printAllPersonnelRef.current, { scale: 2, backgroundColor: '#e0f7fa' });
+        const bgColor = personnelPrintMode === 'summary' ? '#ffffff' : '#e0f7fa';
+        const canvas = await html2canvas(printAllPersonnelRef.current, { scale: 2, backgroundColor: bgColor });
         const url = canvas.toDataURL('image/png');
         const dateStr = new Date().toISOString().split('T')[0];
         const a = document.createElement('a');
         a.href = url;
-        a.download = `備料員盤點情況_所有人員_${dateStr}.png`;
+        a.download = personnelPrintMode === 'summary'
+          ? `本週盤點數量統計表_${dateStr}.png`
+          : `備料員盤點情況_所有人員_${dateStr}.png`;
         a.click();
       } catch (err) {
         console.error(err);
@@ -259,7 +263,7 @@ export default function Dashboard() {
     };
     capture();
     return () => { cancelled = true; };
-  }, [printingAllPersonnel]);
+  }, [printingAllPersonnel, personnelPrintMode]);
 
   useEffect(() => {
     loadData();
@@ -1510,6 +1514,16 @@ export default function Dashboard() {
               >
                 🖨️ 列印
               </button>
+              <select
+                className="doodle-input"
+                style={{ width: 'auto', backgroundColor: 'white', padding: '4px 10px', fontSize: '0.95rem' }}
+                value={personnelPrintMode}
+                onChange={e => setPersonnelPrintMode(e.target.value as 'detail' | 'summary')}
+                title="選擇列印內容模式"
+              >
+                <option value="detail">詳細</option>
+                <option value="summary">統計數據</option>
+              </select>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <label style={{ fontWeight: 'bold' }}>全部切換：</label>
                 <button
@@ -2335,6 +2349,135 @@ export default function Dashboard() {
           <>
             {printingAllPersonnel && (
               <div style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1 }}>
+                {personnelPrintMode === 'summary' ? (
+                  <div
+                    ref={printAllPersonnelRef}
+                    style={{
+                      width: '1123px',
+                      minHeight: '794px',
+                      padding: '40px 48px',
+                      backgroundColor: '#ffffff',
+                      color: '#000000',
+                      boxSizing: 'border-box',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '20px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', width: '100%', paddingBottom: '8px' }}>
+                      <div style={{ flex: 1 }}></div>
+                      <div style={{ flex: 2, textAlign: 'center', fontSize: '18pt', fontWeight: 'bold', color: '#000000' }}>
+                        本週盤點數量統計表
+                      </div>
+                      <div style={{ flex: 1, textAlign: 'right', fontSize: '14pt', fontWeight: 'bold', color: '#000000' }}>
+                        列印日期：{new Date().toLocaleDateString('zh-TW')}
+                      </div>
+                    </div>
+
+                    {(() => {
+                      const rows = personnelStats.map(p => {
+                        const weeklyComp = personnelWeeklyCompletedList.find(pw => pw.id === p.id);
+                        const completedCount = weeklyComp ? weeklyComp.count : 0;
+                        const completedItems = weeklyComp ? weeklyComp.itemCount : 0;
+
+                        const tab = activeTab[p.id] || 'stats';
+                        const typeFilter = cardTicketType[p.id] || '';
+                        const taskFilter = cardTaskFilter[p.id] || '';
+                        const baseUnfinished = tab === 'incomplete' ? p.incompleteTickets : p.doingTickets;
+                        let unfinishedList = typeFilter
+                          ? baseUnfinished.filter((t: InventoryTicket) => t.ticketType === typeFilter)
+                          : baseUnfinished;
+                        if (taskFilter) {
+                          unfinishedList = unfinishedList.filter((t: InventoryTicket) => t.taskId === taskFilter);
+                        }
+                        const uncompletedCount = unfinishedList.length;
+                        const uncompletedItems = unfinishedList.reduce((sum: number, t: InventoryTicket) => sum + (t.itemCount || 0), 0);
+
+                        const dueCount = completedCount + uncompletedCount;
+                        const dueItems = completedItems + uncompletedItems;
+
+                        return {
+                          id: p.id,
+                          name: p.name,
+                          dueCount,
+                          dueItems,
+                          completedCount,
+                          completedItems,
+                          uncompletedCount,
+                          uncompletedItems
+                        };
+                      });
+
+                      const totals = rows.reduce(
+                        (acc, r) => ({
+                          dueCount: acc.dueCount + r.dueCount,
+                          dueItems: acc.dueItems + r.dueItems,
+                          completedCount: acc.completedCount + r.completedCount,
+                          completedItems: acc.completedItems + r.completedItems,
+                          uncompletedCount: acc.uncompletedCount + r.uncompletedCount,
+                          uncompletedItems: acc.uncompletedItems + r.uncompletedItems
+                        }),
+                        {
+                          dueCount: 0,
+                          dueItems: 0,
+                          completedCount: 0,
+                          completedItems: 0,
+                          uncompletedCount: 0,
+                          uncompletedItems: 0
+                        }
+                      );
+
+                      const thStyle: React.CSSProperties = {
+                        fontSize: '14pt',
+                        fontWeight: 'bold',
+                        border: '1px solid #000000',
+                        padding: '12px 16px',
+                        textAlign: 'center',
+                        backgroundColor: '#f2f2f2',
+                        color: '#000000'
+                      };
+
+                      const tdStyle: React.CSSProperties = {
+                        fontSize: '14pt',
+                        border: '1px solid #000000',
+                        padding: '12px 16px',
+                        textAlign: 'center',
+                        color: '#000000'
+                      };
+
+                      return (
+                        <table style={{ width: '100%', borderCollapse: 'collapse', border: '2px solid #000000' }}>
+                          <thead>
+                            <tr>
+                              <th style={thStyle}>盤點人員</th>
+                              <th style={thStyle}>應完成</th>
+                              <th style={thStyle}>已完成</th>
+                              <th style={thStyle}>未完成</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.map(r => (
+                              <tr key={r.id}>
+                                <td style={tdStyle}>{r.name}</td>
+                                <td style={tdStyle}>{r.dueCount}單/{r.dueItems}項</td>
+                                <td style={tdStyle}>{r.completedCount}單/{r.completedItems}項</td>
+                                <td style={tdStyle}>{r.uncompletedCount}單/{r.uncompletedItems}項</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot>
+                            <tr style={{ backgroundColor: '#fafafa', fontWeight: 'bold' }}>
+                              <td style={{ ...tdStyle, fontWeight: 'bold' }}>總計</td>
+                              <td style={{ ...tdStyle, fontWeight: 'bold' }}>{totals.dueCount}單/{totals.dueItems}項</td>
+                              <td style={{ ...tdStyle, fontWeight: 'bold' }}>{totals.completedCount}單/{totals.completedItems}項</td>
+                              <td style={{ ...tdStyle, fontWeight: 'bold' }}>{totals.uncompletedCount}單/{totals.uncompletedItems}項</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      );
+                    })()}
+                  </div>
+                ) : (
                 <div
                   ref={printAllPersonnelRef}
                   className="doodle-border"
@@ -2462,6 +2605,7 @@ export default function Dashboard() {
                     })}
                   </div>
                 </div>
+                )}
               </div>
             )}
 
