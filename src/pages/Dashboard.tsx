@@ -2504,11 +2504,11 @@ export default function Dashboard() {
                             ))}
                           </tbody>
                           <tfoot>
-                            <tr style={{ backgroundColor: '#fafafa', fontWeight: 'bold' }}>
-                              <td style={{ ...tdStyle, fontWeight: 'bold' }}>總計</td>
-                              <td style={{ ...tdStyle, fontWeight: 'bold' }}>{totals.dueCount}單/{totals.dueItems}項</td>
-                              <td style={{ ...tdStyle, fontWeight: 'bold' }}>{totals.completedCount}單/{totals.completedItems}項</td>
-                              <td style={{ ...tdStyle, fontWeight: 'bold' }}>{totals.uncompletedCount}單/{totals.uncompletedItems}項</td>
+                            <tr style={{ backgroundColor: '#fff176', fontWeight: 'bold' }}>
+                              <td style={{ ...tdStyle, fontWeight: 'bold', backgroundColor: '#fff176' }}>總計</td>
+                              <td style={{ ...tdStyle, fontWeight: 'bold', backgroundColor: '#fff176' }}>{totals.dueCount}單/{totals.dueItems}項</td>
+                              <td style={{ ...tdStyle, fontWeight: 'bold', backgroundColor: '#fff176' }}>{totals.completedCount}單/{totals.completedItems}項</td>
+                              <td style={{ ...tdStyle, fontWeight: 'bold', backgroundColor: '#fff176' }}>{totals.uncompletedCount}單/{totals.uncompletedItems}項</td>
                             </tr>
                           </tfoot>
                         </table>
