@@ -721,19 +721,33 @@ export default function WorkflowGanttChart({
                   >
                     📝 關卡備註：
                   </div>
-                  <div
-                    style={{
-                      fontSize: ticket.stageNotes[w.id].fontSize || '16px',
-                      color: ticket.stageNotes[w.id].color || '#2c3e50',
-                      textAlign: ticket.stageNotes[w.id].textAlign || 'left',
-                      fontWeight: 'bold',
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                      lineHeight: '1.45'
-                    }}
-                  >
-                    {ticket.stageNotes[w.id].text}
-                  </div>
+                  {ticket.stageNotes[w.id].html ? (
+                    <div
+                      style={{
+                        fontSize: ticket.stageNotes[w.id].fontSize || '16px',
+                        color: ticket.stageNotes[w.id].color || '#2c3e50',
+                        textAlign: ticket.stageNotes[w.id].textAlign || 'left',
+                        fontWeight: 'bold',
+                        wordBreak: 'break-word',
+                        lineHeight: '1.45'
+                      }}
+                      dangerouslySetInnerHTML={{ __html: ticket.stageNotes[w.id].html! }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        fontSize: ticket.stageNotes[w.id].fontSize || '16px',
+                        color: ticket.stageNotes[w.id].color || '#2c3e50',
+                        textAlign: ticket.stageNotes[w.id].textAlign || 'left',
+                        fontWeight: 'bold',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        lineHeight: '1.45'
+                      }}
+                    >
+                      {ticket.stageNotes[w.id].text}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

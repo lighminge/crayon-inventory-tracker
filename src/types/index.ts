@@ -26,6 +26,7 @@ export interface InventoryTask {
 
 export interface StageNote {
   text: string;
+  html?: string;
   fontSize?: string;
   color?: string;
   textAlign?: 'left' | 'center' | 'right';

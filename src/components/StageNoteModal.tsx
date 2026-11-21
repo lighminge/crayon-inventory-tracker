@@ -57,6 +57,30 @@ const ALIGN_OPTIONS: { label: string; value: 'left' | 'center' | 'right' }[] = [
   { label: '➡️ 靠右', value: 'right' }
 ];
 
+const escapeHtml = (raw: string): string =>
+  raw
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const convertPlainTextToHtml = (
+  plainText: string,
+  defaultFontSize = '16px',
+  defaultColor = '#2c3e50',
+  defaultAlign: 'left' | 'center' | 'right' = 'left'
+): string => {
+  if (!plainText) return '';
+  const lines = plainText.split('\n');
+  return lines
+    .map(line => {
+      const inner = line ? escapeHtml(line) : '<br>';
+      return `<div style="text-align: ${defaultAlign};"><span style="font-size: ${defaultFontSize}; color: ${defaultColor};">${inner}</span></div>`;
+    })
+    .join('');
+};
+
 interface StageNoteModalProps {
   ticket: InventoryTicket;
   workflow: Workflow;
@@ -74,16 +98,21 @@ export default function StageNoteModal({
 }: StageNoteModalProps) {
   const existingNote: StageNote | undefined = ticket.stageNotes?.[workflow.id];
 
-  const [text, setText] = useState<string>(existingNote?.text || '');
   const [fontSize, setFontSize] = useState<string>(existingNote?.fontSize || '16px');
   const [color, setColor] = useState<string>(existingNote?.color || '#2c3e50');
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>(
     existingNote?.textAlign || 'left'
   );
+  const [plainText, setPlainText] = useState<string>(existingNote?.text || '');
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
   // Separate Modal State for Common Templates ("常用內容")
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState<boolean>(false);
+
+  // System-style Confirm / Notice Modals
+  const [isSaveCommonConfirmOpen, setIsSaveCommonConfirmOpen] = useState<boolean>(false);
+  const [deletingTemplate, setDeletingTemplate] = useState<StageNoteTemplate | null>(null);
+  const [systemNotice, setSystemNotice] = useState<string | null>(null);
 
   // Common Templates State
   const [templates, setTemplates] = useState<StageNoteTemplate[]>(() => {
@@ -105,7 +134,45 @@ export default function StageNoteModal({
   const [editingTemplateText, setEditingTemplateText] = useState<string>('');
   const [symbolTab, setSymbolTab] = useState<'punctuation' | 'special' | 'number'>('punctuation');
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
+  const savedRangeRef = useRef<Range | null>(null);
+
+  // Initialize Rich Text Editor HTML content on mount
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    if (existingNote?.html) {
+      el.innerHTML = existingNote.html;
+    } else if (existingNote?.text) {
+      el.innerHTML = convertPlainTextToHtml(
+        existingNote.text,
+        existingNote.fontSize || '16px',
+        existingNote.color || '#2c3e50',
+        existingNote.textAlign || 'left'
+      );
+    } else {
+      el.innerHTML = `<div style="text-align: left;"><br></div>`;
+    }
+    setPlainText((el.innerText || '').replace(/\u200B/g, ''));
+  }, []);
+
+  // Track user's text selection inside the contentEditable editor
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const el = editorRef.current;
+      if (!el) return;
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      if (el.contains(range.commonAncestorContainer)) {
+        savedRangeRef.current = range.cloneRange();
+      }
+    };
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange);
+    };
+  }, []);
 
   // Sync templates with Firestore if available
   useEffect(() => {
@@ -122,7 +189,7 @@ export default function StageNoteModal({
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(remoteList));
         }
       } catch {
-        // Ignore if Firestore rules restrict new collection; localStorage already handles persistence
+        // localStorage already handles persistence
       }
     };
     fetchTemplates();
@@ -130,6 +197,306 @@ export default function StageNoteModal({
       mounted = false;
     };
   }, []);
+
+  const syncEditorState = () => {
+    const el = editorRef.current;
+    if (!el) return;
+    const textVal = (el.innerText || '').replace(/\u200B/g, '');
+    setPlainText(textVal);
+  };
+
+  const saveCurrentSelection = () => {
+    const el = editorRef.current;
+    if (!el) return;
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const r = sel.getRangeAt(0);
+      if (el.contains(r.commonAncestorContainer)) {
+        savedRangeRef.current = r.cloneRange();
+      }
+    }
+  };
+
+  const restoreSelection = (): Range | null => {
+    const el = editorRef.current;
+    if (!el) return null;
+    el.focus();
+    const sel = window.getSelection();
+    if (!sel) return null;
+    if (
+      savedRangeRef.current &&
+      el.contains(savedRangeRef.current.commonAncestorContainer)
+    ) {
+      sel.removeAllRanges();
+      sel.addRange(savedRangeRef.current);
+      return savedRangeRef.current;
+    }
+    if (sel.rangeCount > 0 && el.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+      const r = sel.getRangeAt(0);
+      savedRangeRef.current = r.cloneRange();
+      return r;
+    }
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    savedRangeRef.current = range.cloneRange();
+    return range;
+  };
+
+  // Apply font-size or color ONLY to the selected text (or current cursor typing position), like Word
+  const applyInlineStyle = (styleProp: 'fontSize' | 'color', styleValue: string) => {
+    const el = editorRef.current;
+    if (!el) return;
+
+    const range = restoreSelection();
+    if (!range) return;
+
+    if (range.collapsed) {
+      // No text selected: insert a styled span with a zero-width space so newly typed text gets this style
+      const span = document.createElement('span');
+      if (styleProp === 'fontSize') {
+        span.style.fontSize = styleValue;
+        span.style.color = color;
+      } else {
+        span.style.color = styleValue;
+        span.style.fontSize = fontSize;
+      }
+      const zwsp = document.createTextNode('\u200B');
+      span.appendChild(zwsp);
+      range.insertNode(span);
+
+      const nextRange = document.createRange();
+      nextRange.setStart(zwsp, 1);
+      nextRange.collapse(true);
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(nextRange);
+      }
+      savedRangeRef.current = nextRange.cloneRange();
+      syncEditorState();
+      return;
+    }
+
+    // Collect all Text nodes intersecting the user's selection range
+    const textNodes: { node: Text; start: number; end: number }[] = [];
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+    let currentNode = walker.nextNode() as Text | null;
+    while (currentNode) {
+      if (range.intersectsNode(currentNode)) {
+        const start = currentNode === range.startContainer ? range.startOffset : 0;
+        const end =
+          currentNode === range.endContainer
+            ? range.endOffset
+            : currentNode.length;
+        if (end > start) {
+          textNodes.push({ node: currentNode, start, end });
+        }
+      }
+      currentNode = walker.nextNode() as Text | null;
+    }
+
+    // If selection container is an element without text nodes yet
+    if (textNodes.length === 0) {
+      syncEditorState();
+      return;
+    }
+
+    const wrappedTargets: Text[] = [];
+    textNodes.forEach(({ node, start, end }) => {
+      let target = node;
+      if (end < target.length) {
+        target.splitText(end);
+      }
+      if (start > 0) {
+        target = target.splitText(start);
+      }
+
+      const parent = target.parentElement;
+      if (
+        parent &&
+        parent !== el &&
+        parent.tagName === 'SPAN' &&
+        parent.childNodes.length === 1
+      ) {
+        parent.style[styleProp] = styleValue;
+      } else {
+        const span = document.createElement('span');
+        span.style[styleProp] = styleValue;
+        target.parentNode?.insertBefore(span, target);
+        span.appendChild(target);
+      }
+      wrappedTargets.push(target);
+    });
+
+    if (wrappedTargets.length > 0) {
+      const first = wrappedTargets[0];
+      const last = wrappedTargets[wrappedTargets.length - 1];
+      const newRange = document.createRange();
+      newRange.setStart(first, 0);
+      newRange.setEnd(last, last.length);
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+      }
+      savedRangeRef.current = newRange.cloneRange();
+    }
+
+    syncEditorState();
+  };
+
+  // Apply paragraph alignment ONLY to the selected paragraph(s) / current line, like Word
+  const applyParagraphAlignment = (alignValue: 'left' | 'center' | 'right') => {
+    setTextAlign(alignValue);
+    const el = editorRef.current;
+    if (!el) return;
+
+    const range = restoreSelection();
+    if (!range) return;
+
+    // Ensure direct inline children of editor are wrapped in a block <div> so lines can be aligned independently
+    const childNodes = Array.from(el.childNodes);
+    const hasOnlyInline = childNodes.some(
+      n =>
+        n.nodeType === Node.TEXT_NODE ||
+        (n.nodeType === Node.ELEMENT_NODE &&
+          !['DIV', 'P'].includes((n as HTMLElement).tagName))
+    );
+    if (hasOnlyInline) {
+      let currentBlock: HTMLDivElement | null = null;
+      childNodes.forEach(node => {
+        if (
+          node.nodeType === Node.ELEMENT_NODE &&
+          ['DIV', 'P'].includes((node as HTMLElement).tagName)
+        ) {
+          currentBlock = null;
+        } else if (
+          node.nodeType === Node.ELEMENT_NODE &&
+          (node as HTMLElement).tagName === 'BR'
+        ) {
+          if (!currentBlock) {
+            currentBlock = document.createElement('div');
+            el.insertBefore(currentBlock, node);
+            currentBlock.appendChild(node);
+          }
+          currentBlock = null;
+        } else {
+          if (!currentBlock) {
+            currentBlock = document.createElement('div');
+            el.insertBefore(currentBlock, node);
+          }
+          currentBlock.appendChild(node);
+        }
+      });
+    }
+
+    // Find top-level block elements inside editor that intersect the selection/cursor
+    const blocks = Array.from(el.children).filter(c =>
+      ['DIV', 'P'].includes(c.tagName)
+    ) as HTMLElement[];
+
+    let matchedAny = false;
+    blocks.forEach(block => {
+      if (
+        range.intersectsNode(block) ||
+        block.contains(range.startContainer) ||
+        block.contains(range.endContainer)
+      ) {
+        block.style.textAlign = alignValue;
+        matchedAny = true;
+      }
+    });
+
+    if (!matchedAny) {
+      if (blocks.length > 0) {
+        blocks[blocks.length - 1].style.textAlign = alignValue;
+      } else {
+        const div = document.createElement('div');
+        div.style.textAlign = alignValue;
+        div.innerHTML = el.innerHTML || '<br>';
+        el.innerHTML = '';
+        el.appendChild(div);
+      }
+    }
+
+    syncEditorState();
+  };
+
+  // Insert string (can be single symbol or multi-line template) at current cursor position in editor
+  const insertAtCursor = (insertStr: string) => {
+    const el = editorRef.current;
+    if (!el || !insertStr) return;
+
+    const range = restoreSelection();
+    if (!range) return;
+
+    range.deleteContents();
+
+    const lines = insertStr.split('\n');
+    const frag = document.createDocumentFragment();
+    let lastInsertedNode: Node | null = null;
+
+    lines.forEach((line, idx) => {
+      if (idx > 0) {
+        const br = document.createElement('br');
+        frag.appendChild(br);
+        lastInsertedNode = br;
+      }
+      if (line.length > 0) {
+        const span = document.createElement('span');
+        span.style.fontSize = fontSize;
+        span.style.color = color;
+        span.textContent = line;
+        frag.appendChild(span);
+        lastInsertedNode = span;
+      }
+    });
+
+    range.insertNode(frag);
+
+    if (lastInsertedNode) {
+      const nextRange = document.createRange();
+      nextRange.setStartAfter(lastInsertedNode);
+      nextRange.collapse(true);
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(nextRange);
+      }
+      savedRangeRef.current = nextRange.cloneRange();
+    }
+
+    syncEditorState();
+  };
+
+  // Insert two full-width spaces at the start of the current paragraph/line
+  const insertParagraphIndent = () => {
+    const el = editorRef.current;
+    if (!el) return;
+    const range = restoreSelection();
+    if (!range) return;
+
+    let node: Node | null = range.startContainer;
+    while (node && node.parentNode !== el && node !== el) {
+      node = node.parentNode;
+    }
+
+    const indentSpan = document.createElement('span');
+    indentSpan.style.fontSize = fontSize;
+    indentSpan.style.color = color;
+    indentSpan.textContent = '　　';
+
+    if (node && node !== el && node.nodeType === Node.ELEMENT_NODE) {
+      node.insertBefore(indentSpan, node.firstChild);
+    } else {
+      el.insertBefore(indentSpan, el.firstChild);
+    }
+
+    syncEditorState();
+  };
 
   const persistTemplates = (nextList: StageNoteTemplate[]) => {
     setTemplates(nextList);
@@ -140,45 +507,12 @@ export default function StageNoteModal({
     }
   };
 
-  // Insert string at current cursor position in textarea
-  const insertAtCursor = (insertStr: string) => {
-    const el = textareaRef.current;
-    if (!el) {
-      setText(prev => prev + insertStr);
-      return;
-    }
-    const start = el.selectionStart ?? text.length;
-    const end = el.selectionEnd ?? text.length;
-    const nextText = text.slice(0, start) + insertStr + text.slice(end);
-    setText(nextText);
-    setTimeout(() => {
-      el.focus();
-      const nextPos = start + insertStr.length;
-      el.setSelectionRange(nextPos, nextPos);
-    }, 0);
-  };
-
-  // Insert indent at current line start
-  const insertParagraphIndent = () => {
-    const el = textareaRef.current;
-    if (!el) {
-      setText(prev => '　　' + prev);
-      return;
-    }
-    const start = el.selectionStart ?? 0;
-    const lineStart = text.lastIndexOf('\n', start - 1) + 1;
-    const nextText = text.slice(0, lineStart) + '　　' + text.slice(lineStart);
-    setText(nextText);
-    setTimeout(() => {
-      el.focus();
-      el.setSelectionRange(start + 2, start + 2);
-    }, 0);
-  };
-
-  // Add common template
+  // Add common template (supports multi-line)
   const handleAddTemplate = async (contentToAdd?: string) => {
-    const val = (contentToAdd ?? newTemplateText).trim();
-    if (!val) return;
+    const rawVal = contentToAdd ?? newTemplateText;
+    if (!rawVal.trim()) return;
+    // Preserve original line breaks & formatting
+    const val = rawVal.replace(/\r\n/g, '\n');
     const newTpl: StageNoteTemplate = {
       id: `tpl_${Date.now()}`,
       content: val,
@@ -196,10 +530,10 @@ export default function StageNoteModal({
     }
   };
 
-  // Save edited common template
+  // Save edited common template (supports multi-line)
   const handleSaveEditTemplate = async (id: string) => {
-    const val = editingTemplateText.trim();
-    if (!val) return;
+    if (!editingTemplateText.trim()) return;
+    const val = editingTemplateText.replace(/\r\n/g, '\n');
     const nextList = templates.map(t => (t.id === id ? { ...t, content: val } : t));
     persistTemplates(nextList);
     setEditingTemplateId(null);
@@ -214,10 +548,13 @@ export default function StageNoteModal({
     }
   };
 
-  // Delete common template
-  const handleDeleteTemplate = async (id: string) => {
+  // Confirm and delete common template
+  const confirmDeleteTemplate = async () => {
+    if (!deletingTemplate) return;
+    const id = deletingTemplate.id;
     const nextList = templates.filter(t => t.id !== id);
     persistTemplates(nextList);
+    setDeletingTemplate(null);
     try {
       await deleteDoc(doc(db, 'stage_note_templates', id));
     } catch {
@@ -227,13 +564,17 @@ export default function StageNoteModal({
 
   // Save note to ticket
   const handleSaveNote = async () => {
+    const el = editorRef.current;
+    const currentText = el ? (el.innerText || '').replace(/\u200B/g, '') : plainText;
+    const currentHtml = el ? el.innerHTML.replace(/\u200B/g, '') : '';
+
     setIsSaving(true);
     try {
       const nextStageNotes: Record<string, StageNote> = { ...(ticket.stageNotes || {}) };
-      const trimmed = text.trim();
-      if (trimmed) {
+      if (currentText.trim()) {
         nextStageNotes[workflow.id] = {
-          text: text,
+          text: currentText.replace(/\r\n/g, '\n'),
+          html: currentHtml,
           fontSize,
           color,
           textAlign,
@@ -247,7 +588,7 @@ export default function StageNoteModal({
       onClose();
     } catch (e) {
       console.error(e);
-      alert('儲存備註失敗');
+      setSystemNotice('儲存備註失敗，請稍後再試。');
     } finally {
       setIsSaving(false);
     }
@@ -264,7 +605,7 @@ export default function StageNoteModal({
       onClose();
     } catch (e) {
       console.error(e);
-      alert('清除備註失敗');
+      setSystemNotice('清除備註失敗，請稍後再試。');
     } finally {
       setIsSaving(false);
     }
@@ -388,6 +729,7 @@ export default function StageNoteModal({
               <button
                 type="button"
                 className="doodle-button"
+                onMouseDown={e => e.preventDefault()}
                 style={{
                   padding: '4px 14px',
                   fontSize: '0.92rem',
@@ -396,14 +738,18 @@ export default function StageNoteModal({
                   backgroundColor: 'var(--crayon-blue)',
                   color: 'white'
                 }}
-                onClick={() => setIsTemplateModalOpen(true)}
+                onClick={() => {
+                  saveCurrentSelection();
+                  setIsTemplateModalOpen(true);
+                }}
               >
                 📚 常用內容 ({templates.length})
               </button>
-              {text.trim() && (
+              {plainText.trim() && (
                 <button
                   type="button"
                   className="doodle-button"
+                  onMouseDown={e => e.preventDefault()}
                   style={{
                     padding: '4px 10px',
                     fontSize: '0.84rem',
@@ -413,8 +759,8 @@ export default function StageNoteModal({
                     color: 'var(--crayon-dark)'
                   }}
                   onClick={() => {
-                    handleAddTemplate(text.trim());
-                    alert('已將目前備註內容加入「常用內容」！');
+                    saveCurrentSelection();
+                    setIsSaveCommonConfirmOpen(true);
                   }}
                 >
                   📌 存為常用
@@ -425,6 +771,7 @@ export default function StageNoteModal({
             <button
               type="button"
               className="doodle-button"
+              onMouseDown={e => e.preventDefault()}
               style={{
                 padding: '3px 10px',
                 fontSize: '0.84rem',
@@ -433,7 +780,12 @@ export default function StageNoteModal({
                 backgroundColor: '#eee',
                 color: 'var(--crayon-dark)'
               }}
-              onClick={() => setText('')}
+              onClick={() => {
+                if (editorRef.current) {
+                  editorRef.current.innerHTML = `<div style="text-align: ${textAlign};"><br></div>`;
+                }
+                setPlainText('');
+              }}
             >
               清空內容
             </button>
@@ -449,7 +801,7 @@ export default function StageNoteModal({
               boxShadow: '3px 3px 0px rgba(0,0,0,0.12)'
             }}
           >
-            {/* 工具列第 1 層：格式設定（字體大小、段落位置、字體顏色） */}
+            {/* 工具列第 1 層：格式設定（字體大小、段落位置、字體顏色 — 支援選取局部文字個別套用） */}
             <div
               style={{
                 backgroundColor: '#f3e5f5',
@@ -462,7 +814,7 @@ export default function StageNoteModal({
             >
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
                 <span style={{ fontWeight: 'bold', fontSize: '0.88rem', color: 'var(--crayon-purple)' }}>
-                  🎨 格式設定：
+                  🎨 格式設定（可反白選取單獨的字或段落個別修改）：
                 </span>
                 {/* 字體大小 */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -478,7 +830,12 @@ export default function StageNoteModal({
                       minHeight: '30px'
                     }}
                     value={fontSize}
-                    onChange={e => setFontSize(e.target.value)}
+                    onMouseDown={() => saveCurrentSelection()}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setFontSize(val);
+                      applyInlineStyle('fontSize', val);
+                    }}
                   >
                     {FONT_SIZE_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>
@@ -498,6 +855,10 @@ export default function StageNoteModal({
                       key={opt.value}
                       type="button"
                       className="doodle-button"
+                      onMouseDown={e => {
+                        e.preventDefault();
+                        saveCurrentSelection();
+                      }}
                       style={{
                         padding: '2px 8px',
                         fontSize: '0.8rem',
@@ -506,7 +867,7 @@ export default function StageNoteModal({
                         backgroundColor: textAlign === opt.value ? 'var(--crayon-purple)' : 'white',
                         color: textAlign === opt.value ? 'white' : 'var(--crayon-dark)'
                       }}
-                      onClick={() => setTextAlign(opt.value)}
+                      onClick={() => applyParagraphAlignment(opt.value)}
                     >
                       {opt.label}
                     </button>
@@ -514,6 +875,10 @@ export default function StageNoteModal({
                   <button
                     type="button"
                     className="doodle-button"
+                    onMouseDown={e => {
+                      e.preventDefault();
+                      saveCurrentSelection();
+                    }}
                     style={{
                       padding: '2px 8px',
                       fontSize: '0.8rem',
@@ -530,6 +895,10 @@ export default function StageNoteModal({
                   <button
                     type="button"
                     className="doodle-button"
+                    onMouseDown={e => {
+                      e.preventDefault();
+                      saveCurrentSelection();
+                    }}
                     style={{
                       padding: '2px 8px',
                       fontSize: '0.8rem',
@@ -553,7 +922,14 @@ export default function StageNoteModal({
                   <button
                     key={c.value}
                     type="button"
-                    onClick={() => setColor(c.value)}
+                    onMouseDown={e => {
+                      e.preventDefault();
+                      saveCurrentSelection();
+                    }}
+                    onClick={() => {
+                      setColor(c.value);
+                      applyInlineStyle('color', c.value);
+                    }}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -586,6 +962,7 @@ export default function StageNoteModal({
                   </button>
                 ))}
                 <label
+                  onMouseDown={() => saveCurrentSelection()}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -603,7 +980,11 @@ export default function StageNoteModal({
                   <input
                     type="color"
                     value={color}
-                    onChange={e => setColor(e.target.value)}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setColor(val);
+                      applyInlineStyle('color', val);
+                    }}
                     style={{
                       width: '20px',
                       height: '20px',
@@ -648,6 +1029,7 @@ export default function StageNoteModal({
                     key={tab.key}
                     type="button"
                     className="doodle-button"
+                    onMouseDown={e => e.preventDefault()}
                     style={{
                       padding: '2px 10px',
                       fontSize: '0.8rem',
@@ -672,6 +1054,10 @@ export default function StageNoteModal({
                   <button
                     key={`${sym}_${idx}`}
                     type="button"
+                    onMouseDown={e => {
+                      e.preventDefault();
+                      saveCurrentSelection();
+                    }}
                     onClick={() => insertAtCursor(sym)}
                     title={`插入「${sym}」`}
                     style={{
@@ -697,30 +1083,52 @@ export default function StageNoteModal({
               </div>
             </div>
 
-            {/* 備註登打內容 Textarea（緊接在工具列正下方） */}
-            <textarea
-              ref={textareaRef}
-              rows={6}
-              placeholder="請在此輸入此流程關卡的備註內容..."
-              value={text}
-              onChange={e => setText(e.target.value)}
-              style={{
-                width: '100%',
-                fontSize: fontSize,
-                color: color,
-                textAlign: textAlign,
-                fontWeight: 'bold',
-                lineHeight: '1.5',
-                padding: '12px',
-                backgroundColor: '#ffffff',
-                border: 'none',
-                outline: 'none',
-                resize: 'vertical',
-                display: 'block',
-                boxSizing: 'border-box',
-                fontFamily: 'inherit'
-              }}
-            />
+            {/* 備註登打內容 Rich-Text 編輯區（Word 風格，可選取單字個別設定字體大小、顏色、段落對齊） */}
+            <div style={{ position: 'relative' }}>
+              {!plainText && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '12px',
+                    left: '14px',
+                    color: '#999',
+                    fontSize: '0.98rem',
+                    fontWeight: 'bold',
+                    pointerEvents: 'none',
+                    userSelect: 'none'
+                  }}
+                >
+                  請在此輸入此流程關卡的備註內容（可反白選取局部文字個別調整大小與顏色）...
+                </div>
+              )}
+              <div
+                ref={editorRef}
+                contentEditable
+                suppressContentEditableWarning
+                onInput={syncEditorState}
+                onMouseUp={saveCurrentSelection}
+                onKeyUp={() => {
+                  saveCurrentSelection();
+                  syncEditorState();
+                }}
+                onBlur={saveCurrentSelection}
+                style={{
+                  minHeight: '140px',
+                  maxHeight: '280px',
+                  overflowY: 'auto',
+                  width: '100%',
+                  fontSize: '16px',
+                  color: '#2c3e50',
+                  fontWeight: 'bold',
+                  lineHeight: '1.55',
+                  padding: '12px 14px',
+                  backgroundColor: '#ffffff',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  wordBreak: 'break-word'
+                }}
+              />
+            </div>
           </div>
         </div>
 
@@ -784,8 +1192,8 @@ export default function StageNoteModal({
             className="doodle-border"
             style={{
               width: '100%',
-              maxWidth: '620px',
-              maxHeight: '85vh',
+              maxWidth: '660px',
+              maxHeight: '88vh',
               backgroundColor: '#ffffff',
               padding: '22px',
               position: 'relative',
@@ -827,39 +1235,49 @@ export default function StageNoteModal({
                 📚 常用內容選取與管理
               </h3>
               <div style={{ fontSize: '0.88rem', color: '#555', fontWeight: 'bold', marginTop: '4px' }}>
-                點擊任一常用內容即可直接帶入備註欄，亦可在下方新增、修改或刪除常用內容。
+                點擊任一常用內容即可直接帶入備註欄，亦可在下方新增、修改或刪除常用內容（支援多行輸入與原始格式保留）。
               </div>
             </div>
 
-            {/* 新增常用內容列 */}
+            {/* 新增常用內容列（支援多行輸入） */}
             <div
               style={{
                 display: 'flex',
-                gap: '8px',
+                gap: '10px',
+                alignItems: 'flex-start',
                 backgroundColor: '#e3f2fd',
                 padding: '10px',
                 borderRadius: '10px',
                 border: '2px solid var(--crayon-dark)'
               }}
             >
-              <input
-                type="text"
+              <textarea
                 className="doodle-input"
-                style={{ flex: 1, padding: '6px 10px', fontSize: '0.95rem', backgroundColor: 'white' }}
-                placeholder="輸入要新增的常用內容..."
+                rows={3}
+                style={{
+                  flex: 1,
+                  padding: '8px 10px',
+                  fontSize: '0.95rem',
+                  backgroundColor: 'white',
+                  resize: 'vertical',
+                  lineHeight: '1.45',
+                  fontFamily: 'inherit'
+                }}
+                placeholder="輸入要新增的常用內容（可按 Enter 換行輸入多行內容）..."
                 value={newTemplateText}
                 onChange={e => setNewTemplateText(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleAddTemplate();
-                  }
-                }}
               />
               <button
                 type="button"
                 className="doodle-button success"
-                style={{ padding: '6px 14px', fontSize: '0.9rem', fontWeight: 'bold', minHeight: 'auto' }}
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '0.92rem',
+                  fontWeight: 'bold',
+                  minHeight: 'auto',
+                  alignSelf: 'center',
+                  whiteSpace: 'nowrap'
+                }}
                 onClick={() => handleAddTemplate()}
               >
                 ➕ 新增常用
@@ -873,7 +1291,7 @@ export default function StageNoteModal({
                 flexDirection: 'column',
                 gap: '8px',
                 overflowY: 'auto',
-                maxHeight: '45vh',
+                maxHeight: '46vh',
                 paddingRight: '4px'
               }}
             >
@@ -887,7 +1305,7 @@ export default function StageNoteModal({
                     key={tpl.id}
                     style={{
                       display: 'flex',
-                      alignItems: 'center',
+                      alignItems: editingTemplateId === tpl.id ? 'flex-start' : 'center',
                       gap: '8px',
                       backgroundColor: '#fafafa',
                       border: '2px solid var(--crayon-dark)',
@@ -897,44 +1315,49 @@ export default function StageNoteModal({
                   >
                     {editingTemplateId === tpl.id ? (
                       <>
-                        <input
-                          type="text"
+                        <textarea
                           className="doodle-input"
-                          style={{ flex: 1, padding: '5px 8px', fontSize: '0.95rem', backgroundColor: 'white' }}
+                          rows={4}
+                          style={{
+                            flex: 1,
+                            padding: '8px 10px',
+                            fontSize: '0.95rem',
+                            backgroundColor: 'white',
+                            resize: 'vertical',
+                            lineHeight: '1.45',
+                            whiteSpace: 'pre-wrap',
+                            fontFamily: 'inherit'
+                          }}
                           value={editingTemplateText}
                           onChange={e => setEditingTemplateText(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleSaveEditTemplate(tpl.id);
-                            }
-                          }}
                         />
-                        <button
-                          type="button"
-                          className="doodle-button success"
-                          style={{ padding: '4px 12px', fontSize: '0.85rem', minHeight: 'auto', fontWeight: 'bold' }}
-                          onClick={() => handleSaveEditTemplate(tpl.id)}
-                        >
-                          💾 儲存
-                        </button>
-                        <button
-                          type="button"
-                          className="doodle-button"
-                          style={{
-                            padding: '4px 10px',
-                            fontSize: '0.85rem',
-                            minHeight: 'auto',
-                            backgroundColor: '#eee',
-                            color: 'var(--crayon-dark)'
-                          }}
-                          onClick={() => {
-                            setEditingTemplateId(null);
-                            setEditingTemplateText('');
-                          }}
-                        >
-                          取消
-                        </button>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <button
+                            type="button"
+                            className="doodle-button success"
+                            style={{ padding: '5px 12px', fontSize: '0.85rem', minHeight: 'auto', fontWeight: 'bold' }}
+                            onClick={() => handleSaveEditTemplate(tpl.id)}
+                          >
+                            💾 儲存
+                          </button>
+                          <button
+                            type="button"
+                            className="doodle-button"
+                            style={{
+                              padding: '5px 12px',
+                              fontSize: '0.85rem',
+                              minHeight: 'auto',
+                              backgroundColor: '#eee',
+                              color: 'var(--crayon-dark)'
+                            }}
+                            onClick={() => {
+                              setEditingTemplateId(null);
+                              setEditingTemplateText('');
+                            }}
+                          >
+                            取消
+                          </button>
+                        </div>
                       </>
                     ) : (
                       <>
@@ -945,7 +1368,9 @@ export default function StageNoteModal({
                             borderRadius: '12px',
                             padding: '1px 8px',
                             fontSize: '0.78rem',
-                            fontWeight: 'bold'
+                            fontWeight: 'bold',
+                            alignSelf: 'flex-start',
+                            marginTop: '3px'
                           }}
                         >
                           #{idx + 1}
@@ -960,9 +1385,12 @@ export default function StageNoteModal({
                             flex: 1,
                             cursor: 'pointer',
                             fontWeight: 'bold',
-                            fontSize: '0.98rem',
+                            fontSize: '0.96rem',
                             color: 'var(--crayon-dark)',
-                            padding: '2px 4px'
+                            padding: '2px 4px',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            lineHeight: '1.45'
                           }}
                         >
                           {tpl.content}
@@ -974,7 +1402,8 @@ export default function StageNoteModal({
                             padding: '3px 10px',
                             fontSize: '0.82rem',
                             fontWeight: 'bold',
-                            minHeight: 'auto'
+                            minHeight: 'auto',
+                            whiteSpace: 'nowrap'
                           }}
                           onClick={() => {
                             insertAtCursor(tpl.content);
@@ -992,7 +1421,8 @@ export default function StageNoteModal({
                             fontWeight: 'bold',
                             minHeight: 'auto',
                             backgroundColor: '#fff9c4',
-                            color: 'var(--crayon-dark)'
+                            color: 'var(--crayon-dark)',
+                            whiteSpace: 'nowrap'
                           }}
                           onClick={() => {
                             setEditingTemplateId(tpl.id);
@@ -1008,9 +1438,10 @@ export default function StageNoteModal({
                             padding: '3px 10px',
                             fontSize: '0.82rem',
                             fontWeight: 'bold',
-                            minHeight: 'auto'
+                            minHeight: 'auto',
+                            whiteSpace: 'nowrap'
                           }}
-                          onClick={() => handleDeleteTemplate(tpl.id)}
+                          onClick={() => setDeletingTemplate(tpl)}
                         >
                           🗑️ 刪除
                         </button>
@@ -1040,6 +1471,217 @@ export default function StageNoteModal({
                 關閉視窗
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 系統風格「存為常用」確認與提示視窗 */}
+      {isSaveCommonConfirmOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1200,
+            padding: '15px'
+          }}
+        >
+          <div
+            className="doodle-border"
+            style={{
+              padding: '28px',
+              width: '100%',
+              maxWidth: '460px',
+              backgroundColor: 'white',
+              textAlign: 'center',
+              boxShadow: '6px 6px 0px rgba(0,0,0,0.25)'
+            }}
+          >
+            <h3 style={{ color: 'var(--crayon-blue)', fontSize: '1.8rem', marginTop: 0, marginBottom: '12px' }}>
+              📌 存為常用內容確認
+            </h3>
+            <p style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: '0 0 12px 0' }}>
+              確定要將目前的備註內容加入「常用內容」嗎？
+            </p>
+            <div
+              style={{
+                backgroundColor: '#fffde7',
+                border: '2px dashed var(--crayon-orange)',
+                borderRadius: '8px',
+                padding: '10px 12px',
+                textAlign: 'left',
+                fontWeight: 'bold',
+                fontSize: '0.95rem',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                maxHeight: '140px',
+                overflowY: 'auto',
+                marginBottom: '20px'
+              }}
+            >
+              {plainText.trim()}
+            </div>
+            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="doodle-button success"
+                style={{ padding: '8px 20px', fontSize: '1rem', fontWeight: 'bold' }}
+                onClick={async () => {
+                  await handleAddTemplate(plainText.trim());
+                  setIsSaveCommonConfirmOpen(false);
+                  setSystemNotice('已成功將目前備註內容加入「常用內容」！');
+                }}
+              >
+                ✅ 確認加入
+              </button>
+              <button
+                type="button"
+                className="doodle-button"
+                style={{
+                  padding: '8px 20px',
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  backgroundColor: '#eee',
+                  color: 'var(--crayon-dark)'
+                }}
+                onClick={() => setIsSaveCommonConfirmOpen(false)}
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 系統風格「刪除常用內容」確認視窗 */}
+      {deletingTemplate && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1200,
+            padding: '15px'
+          }}
+        >
+          <div
+            className="doodle-border"
+            style={{
+              padding: '28px',
+              width: '100%',
+              maxWidth: '460px',
+              backgroundColor: 'white',
+              textAlign: 'center',
+              boxShadow: '6px 6px 0px rgba(0,0,0,0.25)'
+            }}
+          >
+            <h3 style={{ color: 'var(--crayon-red)', fontSize: '1.8rem', marginTop: 0, marginBottom: '12px' }}>
+              ⚠️ 刪除常用內容確認
+            </h3>
+            <p style={{ fontSize: '1.1rem', fontWeight: 'bold', margin: '0 0 12px 0' }}>
+              您確定要刪除此筆常用內容嗎？<br />
+              刪除後將無法復原！
+            </p>
+            <div
+              style={{
+                backgroundColor: '#fff5f5',
+                border: '2px dashed var(--crayon-red)',
+                borderRadius: '8px',
+                padding: '10px 12px',
+                textAlign: 'left',
+                fontWeight: 'bold',
+                fontSize: '0.95rem',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                maxHeight: '140px',
+                overflowY: 'auto',
+                marginBottom: '20px'
+              }}
+            >
+              {deletingTemplate.content}
+            </div>
+            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+              <button
+                type="button"
+                className="doodle-button danger"
+                style={{ padding: '8px 20px', fontSize: '1rem', fontWeight: 'bold' }}
+                onClick={confirmDeleteTemplate}
+              >
+                🗑️ 確認刪除
+              </button>
+              <button
+                type="button"
+                className="doodle-button"
+                style={{
+                  padding: '8px 20px',
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  backgroundColor: '#eee',
+                  color: 'var(--crayon-dark)'
+                }}
+                onClick={() => setDeletingTemplate(null)}
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 系統風格訊息提示視窗 */}
+      {systemNotice && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1250,
+            padding: '15px'
+          }}
+        >
+          <div
+            className="doodle-border"
+            style={{
+              padding: '28px',
+              width: '100%',
+              maxWidth: '400px',
+              backgroundColor: 'white',
+              textAlign: 'center',
+              boxShadow: '6px 6px 0px rgba(0,0,0,0.25)'
+            }}
+          >
+            <h3 style={{ color: 'var(--crayon-green)', fontSize: '1.8rem', marginTop: 0, marginBottom: '12px' }}>
+              ✅ 系統提示
+            </h3>
+            <p style={{ fontSize: '1.15rem', fontWeight: 'bold', margin: '0 0 20px 0' }}>
+              {systemNotice}
+            </p>
+            <button
+              type="button"
+              className="doodle-button success"
+              style={{ padding: '8px 28px', fontSize: '1rem', fontWeight: 'bold' }}
+              onClick={() => setSystemNotice(null)}
+            >
+              確定
+            </button>
           </div>
         </div>
       )}

@@ -706,19 +706,33 @@ export default function WorkflowTickets() {
                                       >
                                         📝 備註：
                                       </div>
-                                      <div
-                                        style={{
-                                          fontSize: stageNote.fontSize || '16px',
-                                          color: stageNote.color || '#2c3e50',
-                                          textAlign: stageNote.textAlign || 'left',
-                                          fontWeight: 'bold',
-                                          whiteSpace: 'pre-wrap',
-                                          wordBreak: 'break-word',
-                                          lineHeight: '1.4'
-                                        }}
-                                      >
-                                        {stageNote.text}
-                                      </div>
+                                      {stageNote.html ? (
+                                        <div
+                                          style={{
+                                            fontSize: stageNote.fontSize || '16px',
+                                            color: stageNote.color || '#2c3e50',
+                                            textAlign: stageNote.textAlign || 'left',
+                                            fontWeight: 'bold',
+                                            wordBreak: 'break-word',
+                                            lineHeight: '1.4'
+                                          }}
+                                          dangerouslySetInnerHTML={{ __html: stageNote.html }}
+                                        />
+                                      ) : (
+                                        <div
+                                          style={{
+                                            fontSize: stageNote.fontSize || '16px',
+                                            color: stageNote.color || '#2c3e50',
+                                            textAlign: stageNote.textAlign || 'left',
+                                            fontWeight: 'bold',
+                                            whiteSpace: 'pre-wrap',
+                                            wordBreak: 'break-word',
+                                            lineHeight: '1.4'
+                                          }}
+                                        >
+                                          {stageNote.text}
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </div>
