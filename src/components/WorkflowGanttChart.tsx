@@ -375,8 +375,7 @@ export default function WorkflowGanttChart({
                 {!forPrint && (onOpenStageNote || onViewStageNote) && (
                   <div style={{ marginTop: '4px' }}>
                     {ticket.stageNotes?.[w.id]?.text ? (
-                      <button
-                        type="button"
+                      <div
                         onClick={() =>
                           onViewStageNote
                             ? onViewStageNote(w, wIndex)
@@ -384,25 +383,45 @@ export default function WorkflowGanttChart({
                         }
                         title="點擊查看此關卡備註內容"
                         style={{
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '50%',
-                          backgroundColor: 'var(--crayon-yellow)',
-                          border: '2px solid var(--crayon-dark)',
-                          boxShadow: '2px 2px 0px rgba(0,0,0,0.22)',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
+                          gap: '6px',
                           cursor: 'pointer',
-                          fontSize: '1.05rem',
-                          padding: 0,
-                          transition: 'transform 0.15s ease'
+                          whiteSpace: 'nowrap'
                         }}
-                        onMouseOver={e => (e.currentTarget.style.transform = 'scale(1.12)')}
-                        onMouseOut={e => (e.currentTarget.style.transform = 'scale(1)')}
                       >
-                        📝
-                      </button>
+                        <span
+                          style={{
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '50%',
+                            backgroundColor: 'var(--crayon-yellow)',
+                            border: '2px solid var(--crayon-dark)',
+                            boxShadow: '2px 2px 0px rgba(0,0,0,0.22)',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1rem',
+                            flexShrink: 0
+                          }}
+                        >
+                          📝
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '0.84rem',
+                            fontWeight: 'bold',
+                            color: 'var(--crayon-red)',
+                            backgroundColor: '#fffde7',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            border: '1.5px dashed var(--crayon-orange)',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          有備註
+                        </span>
+                      </div>
                     ) : (
                       onOpenStageNote && (
                         <button
@@ -727,6 +746,57 @@ export default function WorkflowGanttChart({
                   </div>
                 )}
               </div>
+
+              {/* 列印甘特圖檔時，於該流程列完整顯示備註內容 */}
+              {forPrint && ticket.stageNotes?.[w.id]?.text && (
+                <div
+                  style={{
+                    gridColumn: '1 / -1',
+                    margin: '4px 10px 8px 10px',
+                    padding: '8px 12px',
+                    backgroundColor: '#fffde7',
+                    border: '2px dashed var(--crayon-orange)',
+                    borderRadius: '8px'
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '0.84rem',
+                      fontWeight: 'bold',
+                      color: '#e65100',
+                      marginBottom: '4px',
+                      textAlign: 'left'
+                    }}
+                  >
+                    📝 關卡備註：
+                  </div>
+                  {ticket.stageNotes[w.id].html ? (
+                    <div
+                      style={{
+                        fontSize: ticket.stageNotes[w.id].fontSize || '16px',
+                        color: ticket.stageNotes[w.id].color || '#2c3e50',
+                        textAlign: ticket.stageNotes[w.id].textAlign || 'left',
+                        wordBreak: 'break-word',
+                        lineHeight: '1.45'
+                      }}
+                      dangerouslySetInnerHTML={{ __html: ticket.stageNotes[w.id].html! }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        fontSize: ticket.stageNotes[w.id].fontSize || '16px',
+                        color: ticket.stageNotes[w.id].color || '#2c3e50',
+                        textAlign: ticket.stageNotes[w.id].textAlign || 'left',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        lineHeight: '1.45'
+                      }}
+                    >
+                      {ticket.stageNotes[w.id].text}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}

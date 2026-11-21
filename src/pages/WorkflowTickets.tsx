@@ -650,32 +650,52 @@ export default function WorkflowTickets() {
                                   {/* 備註圖示或新增備註按鈕 (顯示於流程框裡) */}
                                   <div style={{ marginTop: '8px' }}>
                                     {stageNote?.text ? (
-                                      <button
-                                        type="button"
+                                      <div
                                         onClick={() =>
                                           setViewNoteTarget({ ticket: t, workflow: w, stageIndex: wIndex })
                                         }
                                         title="點擊查看此關卡備註內容"
                                         style={{
-                                          width: '34px',
-                                          height: '34px',
-                                          borderRadius: '50%',
-                                          backgroundColor: 'var(--crayon-yellow)',
-                                          border: '2px solid var(--crayon-dark)',
-                                          boxShadow: '2px 2px 0px rgba(0,0,0,0.22)',
                                           display: 'inline-flex',
                                           alignItems: 'center',
                                           justifyContent: 'center',
+                                          gap: '6px',
                                           cursor: 'pointer',
-                                          fontSize: '1.1rem',
-                                          padding: 0,
-                                          transition: 'transform 0.15s ease'
+                                          whiteSpace: 'nowrap'
                                         }}
-                                        onMouseOver={e => (e.currentTarget.style.transform = 'scale(1.12)')}
-                                        onMouseOut={e => (e.currentTarget.style.transform = 'scale(1)')}
                                       >
-                                        📝
-                                      </button>
+                                        <span
+                                          style={{
+                                            width: '32px',
+                                            height: '32px',
+                                            borderRadius: '50%',
+                                            backgroundColor: 'var(--crayon-yellow)',
+                                            border: '2px solid var(--crayon-dark)',
+                                            boxShadow: '2px 2px 0px rgba(0,0,0,0.22)',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: '1.05rem',
+                                            flexShrink: 0
+                                          }}
+                                        >
+                                          📝
+                                        </span>
+                                        <span
+                                          style={{
+                                            fontSize: '0.86rem',
+                                            fontWeight: 'bold',
+                                            color: 'var(--crayon-red)',
+                                            backgroundColor: '#fffde7',
+                                            padding: '2px 8px',
+                                            borderRadius: '10px',
+                                            border: '1.5px dashed var(--crayon-orange)',
+                                            whiteSpace: 'nowrap'
+                                          }}
+                                        >
+                                          有備註
+                                        </span>
+                                      </div>
                                     ) : (
                                       <button
                                         type="button"
