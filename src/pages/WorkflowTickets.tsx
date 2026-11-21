@@ -555,6 +555,8 @@ export default function WorkflowTickets() {
                             isFinished={Boolean(t.closeDate)}
                             getAssigneeName={getAssigneeName}
                             calculateDays={calculateDays}
+                            taskName={t.taskId ? (tasks.find(tk => tk.id === t.taskId)?.name || '') : ''}
+                            totalProcessingDays={calculateDays(getFirstStageDate(t) || new Date().getTime(), new Date().getTime())}
                           />
                         ) : (
                         /* Stage Date Logs */

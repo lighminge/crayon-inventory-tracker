@@ -1,3 +1,5 @@
+import { useState, useRef, useEffect } from 'react';
+import html2canvas from 'html2canvas';
 import type { InventoryTicket, Workflow } from '../types';
 
 interface WorkflowGanttChartProps {
@@ -7,6 +9,8 @@ interface WorkflowGanttChartProps {
   isFinished: boolean;
   getAssigneeName: (id: string) => string;
   calculateDays: (startMs: number, endMs: number) => number;
+  taskName?: string;
+  totalProcessingDays?: number;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -23,7 +27,10 @@ const formatShortDate = (ms: number): string => {
 
 const formatFullDate = (ms: number): string => {
   const d = new Date(ms);
-  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}/${m}/${day}`;
 };
 
 export default function WorkflowGanttChart({
@@ -32,9 +39,45 @@ export default function WorkflowGanttChart({
   nextStage,
   isFinished,
   getAssigneeName,
-  calculateDays
+  calculateDays,
+  taskName,
+  totalProcessingDays
 }: WorkflowGanttChartProps) {
+  const [isPrinting, setIsPrinting] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
   const nowMs = Date.now();
+
+  useEffect(() => {
+    if (!isPrinting || !printRef.current) return;
+    let cancelled = false;
+    const capture = async () => {
+      await new Promise(resolve =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve))
+      );
+      if (cancelled || !printRef.current) return;
+      try {
+        const canvas = await html2canvas(printRef.current, {
+          scale: 2,
+          backgroundColor: '#ffffff'
+        });
+        const url = canvas.toDataURL('image/png');
+        const dateStr = new Date().toISOString().split('T')[0];
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `盤點單流程甘特圖_${ticket.id}_${dateStr}.png`;
+        a.click();
+      } catch (err) {
+        console.error(err);
+        alert('列印甘特圖檔失敗');
+      } finally {
+        if (!cancelled) setIsPrinting(false);
+      }
+    };
+    capture();
+    return () => {
+      cancelled = true;
+    };
+  }, [isPrinting, ticket.id]);
 
   // Build stage data
   const stageRows = workflows.map((w, wIndex) => {
@@ -72,6 +115,8 @@ export default function WorkflowGanttChart({
         const days = calculateDays(previousDate, doneTimestamp);
         spentDays = days;
         spentDaysText = days === 0 ? '0天' : `${days}天`;
+      } else {
+        spentDaysText = '0天';
       }
     } else if (isCurrent) {
       startMs = refPrevDate || ticket.dispatchDate || nowMs;
@@ -122,12 +167,14 @@ export default function WorkflowGanttChart({
   );
 
   // Build header columns for the timeline
-  const maxColumns = 12;
-  const headerColumns: { label: string; dayIndex: number }[] = [];
+  const maxColumns = 10;
+  const headerColumns: { label: string; fullLabel: string; dayIndex: number }[] = [];
   if (totalDays <= maxColumns) {
     for (let i = 0; i < totalDays; i++) {
+      const dayTs = timelineStartDay + i * DAY_MS;
       headerColumns.push({
-        label: formatShortDate(timelineStartDay + i * DAY_MS),
+        label: totalDays <= 5 ? formatFullDate(dayTs) : formatShortDate(dayTs),
+        fullLabel: formatFullDate(dayTs),
         dayIndex: i
       });
     }
@@ -135,12 +182,457 @@ export default function WorkflowGanttChart({
     const colCount = 8;
     for (let i = 0; i < colCount; i++) {
       const dayIdx = Math.round((i * (totalDays - 1)) / (colCount - 1));
+      const dayTs = timelineStartDay + dayIdx * DAY_MS;
       headerColumns.push({
-        label: formatShortDate(timelineStartDay + dayIdx * DAY_MS),
+        label: formatShortDate(dayTs),
+        fullLabel: formatFullDate(dayTs),
         dayIndex: dayIdx
       });
     }
   }
+
+  const renderGanttTable = (forPrint = false) => {
+    const gridCols = forPrint
+      ? '190px 100px 195px 1fr'
+      : '180px 95px 175px 1fr';
+
+    return (
+      <div style={{ minWidth: forPrint ? '100%' : '680px' }}>
+        {/* Column Header Row */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: gridCols,
+            backgroundColor: 'var(--crayon-dark)',
+            color: 'white',
+            fontWeight: 'bold',
+            fontSize: forPrint ? '0.95rem' : '0.9rem',
+            borderRadius: '8px 8px 0 0',
+            border: '2px solid var(--crayon-dark)'
+          }}
+        >
+          <div style={{ padding: '10px 12px', borderRight: '1px solid rgba(255,255,255,0.25)' }}>
+            關卡 / 負責人
+          </div>
+          <div
+            style={{
+              padding: '10px 6px',
+              textAlign: 'center',
+              borderRight: '1px solid rgba(255,255,255,0.25)'
+            }}
+          >
+            狀態
+          </div>
+          <div
+            style={{
+              padding: '10px 8px',
+              textAlign: 'center',
+              borderRight: '1px solid rgba(255,255,255,0.25)'
+            }}
+          >
+            流程日期 / 耗時
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', padding: '6px 0' }}>
+            {headerColumns.map((col, idx) => (
+              <div
+                key={idx}
+                style={{
+                  flex: 1,
+                  textAlign: 'center',
+                  fontSize: forPrint ? '0.85rem' : '0.8rem',
+                  borderRight:
+                    idx < headerColumns.length - 1
+                      ? '1px dashed rgba(255,255,255,0.3)'
+                      : 'none'
+                }}
+              >
+                {col.label}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Stage Rows */}
+        {stageRows.map(row => {
+          const {
+            workflow: w,
+            index: wIndex,
+            isDone,
+            isCurrent,
+            startMs,
+            endMs,
+            doneTimestamp,
+            spentDaysText,
+            isWithinWorkingDays,
+            assigneeName
+          } = row;
+
+          let leftPct = 0;
+          let widthPct = 0;
+          if (startMs !== null && endMs !== null) {
+            const startDayIdx = Math.max(
+              0,
+              Math.round((toDayStart(startMs) - timelineStartDay) / DAY_MS)
+            );
+            const endDayIdx = Math.max(
+              startDayIdx,
+              Math.round((toDayStart(endMs) - timelineStartDay) / DAY_MS)
+            );
+            const rawLeft = (startDayIdx / totalDays) * 100;
+            const rawWidth = ((endDayIdx - startDayIdx + 1) / totalDays) * 100;
+            widthPct = Math.min(100, Math.max(rawWidth, 8));
+            leftPct = Math.max(0, Math.min(rawLeft, 100 - widthPct));
+          }
+
+          const rowBg = isCurrent ? '#fff8e1' : isDone ? '#f9fbe7' : '#fafafa';
+
+          const isSameDay =
+            startMs !== null &&
+            endMs !== null &&
+            toDayStart(startMs) === toDayStart(endMs);
+
+          const barDateLabel =
+            startMs !== null && endMs !== null
+              ? isDone
+                ? isSameDay
+                  ? `${formatFullDate(endMs)}${spentDaysText ? ` (${spentDaysText})` : ''}`
+                  : `${formatFullDate(startMs)} ~ ${formatFullDate(endMs)}${
+                      spentDaysText ? ` (${spentDaysText})` : ''
+                    }`
+                : `${formatFullDate(startMs)} ~ ${formatFullDate(endMs)} (處理中 ${spentDaysText})`
+              : '';
+
+          // Decide whether the label sits inside the bar or in an unclipped pill beside/over the bar
+          const canFitInsideBar = isSameDay ? widthPct >= 34 : widthPct >= 52;
+
+          return (
+            <div
+              key={w.id}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: gridCols,
+                backgroundColor: rowBg,
+                borderLeft: '2px solid var(--crayon-dark)',
+                borderRight: '2px solid var(--crayon-dark)',
+                borderBottom: '2px solid var(--crayon-dark)',
+                alignItems: 'center',
+                minHeight: forPrint ? '68px' : '62px'
+              }}
+            >
+              {/* Col 1: Stage Name & Assignee */}
+              <div
+                style={{
+                  padding: '8px 12px',
+                  borderRight: '2px dashed #ccc',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <span
+                    style={{
+                      backgroundColor: 'var(--crayon-red)',
+                      color: 'white',
+                      padding: '1px 8px',
+                      borderRadius: '10px',
+                      fontSize: '0.8rem',
+                      fontWeight: 'bold',
+                      border: '1px solid var(--crayon-dark)'
+                    }}
+                  >
+                    關卡 {wIndex + 1}
+                  </span>
+                  <span
+                    style={{
+                      fontWeight: 'bold',
+                      fontSize: forPrint ? '1.05rem' : '0.98rem',
+                      color: 'var(--crayon-dark)'
+                    }}
+                  >
+                    {w.name}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: forPrint ? '0.88rem' : '0.82rem',
+                    color: 'var(--crayon-blue)',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  👤 負責：{assigneeName}
+                </div>
+              </div>
+
+              {/* Col 2: Status Badge */}
+              <div
+                style={{
+                  padding: '6px',
+                  textAlign: 'center',
+                  borderRight: '2px dashed #ccc',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  height: '100%'
+                }}
+              >
+                {isDone ? (
+                  <span
+                    style={{
+                      backgroundColor: '#e8f5e9',
+                      color: '#1b5e20',
+                      border: '2px solid var(--crayon-green)',
+                      padding: '3px 9px',
+                      borderRadius: '12px',
+                      fontSize: forPrint ? '0.88rem' : '0.82rem',
+                      fontWeight: 'bold',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    ✅ 已完成
+                  </span>
+                ) : isCurrent ? (
+                  <span
+                    style={{
+                      backgroundColor: 'var(--crayon-orange)',
+                      color: 'white',
+                      border: '2px dashed var(--crayon-dark)',
+                      padding: '3px 9px',
+                      borderRadius: '12px',
+                      fontSize: forPrint ? '0.88rem' : '0.82rem',
+                      fontWeight: 'bold',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    📍 處理中
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      backgroundColor: '#eeeeee',
+                      color: '#777',
+                      border: '2px solid #ccc',
+                      padding: '3px 9px',
+                      borderRadius: '12px',
+                      fontSize: forPrint ? '0.88rem' : '0.82rem',
+                      fontWeight: 'bold',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    ⏳ 待處理
+                  </span>
+                )}
+              </div>
+
+              {/* Col 3: Explicit Date Details & Spent Days */}
+              <div
+                style={{
+                  padding: '6px 10px',
+                  textAlign: 'left',
+                  borderRight: '2px dashed #ccc',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  gap: '3px'
+                }}
+              >
+                {isDone && doneTimestamp ? (
+                  <>
+                    {startMs && !isSameDay ? (
+                      <>
+                        <div style={{ fontSize: forPrint ? '0.88rem' : '0.82rem', fontWeight: 'bold', color: '#444' }}>
+                          起：{formatFullDate(startMs)}
+                        </div>
+                        <div style={{ fontSize: forPrint ? '0.92rem' : '0.86rem', fontWeight: 'bold', color: '#000' }}>
+                          迄：{formatFullDate(doneTimestamp)}
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: forPrint ? '0.92rem' : '0.86rem', fontWeight: 'bold', color: '#000' }}>
+                        完成：{formatFullDate(doneTimestamp)}
+                      </div>
+                    )}
+                    {spentDaysText && (
+                      <div>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            fontSize: forPrint ? '0.82rem' : '0.78rem',
+                            fontWeight: 'bold',
+                            color: 'var(--crayon-dark)',
+                            backgroundColor: isWithinWorkingDays ? '#c8e6c9' : '#ffcdd2',
+                            padding: '1px 8px',
+                            borderRadius: '6px',
+                            border: '1.5px solid var(--crayon-dark)'
+                          }}
+                        >
+                          耗時: {spentDaysText}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                ) : isCurrent && startMs ? (
+                  <>
+                    <div style={{ fontSize: forPrint ? '0.88rem' : '0.82rem', fontWeight: 'bold', color: '#444' }}>
+                      起：{formatFullDate(startMs)}
+                    </div>
+                    <div style={{ fontSize: forPrint ? '0.88rem' : '0.82rem', fontWeight: 'bold', color: '#e65100' }}>
+                      迄：{formatFullDate(endMs || nowMs)} (至今)
+                    </div>
+                    {spentDaysText && (
+                      <div>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            fontSize: forPrint ? '0.82rem' : '0.78rem',
+                            fontWeight: 'bold',
+                            color: '#e65100',
+                            backgroundColor: '#ffe0b2',
+                            padding: '1px 8px',
+                            borderRadius: '6px',
+                            border: '1.5px dashed #e65100'
+                          }}
+                        >
+                          已進行: {spentDaysText}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      fontSize: forPrint ? '0.9rem' : '0.85rem',
+                      fontWeight: 'bold',
+                      color: '#888'
+                    }}
+                  >
+                    尚未開始 (-)
+                  </div>
+                )}
+              </div>
+
+              {/* Col 4: Gantt Bar Track with Unclipped Date Label */}
+              <div
+                style={{
+                  position: 'relative',
+                  height: forPrint ? '46px' : '42px',
+                  margin: '0 10px',
+                  backgroundColor: '#ffffff',
+                  borderRadius: '8px',
+                  border: '1.5px solid #ccc',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+              >
+                {/* Background Grid Columns */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    pointerEvents: 'none'
+                  }}
+                >
+                  {headerColumns.map((_, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        flex: 1,
+                        borderRight:
+                          idx < headerColumns.length - 1
+                            ? '1px dashed #e0e0e0'
+                            : 'none'
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {/* Gantt Bar & Unclipped Date Pill */}
+                {(isDone || isCurrent) && startMs !== null && endMs !== null ? (
+                  <>
+                    <div
+                      title={`${w.name} (${formatFullDate(startMs)} ~ ${formatFullDate(endMs)})`}
+                      style={{
+                        position: 'absolute',
+                        left: `${leftPct}%`,
+                        width: `${widthPct}%`,
+                        height: forPrint ? '32px' : '28px',
+                        borderRadius: '6px',
+                        backgroundColor: isDone
+                          ? isWithinWorkingDays
+                            ? 'var(--crayon-green)'
+                            : '#ef5350'
+                          : 'var(--crayon-orange)',
+                        backgroundImage: isCurrent
+                          ? 'repeating-linear-gradient(45deg, rgba(255,255,255,0.22) 0px, rgba(255,255,255,0.22) 8px, transparent 8px, transparent 16px)'
+                          : 'none',
+                        border: '2px solid var(--crayon-dark)',
+                        boxShadow: '2px 2px 0px rgba(0,0,0,0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0 6px',
+                        color: 'white',
+                        fontSize: forPrint ? '0.86rem' : '0.8rem',
+                        fontWeight: 'bold',
+                        whiteSpace: 'nowrap',
+                        zIndex: 2
+                      }}
+                    >
+                      {canFitInsideBar ? barDateLabel : ''}
+                    </div>
+
+                    {!canFitInsideBar && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          ...(leftPct + widthPct <= 55
+                            ? { left: `calc(${leftPct + widthPct}% + 6px)` }
+                            : leftPct >= 45
+                            ? { right: `calc(${100 - leftPct}% + 6px)` }
+                            : {
+                                left: `${leftPct + widthPct / 2}%`,
+                                transform: 'translateX(-50%)'
+                              }),
+                          backgroundColor: 'rgba(255, 253, 231, 0.96)',
+                          color: 'var(--crayon-dark)',
+                          border: '1.5px solid var(--crayon-dark)',
+                          borderRadius: '6px',
+                          padding: '2px 8px',
+                          fontSize: forPrint ? '0.84rem' : '0.78rem',
+                          fontWeight: 'bold',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '1px 1px 0px rgba(0,0,0,0.2)',
+                          zIndex: 3
+                        }}
+                      >
+                        {barDateLabel}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div
+                    style={{
+                      width: '100%',
+                      textAlign: 'center',
+                      fontSize: forPrint ? '0.86rem' : '0.8rem',
+                      color: '#999',
+                      fontWeight: 'bold',
+                      zIndex: 1
+                    }}
+                  >
+                    尚未開始
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div
@@ -153,7 +645,7 @@ export default function WorkflowGanttChart({
         boxShadow: '3px 3px 0px rgba(0,0,0,0.12)'
       }}
     >
-      {/* Top Header & Legend */}
+      {/* Top Header & Legend & Print Button */}
       <div
         style={{
           display: 'flex',
@@ -240,377 +732,228 @@ export default function WorkflowGanttChart({
           </span>
         </div>
 
-        <div
-          style={{
-            fontSize: '0.9rem',
-            fontWeight: 'bold',
-            color: 'var(--crayon-blue)',
-            backgroundColor: '#e3f2fd',
-            padding: '4px 10px',
-            borderRadius: '8px',
-            border: '1px dashed var(--crayon-blue)'
-          }}
-        >
-          📅 時間範圍：{formatFullDate(timelineStartDay)} ~ {formatFullDate(timelineEndDay)}（共 {totalDays} 天）
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              fontSize: '0.9rem',
+              fontWeight: 'bold',
+              color: 'var(--crayon-blue)',
+              backgroundColor: '#e3f2fd',
+              padding: '4px 10px',
+              borderRadius: '8px',
+              border: '1px dashed var(--crayon-blue)'
+            }}
+          >
+            📅 時間範圍：{formatFullDate(timelineStartDay)} ~ {formatFullDate(timelineEndDay)}（共 {totalDays} 天）
+          </div>
+          <button
+            type="button"
+            className="doodle-button success"
+            style={{
+              padding: '5px 14px',
+              fontSize: '0.92rem',
+              fontWeight: 'bold',
+              minHeight: 'auto'
+            }}
+            disabled={isPrinting}
+            onClick={() => setIsPrinting(true)}
+          >
+            {isPrinting ? '⏳ 產生圖檔中...' : '🖨️ 列印圖檔'}
+          </button>
         </div>
       </div>
 
-      {/* Gantt Table Structure */}
+      {/* On-screen Gantt Table */}
       <div style={{ overflowX: 'auto' }}>
-        <div style={{ minWidth: '640px' }}>
-          {/* Column Header Row */}
+        {renderGanttTable(false)}
+      </div>
+
+      {/* Off-screen Full Printable Gantt Report */}
+      {isPrinting && (
+        <div style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1 }}>
           <div
+            ref={printRef}
+            className="doodle-border"
             style={{
-              display: 'grid',
-              gridTemplateColumns: '180px 95px 130px 1fr',
-              backgroundColor: 'var(--crayon-dark)',
-              color: 'white',
-              fontWeight: 'bold',
-              fontSize: '0.9rem',
-              borderRadius: '8px 8px 0 0',
-              border: '2px solid var(--crayon-dark)'
+              width: '1120px',
+              padding: '24px',
+              backgroundColor: '#ffffff',
+              border: '3px solid var(--crayon-dark)',
+              borderRadius: '14px'
             }}
           >
-            <div style={{ padding: '8px 10px', borderRight: '1px solid rgba(255,255,255,0.25)' }}>
-              關卡 / 負責人
-            </div>
+            {/* Printable Header */}
             <div
               style={{
-                padding: '8px 6px',
-                textAlign: 'center',
-                borderRight: '1px solid rgba(255,255,255,0.25)'
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                flexWrap: 'wrap',
+                gap: '12px',
+                borderBottom: '3px dashed var(--crayon-dark)',
+                paddingBottom: '14px',
+                marginBottom: '16px'
               }}
             >
-              狀態
-            </div>
-            <div
-              style={{
-                padding: '8px 6px',
-                textAlign: 'center',
-                borderRight: '1px solid rgba(255,255,255,0.25)'
-              }}
-            >
-              完成日 / 耗時
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', padding: '4px 0' }}>
-              {headerColumns.map((col, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    flex: 1,
-                    textAlign: 'center',
-                    fontSize: '0.8rem',
-                    borderRight:
-                      idx < headerColumns.length - 1
-                        ? '1px dashed rgba(255,255,255,0.25)'
-                        : 'none'
-                  }}
-                >
-                  {col.label}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Stage Rows */}
-          {stageRows.map(row => {
-            const {
-              workflow: w,
-              index: wIndex,
-              isDone,
-              isCurrent,
-              startMs,
-              endMs,
-              doneTimestamp,
-              spentDaysText,
-              isWithinWorkingDays,
-              assigneeName
-            } = row;
-
-            let leftPct = 0;
-            let widthPct = 0;
-            if (startMs !== null && endMs !== null) {
-              const startDayIdx = Math.max(
-                0,
-                Math.round((toDayStart(startMs) - timelineStartDay) / DAY_MS)
-              );
-              const endDayIdx = Math.max(
-                startDayIdx,
-                Math.round((toDayStart(endMs) - timelineStartDay) / DAY_MS)
-              );
-              const rawLeft = (startDayIdx / totalDays) * 100;
-              const rawWidth = ((endDayIdx - startDayIdx + 1) / totalDays) * 100;
-              widthPct = Math.min(100, Math.max(rawWidth, 6));
-              leftPct = Math.max(0, Math.min(rawLeft, 100 - widthPct));
-            }
-
-            const rowBg = isCurrent
-              ? '#fff8e1'
-              : isDone
-              ? '#f9fbe7'
-              : '#fafafa';
-
-            return (
-              <div
-                key={w.id}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '180px 95px 130px 1fr',
-                  backgroundColor: rowBg,
-                  borderLeft: '2px solid var(--crayon-dark)',
-                  borderRight: '2px solid var(--crayon-dark)',
-                  borderBottom: '2px solid var(--crayon-dark)',
-                  alignItems: 'center',
-                  minHeight: '54px'
-                }}
-              >
-                {/* Col 1: Stage Name & Assignee */}
-                <div
-                  style={{
-                    padding: '8px 10px',
-                    borderRight: '2px dashed #ccc',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                    <span
-                      style={{
-                        backgroundColor: 'var(--crayon-red)',
-                        color: 'white',
-                        padding: '1px 7px',
-                        borderRadius: '10px',
-                        fontSize: '0.78rem',
-                        fontWeight: 'bold',
-                        border: '1px solid var(--crayon-dark)'
-                      }}
-                    >
-                      關卡 {wIndex + 1}
-                    </span>
-                    <span style={{ fontWeight: 'bold', fontSize: '0.95rem', color: 'var(--crayon-dark)' }}>
-                      {w.name}
-                    </span>
-                  </div>
-                  <div
+              <div>
+                <h3 style={{ margin: '0 0 10px 0', fontSize: '1.75rem', color: 'var(--crayon-dark)' }}>
+                  📊 盤點單流程甘特圖表 — 單號：{ticket.id}
+                </h3>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <span
                     style={{
-                      fontSize: '0.8rem',
-                      color: 'var(--crayon-blue)',
-                      fontWeight: 'bold'
+                      backgroundColor:
+                        ticket.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)',
+                      color: 'white',
+                      padding: '4px 12px',
+                      borderRadius: '8px',
+                      fontWeight: 'bold',
+                      fontSize: '1rem'
                     }}
                   >
-                    👤 負責：{assigneeName}
-                  </div>
-                </div>
-
-                {/* Col 2: Status Badge */}
-                <div
-                  style={{
-                    padding: '6px',
-                    textAlign: 'center',
-                    borderRight: '2px dashed #ccc',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    height: '100%'
-                  }}
-                >
-                  {isDone ? (
+                    類型：{ticket.ticketType || '未指定'}
+                  </span>
+                  <span
+                    style={{
+                      backgroundColor: 'var(--crayon-yellow)',
+                      color: 'var(--crayon-dark)',
+                      padding: '4px 14px',
+                      borderRadius: '16px',
+                      fontWeight: 'bold',
+                      fontSize: '1rem',
+                      border: '2px dashed var(--crayon-dark)'
+                    }}
+                  >
+                    👤 盤點人員：{getAssigneeName(ticket.assigneeId)}
+                  </span>
+                  {ticket.itemCount !== undefined && ticket.itemCount !== null && (
                     <span
                       style={{
-                        backgroundColor: '#e8f5e9',
-                        color: '#1b5e20',
-                        border: '2px solid var(--crayon-green)',
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        fontSize: '0.82rem',
-                        fontWeight: 'bold',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      ✅ 已完成
-                    </span>
-                  ) : isCurrent ? (
-                    <span
-                      style={{
-                        backgroundColor: 'var(--crayon-orange)',
-                        color: 'white',
-                        border: '2px dashed var(--crayon-dark)',
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        fontSize: '0.82rem',
-                        fontWeight: 'bold',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      📍 處理中
-                    </span>
-                  ) : (
-                    <span
-                      style={{
-                        backgroundColor: '#eeeeee',
-                        color: '#777',
-                        border: '2px solid #ccc',
-                        padding: '3px 8px',
-                        borderRadius: '12px',
-                        fontSize: '0.82rem',
-                        fontWeight: 'bold',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      ⏳ 待處理
-                    </span>
-                  )}
-                </div>
-
-                {/* Col 3: Date & Spent Days */}
-                <div
-                  style={{
-                    padding: '6px 8px',
-                    textAlign: 'center',
-                    borderRight: '2px dashed #ccc',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: isDone ? '#000' : '#777' }}>
-                    {isDone && doneTimestamp
-                      ? new Date(doneTimestamp).toLocaleDateString()
-                      : isCurrent && startMs
-                      ? `${formatShortDate(startMs)} ~ 至今`
-                      : '-'}
-                  </div>
-                  {isDone && spentDaysText && (
-                    <span
-                      style={{
-                        fontSize: '0.78rem',
-                        fontWeight: 'bold',
+                        backgroundColor: '#e1bee7',
                         color: 'var(--crayon-dark)',
-                        backgroundColor: isWithinWorkingDays ? '#c8e6c9' : '#ffcdd2',
-                        padding: '1px 8px',
-                        borderRadius: '6px',
-                        border: '1.5px solid var(--crayon-dark)'
+                        padding: '4px 14px',
+                        borderRadius: '16px',
+                        fontWeight: 'bold',
+                        fontSize: '1rem',
+                        border: '2px dashed var(--crayon-dark)'
                       }}
                     >
-                      耗時: {spentDaysText}
+                      📦 項目數量：{ticket.itemCount} 項
                     </span>
                   )}
-                  {isCurrent && spentDaysText && (
+                  {taskName && (
                     <span
                       style={{
-                        fontSize: '0.78rem',
+                        backgroundColor: '#b2dfdb',
+                        color: 'var(--crayon-dark)',
+                        padding: '4px 14px',
+                        borderRadius: '16px',
                         fontWeight: 'bold',
-                        color: '#e65100',
-                        backgroundColor: '#ffe0b2',
-                        padding: '1px 8px',
-                        borderRadius: '6px',
-                        border: '1.5px dashed #e65100'
+                        fontSize: '1rem',
+                        border: '2px dashed var(--crayon-dark)'
                       }}
                     >
-                      已進行: {spentDaysText}
+                      🎯 任務：{taskName}
                     </span>
                   )}
-                </div>
-
-                {/* Col 4: Gantt Bar Track */}
-                <div
-                  style={{
-                    position: 'relative',
-                    height: '38px',
-                    margin: '0 8px',
-                    backgroundColor: '#ffffff',
-                    borderRadius: '8px',
-                    border: '1.5px solid #ddd',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                >
-                  {/* Background Grid Columns */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      display: 'flex',
-                      pointerEvents: 'none'
-                    }}
-                  >
-                    {headerColumns.map((_, idx) => (
-                      <div
-                        key={idx}
-                        style={{
-                          flex: 1,
-                          borderRight:
-                            idx < headerColumns.length - 1
-                              ? '1px dashed #e0e0e0'
-                              : 'none'
-                        }}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Gantt Bar for Done or Current Stage */}
-                  {(isDone || isCurrent) && startMs !== null && endMs !== null ? (
-                    <div
-                      title={`${w.name} (${formatFullDate(startMs)} ~ ${formatFullDate(endMs)})`}
+                  {totalProcessingDays !== undefined && (
+                    <span
                       style={{
-                        position: 'absolute',
-                        left: `${leftPct}%`,
-                        width: `${widthPct}%`,
-                        height: '26px',
-                        borderRadius: '6px',
-                        backgroundColor: isDone
-                          ? isWithinWorkingDays
-                            ? 'var(--crayon-green)'
-                            : '#ef5350'
-                          : 'var(--crayon-orange)',
-                        backgroundImage: isCurrent
-                          ? 'repeating-linear-gradient(45deg, rgba(255,255,255,0.22) 0px, rgba(255,255,255,0.22) 8px, transparent 8px, transparent 16px)'
-                          : 'none',
-                        border: '2px solid var(--crayon-dark)',
-                        boxShadow: '2px 2px 0px rgba(0,0,0,0.2)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '0 6px',
-                        color: 'white',
-                        fontSize: '0.78rem',
+                        backgroundColor: isFinished ? '#c8e6c9' : '#ffe0b2',
+                        color: 'var(--crayon-dark)',
+                        padding: '4px 14px',
+                        borderRadius: '16px',
                         fontWeight: 'bold',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        zIndex: 2,
-                        transition: 'all 0.3s ease'
+                        fontSize: '1rem',
+                        border: '2px solid var(--crayon-dark)'
                       }}
                     >
-                      {startMs && endMs && toDayStart(startMs) !== toDayStart(endMs)
-                        ? `${formatShortDate(startMs)}~${formatShortDate(endMs)}`
-                        : formatShortDate(endMs)}
-                      {spentDaysText ? ` (${spentDaysText})` : ''}
-                    </div>
-                  ) : (
-                    <div
-                      style={{
-                        width: '100%',
-                        textAlign: 'center',
-                        fontSize: '0.8rem',
-                        color: '#aaa',
-                        fontWeight: 'bold',
-                        zIndex: 1
-                      }}
-                    >
-                      尚未開始
-                    </div>
+                      ⏱️ 總處理天數：{totalProcessingDays} 天
+                    </span>
                   )}
                 </div>
               </div>
-            );
-          })}
+
+              <div style={{ textAlign: 'right', fontWeight: 'bold', fontSize: '0.98rem', color: '#333' }}>
+                <div>列印日期：{formatFullDate(nowMs)}</div>
+                <div style={{ marginTop: '6px', color: 'var(--crayon-blue)' }}>
+                  流程期間：{formatFullDate(timelineStartDay)} ~ {formatFullDate(timelineEndDay)}（共 {totalDays} 天）
+                </div>
+                {isFinished && (
+                  <div style={{ marginTop: '6px', color: '#2e7d32' }}>
+                    ✓ 已結案（主管：{ticket.managerName || '-'}）
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Legend Row in Print */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                marginBottom: '12px',
+                flexWrap: 'wrap'
+              }}
+            >
+              <span style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>狀態圖例：</span>
+              <span
+                style={{
+                  fontSize: '0.88rem',
+                  fontWeight: 'bold',
+                  backgroundColor: '#e8f5e9',
+                  border: '2px solid var(--crayon-green)',
+                  padding: '2px 10px',
+                  borderRadius: '12px'
+                }}
+              >
+                ✅ 已完成（符合工作日數）
+              </span>
+              <span
+                style={{
+                  fontSize: '0.88rem',
+                  fontWeight: 'bold',
+                  backgroundColor: '#ffcdd2',
+                  border: '2px solid var(--crayon-red)',
+                  padding: '2px 10px',
+                  borderRadius: '12px'
+                }}
+              >
+                ⚠️ 已完成（耗時超標）
+              </span>
+              <span
+                style={{
+                  fontSize: '0.88rem',
+                  fontWeight: 'bold',
+                  backgroundColor: '#fff3e0',
+                  border: '2px solid var(--crayon-orange)',
+                  padding: '2px 10px',
+                  borderRadius: '12px'
+                }}
+              >
+                📍 處理中
+              </span>
+              <span
+                style={{
+                  fontSize: '0.88rem',
+                  fontWeight: 'bold',
+                  backgroundColor: '#f5f5f5',
+                  border: '2px solid #bbb',
+                  color: '#666',
+                  padding: '2px 10px',
+                  borderRadius: '12px'
+                }}
+              >
+                ⏳ 待處理
+              </span>
+            </div>
+
+            {/* Full-Width Gantt Table */}
+            {renderGanttTable(true)}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

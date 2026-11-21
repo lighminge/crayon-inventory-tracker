@@ -603,6 +603,8 @@ export default function InventoryTicketsPage() {
                       isFinished={Boolean(isFinished)}
                       getAssigneeName={getAssigneeName}
                       calculateDays={calculateDays}
+                      taskName={t.taskId ? (tasks.find(tk => tk.id === t.taskId)?.name || '') : ''}
+                      totalProcessingDays={currentTotalDays}
                     />
                   ) : (
                   /* Stage Date Logs (Block style) */
