@@ -128,376 +128,449 @@ export default function WorkflowMetroChart({
     };
   });
 
+  // 將站點分成上下分區（每排最多 3 站），避免單排過寬超出畫面
+  const STATIONS_PER_ROW = 3;
+  const chunkedStageRows: (typeof stageRows)[] = [];
+  for (let i = 0; i < stageRows.length; i += STATIONS_PER_ROW) {
+    chunkedStageRows.push(stageRows.slice(i, i + STATIONS_PER_ROW));
+  }
+
   const renderMetroContent = (forPrint = false) => {
     return (
       <div
         style={{
           display: 'flex',
-          alignItems: 'stretch',
-          gap: '0',
-          padding: '18px 8px 10px 8px',
-          minWidth: forPrint ? '100%' : `${Math.max(660, stageRows.length * 185)}px`
+          flexDirection: 'column',
+          gap: '18px',
+          padding: '12px 4px 6px 4px',
+          width: '100%',
+          boxSizing: 'border-box'
         }}
       >
-        {stageRows.map((row, idx) => {
-          const {
-            workflow: w,
-            index: wIndex,
-            isDone,
-            isCurrent,
-            startMs,
-            doneTimestamp,
-            spentDays,
-            standardDays,
-            isWithinWorkingDays,
-            assigneeName
-          } = row;
+        {chunkedStageRows.map((rowGroup, groupIdx) => (
+          <div key={groupIdx} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {/* 分區標題與跨排耗時提示 */}
+            {chunkedStageRows.length > 1 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}
+              >
+                <span
+                  style={{
+                    backgroundColor: 'var(--crayon-dark)',
+                    color: 'white',
+                    padding: '2px 12px',
+                    borderRadius: '12px',
+                    fontSize: '0.82rem',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {groupIdx === 0 ? '⬆️ 上半區站點' : `⬇️ 下半區站點（接續第 ${rowGroup[0].index + 1} 站）`}
+                </span>
+                {groupIdx > 0 && (rowGroup[0].isDone || rowGroup[0].isCurrent) && (
+                  <span
+                    style={{
+                      backgroundColor: rowGroup[0].isWithinWorkingDays
+                        ? rowGroup[0].isDone
+                          ? '#c8e6c9'
+                          : '#ffe0b2'
+                        : '#ffcdd2',
+                      color: 'var(--crayon-dark)',
+                      border: '1.5px solid var(--crayon-dark)',
+                      borderRadius: '10px',
+                      padding: '1px 10px',
+                      fontSize: '0.78rem',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    第 {rowGroup[0].index} 站 ➔ 第 {rowGroup[0].index + 1} 站：
+                    {rowGroup[0].isDone
+                      ? `耗時 ${rowGroup[0].spentDays} 天`
+                      : `進行中 ${rowGroup[0].spentDays} 天`}
+                  </span>
+                )}
+              </div>
+            )}
 
-          const stationColor = isDone
-            ? isWithinWorkingDays
-              ? 'var(--crayon-green)'
-              : 'var(--crayon-red)'
-            : isCurrent
-            ? 'var(--crayon-orange)'
-            : '#ccc';
-
-          const nextRow = idx < stageRows.length - 1 ? stageRows[idx + 1] : null;
-          const lineDone = nextRow ? nextRow.isDone : false;
-          const lineCurrent = nextRow ? nextRow.isCurrent : false;
-          const lineColor = lineDone
-            ? nextRow?.isWithinWorkingDays
-              ? 'var(--crayon-green)'
-              : 'var(--crayon-red)'
-            : lineCurrent
-            ? 'var(--crayon-orange)'
-            : '#ccc';
-
-          return (
+            {/* 單一分區排（固定 3 欄網格，完全不超出畫面） */}
             <div
-              key={w.id}
               style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                position: 'relative',
-                padding: '0 6px'
+                display: 'grid',
+                gridTemplateColumns: `repeat(${STATIONS_PER_ROW}, minmax(0, 1fr))`,
+                gap: '0',
+                paddingTop: '14px',
+                width: '100%'
               }}
             >
-              {/* Connecting Metro Track to Next Station */}
-              {idx < stageRows.length - 1 && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '23px',
-                    left: '50%',
-                    width: '100%',
-                    height: '8px',
-                    backgroundColor: lineDone ? lineColor : 'transparent',
-                    borderTop: !lineDone ? `5px dashed ${lineColor}` : 'none',
-                    borderBottom: lineDone ? '2px solid var(--crayon-dark)' : 'none',
-                    zIndex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  {nextRow && (nextRow.isDone || nextRow.isCurrent) && (
-                    <span
-                      style={{
-                        backgroundColor: nextRow.isWithinWorkingDays
-                          ? nextRow.isDone
-                            ? '#c8e6c9'
-                            : '#ffe0b2'
-                          : '#ffcdd2',
-                        color: 'var(--crayon-dark)',
-                        border: '1.5px solid var(--crayon-dark)',
-                        borderRadius: '10px',
-                        padding: '1px 7px',
-                        fontSize: '0.74rem',
-                        fontWeight: 'bold',
-                        whiteSpace: 'nowrap',
-                        transform: 'translateY(-16px)',
-                        boxShadow: '1px 1px 0px rgba(0,0,0,0.2)'
-                      }}
-                    >
-                      {nextRow.isDone
-                        ? `耗時 ${nextRow.spentDays}天`
-                        : `進行中 ${nextRow.spentDays}天`}
-                    </span>
-                  )}
-                </div>
-              )}
+              {rowGroup.map((row, idxInRow) => {
+                const {
+                  workflow: w,
+                  index: wIndex,
+                  isDone,
+                  isCurrent,
+                  startMs,
+                  doneTimestamp,
+                  spentDays,
+                  standardDays,
+                  isWithinWorkingDays,
+                  assigneeName
+                } = row;
 
-              {/* Circular Metro Station Badge */}
-              <div
-                style={{
-                  width: '52px',
-                  height: '52px',
-                  borderRadius: '50%',
-                  backgroundColor: stationColor,
-                  border: '3.5px solid var(--crayon-dark)',
-                  boxShadow: isCurrent
-                    ? '0 0 0 5px rgba(255,152,0,0.28), 2px 2px 0px rgba(0,0,0,0.25)'
-                    : '2px 2px 0px rgba(0,0,0,0.22)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: isDone || isCurrent ? 'white' : '#555',
-                  fontWeight: 'bold',
-                  zIndex: 2,
-                  marginBottom: '12px'
-                }}
-              >
-                <span style={{ fontSize: '0.72rem', lineHeight: 1 }}>第{wIndex + 1}站</span>
-                <span style={{ fontSize: '1.1rem', lineHeight: 1.1 }}>
-                  {isDone ? (isWithinWorkingDays ? '✓' : '⚠️') : isCurrent ? '🚇' : '⏳'}
-                </span>
-              </div>
+                const stationColor = isDone
+                  ? isWithinWorkingDays
+                    ? 'var(--crayon-green)'
+                    : 'var(--crayon-red)'
+                  : isCurrent
+                  ? 'var(--crayon-orange)'
+                  : '#ccc';
 
-              {/* Station Details Card */}
-              <div
-                style={{
-                  width: '100%',
-                  backgroundColor: isCurrent
-                    ? '#fff8e1'
-                    : isDone
-                    ? isWithinWorkingDays
-                      ? '#e8f5e9'
-                      : '#fff5f5'
-                    : '#f5f5f5',
-                  border: `2.5px solid ${stationColor}`,
-                  borderRadius: '12px',
-                  padding: '10px 8px',
-                  textAlign: 'center',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '5px',
-                  boxShadow: '2px 2px 0px rgba(0,0,0,0.12)',
-                  flex: 1
-                }}
-              >
-                <div style={{ fontWeight: 'bold', fontSize: '0.98rem', color: 'var(--crayon-dark)' }}>
-                  {w.name}
-                </div>
+                const nextRowInGroup =
+                  idxInRow < rowGroup.length - 1 ? rowGroup[idxInRow + 1] : null;
+                const lineDone = nextRowInGroup ? nextRowInGroup.isDone : false;
+                const lineCurrent = nextRowInGroup ? nextRowInGroup.isCurrent : false;
+                const lineColor = lineDone
+                  ? nextRowInGroup?.isWithinWorkingDays
+                    ? 'var(--crayon-green)'
+                    : 'var(--crayon-red)'
+                  : lineCurrent
+                  ? 'var(--crayon-orange)'
+                  : '#ccc';
 
-                <div
-                  style={{
-                    fontSize: '0.8rem',
-                    fontWeight: 'bold',
-                    color: 'var(--crayon-blue)',
-                    backgroundColor: 'white',
-                    padding: '2px 6px',
-                    borderRadius: '6px',
-                    border: '1px dashed var(--crayon-blue)'
-                  }}
-                >
-                  👤 負責：{assigneeName}
-                </div>
-
-                {/* Status & SLA Pill */}
-                {isDone ? (
-                  isWithinWorkingDays ? (
-                    <span
-                      style={{
-                        fontSize: '0.78rem',
-                        fontWeight: 'bold',
-                        backgroundColor: '#c8e6c9',
-                        color: '#1b5e20',
-                        padding: '2px 8px',
-                        borderRadius: '10px',
-                        border: '1.5px solid var(--crayon-dark)'
-                      }}
-                    >
-                      ✅ 已過站（耗時 {spentDays}天 / 標準 {standardDays}天）
-                    </span>
-                  ) : (
-                    <span
-                      style={{
-                        fontSize: '0.78rem',
-                        fontWeight: 'bold',
-                        backgroundColor: '#ffcdd2',
-                        color: '#b71c1c',
-                        padding: '2px 8px',
-                        borderRadius: '10px',
-                        border: '1.5px solid var(--crayon-red)'
-                      }}
-                    >
-                      ⚠️ 超標 +{spentDays - standardDays}天（耗時 {spentDays}天）
-                    </span>
-                  )
-                ) : isCurrent ? (
-                  <span
+                return (
+                  <div
+                    key={w.id}
                     style={{
-                      fontSize: '0.78rem',
-                      fontWeight: 'bold',
-                      backgroundColor: isWithinWorkingDays ? 'var(--crayon-orange)' : '#ffcdd2',
-                      color: isWithinWorkingDays ? 'white' : '#b71c1c',
-                      padding: '2px 8px',
-                      borderRadius: '10px',
-                      border: '1.5px dashed var(--crayon-dark)'
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      position: 'relative',
+                      padding: '0 8px',
+                      minWidth: 0
                     }}
                   >
-                    🚇 停靠處理中（已停留 {spentDays}天 / 標準 {standardDays}天）
-                  </span>
-                ) : (
-                  <span
-                    style={{
-                      fontSize: '0.78rem',
-                      fontWeight: 'bold',
-                      backgroundColor: '#eeeeee',
-                      color: '#777',
-                      padding: '2px 8px',
-                      borderRadius: '10px',
-                      border: '1px solid #ccc'
-                    }}
-                  >
-                    ⏳ 尚未到站（標準 {standardDays}天）
-                  </span>
-                )}
-
-                {/* Dates */}
-                <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#333', marginTop: '2px' }}>
-                  {isDone && doneTimestamp ? (
-                    startMs && formatFullDate(startMs) !== formatFullDate(doneTimestamp) ? (
-                      <>
-                        <div>進站：{formatFullDate(startMs)}</div>
-                        <div>出站：{formatFullDate(doneTimestamp)}</div>
-                      </>
-                    ) : (
-                      <div>完成日：{formatFullDate(doneTimestamp)}</div>
-                    )
-                  ) : isCurrent && startMs ? (
-                    <>
-                      <div>進站：{formatFullDate(startMs)}</div>
-                      <div style={{ color: '#e65100' }}>目前停留本站</div>
-                    </>
-                  ) : (
-                    <div style={{ color: '#999' }}>日期：-</div>
-                  )}
-                </div>
-
-                {/* Note Icon / Add Note Button */}
-                {!forPrint && (onOpenStageNote || onViewStageNote) && (
-                  <div style={{ marginTop: 'auto', paddingTop: '4px' }}>
-                    {ticket.stageNotes?.[w.id]?.text ? (
+                    {/* 站與站之間的連接線：從本站圓圈右緣 (50% + 28px) 畫到下一站圓圈左緣 (寬度 100% - 56px)，絕不重疊到圓圈上 */}
+                    {nextRowInGroup && (
                       <div
-                        onClick={() =>
-                          onViewStageNote
-                            ? onViewStageNote(w, wIndex)
-                            : onOpenStageNote && onOpenStageNote(w, wIndex)
-                        }
-                        title="點擊查看此關卡備註內容"
                         style={{
-                          display: 'inline-flex',
+                          position: 'absolute',
+                          top: '23px',
+                          left: 'calc(50% + 28px)',
+                          width: 'calc(100% - 56px)',
+                          height: '7px',
+                          backgroundColor: lineDone ? lineColor : 'transparent',
+                          borderTop: !lineDone ? `4px dashed ${lineColor}` : 'none',
+                          borderBottom: lineDone ? '2px solid var(--crayon-dark)' : 'none',
+                          display: 'flex',
                           alignItems: 'center',
-                          gap: '6px',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap'
+                          justifyContent: 'center',
+                          pointerEvents: 'none'
                         }}
                       >
-                        <span
-                          style={{
-                            width: '30px',
-                            height: '30px',
-                            borderRadius: '50%',
-                            backgroundColor: 'var(--crayon-yellow)',
-                            border: '2px solid var(--crayon-dark)',
-                            boxShadow: '2px 2px 0px rgba(0,0,0,0.22)',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '1rem',
-                            flexShrink: 0
-                          }}
-                        >
-                          📝
-                        </span>
-                        <span
-                          style={{
-                            fontSize: '0.82rem',
-                            fontWeight: 'bold',
-                            color: 'var(--crayon-red)',
-                            backgroundColor: '#fffde7',
-                            padding: '1px 7px',
-                            borderRadius: '10px',
-                            border: '1.5px dashed var(--crayon-orange)',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          有備註
-                        </span>
+                        {(nextRowInGroup.isDone || nextRowInGroup.isCurrent) && (
+                          <span
+                            style={{
+                              backgroundColor: nextRowInGroup.isWithinWorkingDays
+                                ? nextRowInGroup.isDone
+                                  ? '#c8e6c9'
+                                  : '#ffe0b2'
+                                : '#ffcdd2',
+                              color: 'var(--crayon-dark)',
+                              border: '1.5px solid var(--crayon-dark)',
+                              borderRadius: '10px',
+                              padding: '1px 8px',
+                              fontSize: '0.75rem',
+                              fontWeight: 'bold',
+                              whiteSpace: 'nowrap',
+                              transform: 'translateY(-15px)',
+                              boxShadow: '1px 1px 0px rgba(0,0,0,0.2)'
+                            }}
+                          >
+                            {nextRowInGroup.isDone
+                              ? `耗時 ${nextRowInGroup.spentDays}天`
+                              : `進行中 ${nextRowInGroup.spentDays}天`}
+                          </span>
+                        )}
                       </div>
-                    ) : (
-                      onOpenStageNote && (
-                        <button
-                          type="button"
-                          className="doodle-button"
+                    )}
+
+                    {/* Circular Metro Station Badge */}
+                    <div
+                      style={{
+                        width: '52px',
+                        height: '52px',
+                        borderRadius: '50%',
+                        backgroundColor: stationColor,
+                        border: '3.5px solid var(--crayon-dark)',
+                        boxShadow: isCurrent
+                          ? '0 0 0 5px rgba(255,152,0,0.28), 2px 2px 0px rgba(0,0,0,0.25)'
+                          : '2px 2px 0px rgba(0,0,0,0.22)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: isDone || isCurrent ? 'white' : '#555',
+                        fontWeight: 'bold',
+                        marginBottom: '10px',
+                        boxSizing: 'border-box',
+                        flexShrink: 0
+                      }}
+                    >
+                      <span style={{ fontSize: '0.72rem', lineHeight: 1 }}>第{wIndex + 1}站</span>
+                      <span style={{ fontSize: '1.05rem', lineHeight: 1.1 }}>
+                        {isDone ? (isWithinWorkingDays ? '✓' : '⚠️') : isCurrent ? '🚇' : '⏳'}
+                      </span>
+                    </div>
+
+                    {/* Station Details Card */}
+                    <div
+                      style={{
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        backgroundColor: isCurrent
+                          ? '#fff8e1'
+                          : isDone
+                          ? isWithinWorkingDays
+                            ? '#e8f5e9'
+                            : '#fff5f5'
+                          : '#f5f5f5',
+                        border: `2.5px solid ${stationColor}`,
+                        borderRadius: '12px',
+                        padding: '10px 8px',
+                        textAlign: 'center',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '5px',
+                        boxShadow: '2px 2px 0px rgba(0,0,0,0.12)',
+                        flex: 1
+                      }}
+                    >
+                      <div style={{ fontWeight: 'bold', fontSize: '0.98rem', color: 'var(--crayon-dark)' }}>
+                        {w.name}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: '0.8rem',
+                          fontWeight: 'bold',
+                          color: 'var(--crayon-blue)',
+                          backgroundColor: 'white',
+                          padding: '2px 6px',
+                          borderRadius: '6px',
+                          border: '1px dashed var(--crayon-blue)'
+                        }}
+                      >
+                        👤 負責：{assigneeName}
+                      </div>
+
+                      {/* Status & SLA Pill */}
+                      {isDone ? (
+                        isWithinWorkingDays ? (
+                          <span
+                            style={{
+                              fontSize: '0.78rem',
+                              fontWeight: 'bold',
+                              backgroundColor: '#c8e6c9',
+                              color: '#1b5e20',
+                              padding: '2px 8px',
+                              borderRadius: '10px',
+                              border: '1.5px solid var(--crayon-dark)'
+                            }}
+                          >
+                            ✅ 已過站（耗時 {spentDays}天 / 標準 {standardDays}天）
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: '0.78rem',
+                              fontWeight: 'bold',
+                              backgroundColor: '#ffcdd2',
+                              color: '#b71c1c',
+                              padding: '2px 8px',
+                              borderRadius: '10px',
+                              border: '1.5px solid var(--crayon-red)'
+                            }}
+                          >
+                            ⚠️ 超標 +{spentDays - standardDays}天（耗時 {spentDays}天）
+                          </span>
+                        )
+                      ) : isCurrent ? (
+                        <span
                           style={{
-                            padding: '2px 8px',
                             fontSize: '0.78rem',
                             fontWeight: 'bold',
-                            minHeight: 'auto',
-                            backgroundColor: 'white',
-                            color: 'var(--crayon-dark)',
-                            border: '1.5px solid var(--crayon-dark)'
+                            backgroundColor: isWithinWorkingDays ? 'var(--crayon-orange)' : '#ffcdd2',
+                            color: isWithinWorkingDays ? 'white' : '#b71c1c',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            border: '1.5px dashed var(--crayon-dark)'
                           }}
-                          onClick={() => onOpenStageNote(w, wIndex)}
                         >
-                          ➕ 新增備註
-                        </button>
-                      )
-                    )}
-                  </div>
-                )}
+                          🚇 停靠處理中（已停留 {spentDays}天 / 標準 {standardDays}天）
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            fontSize: '0.78rem',
+                            fontWeight: 'bold',
+                            backgroundColor: '#eeeeee',
+                            color: '#777',
+                            padding: '2px 8px',
+                            borderRadius: '10px',
+                            border: '1px solid #ccc'
+                          }}
+                        >
+                          ⏳ 尚未到站（標準 {standardDays}天）
+                        </span>
+                      )}
 
-                {/* Print-only Note Content */}
-                {forPrint && ticket.stageNotes?.[w.id]?.text && (
-                  <div
-                    style={{
-                      marginTop: '6px',
-                      width: '100%',
-                      padding: '6px 8px',
-                      backgroundColor: '#fffde7',
-                      border: '1.5px dashed var(--crayon-orange)',
-                      borderRadius: '8px',
-                      textAlign: 'left'
-                    }}
-                  >
-                    <div style={{ fontSize: '0.76rem', fontWeight: 'bold', color: '#e65100' }}>
-                      📝 備註：
-                    </div>
-                    {ticket.stageNotes[w.id].html ? (
-                      <div
-                        style={{
-                          fontSize: ticket.stageNotes[w.id].fontSize || '14px',
-                          color: ticket.stageNotes[w.id].color || '#2c3e50',
-                          textAlign: ticket.stageNotes[w.id].textAlign || 'left',
-                          wordBreak: 'break-word'
-                        }}
-                        dangerouslySetInnerHTML={{ __html: ticket.stageNotes[w.id].html! }}
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          fontSize: ticket.stageNotes[w.id].fontSize || '14px',
-                          color: ticket.stageNotes[w.id].color || '#2c3e50',
-                          textAlign: ticket.stageNotes[w.id].textAlign || 'left',
-                          whiteSpace: 'pre-wrap',
-                          wordBreak: 'break-word'
-                        }}
-                      >
-                        {ticket.stageNotes[w.id].text}
+                      {/* Dates */}
+                      <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#333', marginTop: '2px' }}>
+                        {isDone && doneTimestamp ? (
+                          startMs && formatFullDate(startMs) !== formatFullDate(doneTimestamp) ? (
+                            <>
+                              <div>進站：{formatFullDate(startMs)}</div>
+                              <div>出站：{formatFullDate(doneTimestamp)}</div>
+                            </>
+                          ) : (
+                            <div>完成日：{formatFullDate(doneTimestamp)}</div>
+                          )
+                        ) : isCurrent && startMs ? (
+                          <>
+                            <div>進站：{formatFullDate(startMs)}</div>
+                            <div style={{ color: '#e65100' }}>目前停留本站</div>
+                          </>
+                        ) : (
+                          <div style={{ color: '#999' }}>日期：-</div>
+                        )}
                       </div>
-                    )}
+
+                      {/* Note Icon / Add Note Button */}
+                      {!forPrint && (onOpenStageNote || onViewStageNote) && (
+                        <div style={{ marginTop: 'auto', paddingTop: '4px' }}>
+                          {ticket.stageNotes?.[w.id]?.text ? (
+                            <div
+                              onClick={() =>
+                                onViewStageNote
+                                  ? onViewStageNote(w, wIndex)
+                                  : onOpenStageNote && onOpenStageNote(w, wIndex)
+                              }
+                              title="點擊查看此關卡備註內容"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: '30px',
+                                  height: '30px',
+                                  borderRadius: '50%',
+                                  backgroundColor: 'var(--crayon-yellow)',
+                                  border: '2px solid var(--crayon-dark)',
+                                  boxShadow: '2px 2px 0px rgba(0,0,0,0.22)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '1rem',
+                                  flexShrink: 0
+                                }}
+                              >
+                                📝
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: '0.82rem',
+                                  fontWeight: 'bold',
+                                  color: 'var(--crayon-red)',
+                                  backgroundColor: '#fffde7',
+                                  padding: '1px 7px',
+                                  borderRadius: '10px',
+                                  border: '1.5px dashed var(--crayon-orange)',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                有備註
+                              </span>
+                            </div>
+                          ) : (
+                            onOpenStageNote && (
+                              <button
+                                type="button"
+                                className="doodle-button"
+                                style={{
+                                  padding: '2px 8px',
+                                  fontSize: '0.78rem',
+                                  fontWeight: 'bold',
+                                  minHeight: 'auto',
+                                  backgroundColor: 'white',
+                                  color: 'var(--crayon-dark)',
+                                  border: '1.5px solid var(--crayon-dark)'
+                                }}
+                                onClick={() => onOpenStageNote(w, wIndex)}
+                              >
+                                ➕ 新增備註
+                              </button>
+                            )
+                          )}
+                        </div>
+                      )}
+
+                      {/* Print-only Note Content */}
+                      {forPrint && ticket.stageNotes?.[w.id]?.text && (
+                        <div
+                          style={{
+                            marginTop: '6px',
+                            width: '100%',
+                            boxSizing: 'border-box',
+                            padding: '6px 8px',
+                            backgroundColor: '#fffde7',
+                            border: '1.5px dashed var(--crayon-orange)',
+                            borderRadius: '8px',
+                            textAlign: 'left'
+                          }}
+                        >
+                          <div style={{ fontSize: '0.76rem', fontWeight: 'bold', color: '#e65100' }}>
+                            📝 備註：
+                          </div>
+                          {ticket.stageNotes[w.id].html ? (
+                            <div
+                              style={{
+                                fontSize: ticket.stageNotes[w.id].fontSize || '14px',
+                                color: ticket.stageNotes[w.id].color || '#2c3e50',
+                                textAlign: ticket.stageNotes[w.id].textAlign || 'left',
+                                wordBreak: 'break-word'
+                              }}
+                              dangerouslySetInnerHTML={{ __html: ticket.stageNotes[w.id].html! }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                fontSize: ticket.stageNotes[w.id].fontSize || '14px',
+                                color: ticket.stageNotes[w.id].color || '#2c3e50',
+                                textAlign: ticket.stageNotes[w.id].textAlign || 'left',
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word'
+                              }}
+                            >
+                              {ticket.stageNotes[w.id].text}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
+                );
+              })}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
     );
   };
@@ -510,7 +583,9 @@ export default function WorkflowMetroChart({
         backgroundColor: '#fffdf7',
         border: '3px solid var(--crayon-dark)',
         borderRadius: '12px',
-        boxShadow: '3px 3px 0px rgba(0,0,0,0.12)'
+        boxShadow: '3px 3px 0px rgba(0,0,0,0.12)',
+        width: '100%',
+        boxSizing: 'border-box'
       }}
     >
       {/* Top Header & Legend & Print Button */}
@@ -585,7 +660,7 @@ export default function WorkflowMetroChart({
         </button>
       </div>
 
-      <div style={{ overflowX: 'auto' }}>{renderMetroContent(false)}</div>
+      {renderMetroContent(false)}
 
       {isPrinting && (
         <div style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1 }}>
@@ -593,7 +668,7 @@ export default function WorkflowMetroChart({
             ref={printRef}
             className="doodle-border"
             style={{
-              width: '1120px',
+              width: '1050px',
               padding: '24px',
               backgroundColor: '#ffffff',
               border: '3px solid var(--crayon-dark)',

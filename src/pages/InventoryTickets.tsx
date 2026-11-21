@@ -558,7 +558,7 @@ export default function InventoryTicketsPage() {
 
           return (
             <div key={t.id} className="doodle-border" style={{ padding: '15px', position: 'relative', display: 'flex', flexWrap: 'nowrap', gap: '15px' }}>
-              <div style={{ flex: 1, minWidth: '685px' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>

@@ -226,14 +226,15 @@ export default function WorkflowKanbanBoard({
         </button>
       </div>
 
-      {/* Kanban Swimlane Columns */}
+      {/* Kanban Swimlane Columns (上下分區網格排版，每排 3 欄，不超出畫面) */}
       <div
         style={{
-          display: 'flex',
-          gap: '14px',
-          overflowX: 'auto',
-          paddingBottom: '8px',
-          alignItems: 'flex-start'
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+          gap: '16px',
+          width: '100%',
+          boxSizing: 'border-box',
+          alignItems: 'stretch'
         }}
       >
         {stageColumns.map(col => {
@@ -243,8 +244,9 @@ export default function WorkflowKanbanBoard({
             <div
               key={w.id}
               style={{
-                minWidth: '275px',
-                flex: '1 0 275px',
+                minWidth: 0,
+                width: '100%',
+                boxSizing: 'border-box',
                 backgroundColor: '#ffffff',
                 border: '3px solid var(--crayon-dark)',
                 borderRadius: '12px',
@@ -349,9 +351,10 @@ export default function WorkflowKanbanBoard({
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '10px',
-                  maxHeight: '650px',
+                  maxHeight: '300px',
                   overflowY: 'auto',
-                  backgroundColor: '#fafafa'
+                  backgroundColor: '#fafafa',
+                  flex: 1
                 }}
               >
                 {items.length === 0 ? (
@@ -610,8 +613,9 @@ export default function WorkflowKanbanBoard({
         {showClosedColumn && (
           <div
             style={{
-              minWidth: '260px',
-              flex: '1 0 260px',
+              minWidth: 0,
+              width: '100%',
+              boxSizing: 'border-box',
               backgroundColor: '#ffffff',
               border: '3px solid var(--crayon-dark)',
               borderRadius: '12px',
@@ -667,9 +671,10 @@ export default function WorkflowKanbanBoard({
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '10px',
-                maxHeight: '650px',
+                maxHeight: '300px',
                 overflowY: 'auto',
-                backgroundColor: '#fafafa'
+                backgroundColor: '#fafafa',
+                flex: 1
               }}
             >
               {closedTickets.length === 0 ? (
