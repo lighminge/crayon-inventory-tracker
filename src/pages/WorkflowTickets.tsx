@@ -6,7 +6,7 @@ import type { HolidaySetting } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 import RecountPanel from '../components/RecountPanel';
 import WorkflowGanttChart from '../components/WorkflowGanttChart';
-import StageNoteModal from '../components/StageNoteModal';
+import StageNoteModal, { StageNoteViewModal } from '../components/StageNoteModal';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function WorkflowTickets() {
@@ -45,6 +45,11 @@ export default function WorkflowTickets() {
 
   // Stage Note Modal State
   const [noteModalTarget, setNoteModalTarget] = useState<{
+    ticket: InventoryTicket;
+    workflow: Workflow;
+    stageIndex: number;
+  } | null>(null);
+  const [viewNoteTarget, setViewNoteTarget] = useState<{
     ticket: InventoryTicket;
     workflow: Workflow;
     stageIndex: number;
@@ -568,6 +573,9 @@ export default function WorkflowTickets() {
                             onOpenStageNote={(w, wIndex) =>
                               setNoteModalTarget({ ticket: t, workflow: w, stageIndex: wIndex })
                             }
+                            onViewStageNote={(w, wIndex) =>
+                              setViewNoteTarget({ ticket: t, workflow: w, stageIndex: wIndex })
+                            }
                           />
                         ) : (
                         /* Stage Date Logs */
@@ -639,26 +647,55 @@ export default function WorkflowTickets() {
                                     負責: {getAssigneeName(w.assigneeId === 'DYNAMIC_ASSIGNEE' ? t.assigneeId : (w.assigneeId || ''))}
                                   </div>
                                   <div style={{ marginTop: '5px' }}>{isDone ? new Date(t.stageDates[w.id]).toLocaleDateString() : '-'}</div>
-                                  {/* 備註按鈕 */}
+                                  {/* 備註圖示或新增備註按鈕 (顯示於流程框裡) */}
                                   <div style={{ marginTop: '8px' }}>
-                                    <button
-                                      type="button"
-                                      className="doodle-button"
-                                      style={{
-                                        padding: '2px 10px',
-                                        fontSize: '0.8rem',
-                                        fontWeight: 'bold',
-                                        minHeight: 'auto',
-                                        backgroundColor: stageNote?.text ? 'var(--crayon-yellow)' : 'white',
-                                        color: 'var(--crayon-dark)',
-                                        border: '1.5px solid var(--crayon-dark)'
-                                      }}
-                                      onClick={() =>
-                                        setNoteModalTarget({ ticket: t, workflow: w, stageIndex: wIndex })
-                                      }
-                                    >
-                                      {stageNote?.text ? '📝 修改備註' : '➕ 新增備註'}
-                                    </button>
+                                    {stageNote?.text ? (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setViewNoteTarget({ ticket: t, workflow: w, stageIndex: wIndex })
+                                        }
+                                        title="點擊查看此關卡備註內容"
+                                        style={{
+                                          width: '34px',
+                                          height: '34px',
+                                          borderRadius: '50%',
+                                          backgroundColor: 'var(--crayon-yellow)',
+                                          border: '2px solid var(--crayon-dark)',
+                                          boxShadow: '2px 2px 0px rgba(0,0,0,0.22)',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          cursor: 'pointer',
+                                          fontSize: '1.1rem',
+                                          padding: 0,
+                                          transition: 'transform 0.15s ease'
+                                        }}
+                                        onMouseOver={e => (e.currentTarget.style.transform = 'scale(1.12)')}
+                                        onMouseOut={e => (e.currentTarget.style.transform = 'scale(1)')}
+                                      >
+                                        📝
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="doodle-button"
+                                        style={{
+                                          padding: '2px 10px',
+                                          fontSize: '0.8rem',
+                                          fontWeight: 'bold',
+                                          minHeight: 'auto',
+                                          backgroundColor: 'white',
+                                          color: 'var(--crayon-dark)',
+                                          border: '1.5px solid var(--crayon-dark)'
+                                        }}
+                                        onClick={() =>
+                                          setNoteModalTarget({ ticket: t, workflow: w, stageIndex: wIndex })
+                                        }
+                                      >
+                                        ➕ 新增備註
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                                   {isDone && spentDaysText && (
@@ -673,66 +710,6 @@ export default function WorkflowTickets() {
                                       boxShadow: '1px 1px 0px rgba(0,0,0,0.5)'
                                     }}>
                                       耗時: {spentDaysText}
-                                    </div>
-                                  )}
-                                  {/* 關卡備註內容顯示 */}
-                                  {stageNote?.text && (
-                                    <div
-                                      onClick={() =>
-                                        setNoteModalTarget({ ticket: t, workflow: w, stageIndex: wIndex })
-                                      }
-                                      title="點擊修改備註"
-                                      style={{
-                                        marginTop: '8px',
-                                        padding: '6px 10px',
-                                        minWidth: '160px',
-                                        maxWidth: '240px',
-                                        width: '100%',
-                                        backgroundColor: '#fffde7',
-                                        border: '2px dashed var(--crayon-orange)',
-                                        borderRadius: '8px',
-                                        boxShadow: '1px 1px 0px rgba(0,0,0,0.18)',
-                                        cursor: 'pointer'
-                                      }}
-                                    >
-                                      <div
-                                        style={{
-                                          fontSize: '0.75rem',
-                                          fontWeight: 'bold',
-                                          color: '#e65100',
-                                          marginBottom: '2px',
-                                          textAlign: 'left'
-                                        }}
-                                      >
-                                        📝 備註：
-                                      </div>
-                                      {stageNote.html ? (
-                                        <div
-                                          style={{
-                                            fontSize: stageNote.fontSize || '16px',
-                                            color: stageNote.color || '#2c3e50',
-                                            textAlign: stageNote.textAlign || 'left',
-                                            fontWeight: 'bold',
-                                            wordBreak: 'break-word',
-                                            lineHeight: '1.4'
-                                          }}
-                                          dangerouslySetInnerHTML={{ __html: stageNote.html }}
-                                        />
-                                      ) : (
-                                        <div
-                                          style={{
-                                            fontSize: stageNote.fontSize || '16px',
-                                            color: stageNote.color || '#2c3e50',
-                                            textAlign: stageNote.textAlign || 'left',
-                                            fontWeight: 'bold',
-                                            whiteSpace: 'pre-wrap',
-                                            wordBreak: 'break-word',
-                                            lineHeight: '1.4'
-                                          }}
-                                        >
-                                          {stageNote.text}
-                                        </div>
-                                      )}
                                     </div>
                                   )}
                                 </div>
@@ -911,6 +888,21 @@ export default function WorkflowTickets() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 流程關卡備註內容檢視視窗 */}
+      {viewNoteTarget && (
+        <StageNoteViewModal
+          ticket={viewNoteTarget.ticket}
+          workflow={viewNoteTarget.workflow}
+          stageIndex={viewNoteTarget.stageIndex}
+          onClose={() => setViewNoteTarget(null)}
+          onEdit={() => {
+            const target = viewNoteTarget;
+            setViewNoteTarget(null);
+            setNoteModalTarget(target);
+          }}
+        />
       )}
 
       {/* 流程關卡備註設定視窗 */}

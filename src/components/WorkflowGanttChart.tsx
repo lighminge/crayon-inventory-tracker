@@ -12,6 +12,7 @@ interface WorkflowGanttChartProps {
   taskName?: string;
   totalProcessingDays?: number;
   onOpenStageNote?: (workflow: Workflow, stageIndex: number) => void;
+  onViewStageNote?: (workflow: Workflow, stageIndex: number) => void;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -43,7 +44,8 @@ export default function WorkflowGanttChart({
   calculateDays,
   taskName,
   totalProcessingDays,
-  onOpenStageNote
+  onOpenStageNote,
+  onViewStageNote
 }: WorkflowGanttChartProps) {
   const [isPrinting, setIsPrinting] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
@@ -370,26 +372,57 @@ export default function WorkflowGanttChart({
                 >
                   👤 負責：{assigneeName}
                 </div>
-                {!forPrint && onOpenStageNote && (
-                  <div style={{ marginTop: '2px' }}>
-                    <button
-                      type="button"
-                      className="doodle-button"
-                      style={{
-                        padding: '2px 8px',
-                        fontSize: '0.78rem',
-                        fontWeight: 'bold',
-                        minHeight: 'auto',
-                        backgroundColor: ticket.stageNotes?.[w.id]?.text
-                          ? 'var(--crayon-yellow)'
-                          : 'white',
-                        color: 'var(--crayon-dark)',
-                        border: '1.5px solid var(--crayon-dark)'
-                      }}
-                      onClick={() => onOpenStageNote(w, wIndex)}
-                    >
-                      {ticket.stageNotes?.[w.id]?.text ? '📝 修改備註' : '➕ 新增備註'}
-                    </button>
+                {!forPrint && (onOpenStageNote || onViewStageNote) && (
+                  <div style={{ marginTop: '4px' }}>
+                    {ticket.stageNotes?.[w.id]?.text ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onViewStageNote
+                            ? onViewStageNote(w, wIndex)
+                            : onOpenStageNote && onOpenStageNote(w, wIndex)
+                        }
+                        title="點擊查看此關卡備註內容"
+                        style={{
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          backgroundColor: 'var(--crayon-yellow)',
+                          border: '2px solid var(--crayon-dark)',
+                          boxShadow: '2px 2px 0px rgba(0,0,0,0.22)',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          fontSize: '1.05rem',
+                          padding: 0,
+                          transition: 'transform 0.15s ease'
+                        }}
+                        onMouseOver={e => (e.currentTarget.style.transform = 'scale(1.12)')}
+                        onMouseOut={e => (e.currentTarget.style.transform = 'scale(1)')}
+                      >
+                        📝
+                      </button>
+                    ) : (
+                      onOpenStageNote && (
+                        <button
+                          type="button"
+                          className="doodle-button"
+                          style={{
+                            padding: '2px 8px',
+                            fontSize: '0.78rem',
+                            fontWeight: 'bold',
+                            minHeight: 'auto',
+                            backgroundColor: 'white',
+                            color: 'var(--crayon-dark)',
+                            border: '1.5px solid var(--crayon-dark)'
+                          }}
+                          onClick={() => onOpenStageNote(w, wIndex)}
+                        >
+                          ➕ 新增備註
+                        </button>
+                      )
+                    )}
                   </div>
                 )}
               </div>
@@ -694,62 +727,6 @@ export default function WorkflowGanttChart({
                   </div>
                 )}
               </div>
-
-              {/* Stage Note Display Row (if note exists) */}
-              {ticket.stageNotes?.[w.id]?.text && (
-                <div
-                  onClick={() => !forPrint && onOpenStageNote && onOpenStageNote(w, wIndex)}
-                  title={!forPrint ? '點擊修改備註' : undefined}
-                  style={{
-                    gridColumn: '1 / -1',
-                    margin: '4px 10px 8px 10px',
-                    padding: '6px 12px',
-                    backgroundColor: '#fffde7',
-                    border: '2px dashed var(--crayon-orange)',
-                    borderRadius: '8px',
-                    cursor: !forPrint && onOpenStageNote ? 'pointer' : 'default'
-                  }}
-                >
-                  <div
-                    style={{
-                      fontSize: '0.78rem',
-                      fontWeight: 'bold',
-                      color: '#e65100',
-                      marginBottom: '2px',
-                      textAlign: 'left'
-                    }}
-                  >
-                    📝 關卡備註：
-                  </div>
-                  {ticket.stageNotes[w.id].html ? (
-                    <div
-                      style={{
-                        fontSize: ticket.stageNotes[w.id].fontSize || '16px',
-                        color: ticket.stageNotes[w.id].color || '#2c3e50',
-                        textAlign: ticket.stageNotes[w.id].textAlign || 'left',
-                        fontWeight: 'bold',
-                        wordBreak: 'break-word',
-                        lineHeight: '1.45'
-                      }}
-                      dangerouslySetInnerHTML={{ __html: ticket.stageNotes[w.id].html! }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        fontSize: ticket.stageNotes[w.id].fontSize || '16px',
-                        color: ticket.stageNotes[w.id].color || '#2c3e50',
-                        textAlign: ticket.stageNotes[w.id].textAlign || 'left',
-                        fontWeight: 'bold',
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-word',
-                        lineHeight: '1.45'
-                      }}
-                    >
-                      {ticket.stageNotes[w.id].text}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           );
         })}
