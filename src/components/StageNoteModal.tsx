@@ -38,7 +38,11 @@ const FONT_SIZE_OPTIONS = [
   { label: '16點 (中)', value: '16px' },
   { label: '18點 (大)', value: '18px' },
   { label: '20點 (特大)', value: '20px' },
-  { label: '24點 (超大)', value: '24px' }
+  { label: '24點 (超大)', value: '24px' },
+  { label: '26點', value: '26px' },
+  { label: '28點', value: '28px' },
+  { label: '36點', value: '36px' },
+  { label: '48點', value: '48px' }
 ];
 
 const COLOR_PRESETS = [
