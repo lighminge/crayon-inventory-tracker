@@ -111,8 +111,8 @@ export default function WorkflowGanttChart({
     if (isDone && doneTimestamp) {
       endMs = doneTimestamp;
       startMs = refPrevDate ? Math.min(refPrevDate, endMs) : endMs;
-      if (previousDate) {
-        const days = calculateDays(previousDate, doneTimestamp);
+      if (refPrevDate) {
+        const days = calculateDays(refPrevDate, doneTimestamp);
         spentDays = days;
         spentDaysText = days === 0 ? '0天' : `${days}天`;
       } else {
@@ -284,7 +284,13 @@ export default function WorkflowGanttChart({
             leftPct = Math.max(0, Math.min(rawLeft, 100 - widthPct));
           }
 
-          const rowBg = isCurrent ? '#fff8e1' : isDone ? '#f9fbe7' : '#fafafa';
+          const rowBg = isCurrent
+            ? '#fff8e1'
+            : isDone
+            ? isWithinWorkingDays
+              ? '#f9fbe7'
+              : '#fff5f5'
+            : '#fafafa';
 
           const isSameDay =
             startMs !== null &&
@@ -371,41 +377,78 @@ export default function WorkflowGanttChart({
                   textAlign: 'center',
                   borderRight: '2px dashed #ccc',
                   display: 'flex',
+                  flexDirection: 'column',
                   justifyContent: 'center',
                   alignItems: 'center',
+                  gap: '4px',
                   height: '100%'
                 }}
               >
                 {isDone ? (
-                  <span
-                    style={{
-                      backgroundColor: '#e8f5e9',
-                      color: '#1b5e20',
-                      border: '2px solid var(--crayon-green)',
-                      padding: '3px 9px',
-                      borderRadius: '12px',
-                      fontSize: forPrint ? '0.88rem' : '0.82rem',
-                      fontWeight: 'bold',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    ✅ 已完成
-                  </span>
+                  isWithinWorkingDays ? (
+                    <span
+                      style={{
+                        backgroundColor: '#e8f5e9',
+                        color: '#1b5e20',
+                        border: '2px solid var(--crayon-green)',
+                        padding: '3px 9px',
+                        borderRadius: '12px',
+                        fontSize: forPrint ? '0.88rem' : '0.82rem',
+                        fontWeight: 'bold',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      ✅ 已完成
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        backgroundColor: '#ffcdd2',
+                        color: '#b71c1c',
+                        border: '2px solid var(--crayon-red)',
+                        padding: '3px 9px',
+                        borderRadius: '12px',
+                        fontSize: forPrint ? '0.88rem' : '0.82rem',
+                        fontWeight: 'bold',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      ⚠️ 耗時超標
+                    </span>
+                  )
                 ) : isCurrent ? (
-                  <span
-                    style={{
-                      backgroundColor: 'var(--crayon-orange)',
-                      color: 'white',
-                      border: '2px dashed var(--crayon-dark)',
-                      padding: '3px 9px',
-                      borderRadius: '12px',
-                      fontSize: forPrint ? '0.88rem' : '0.82rem',
-                      fontWeight: 'bold',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    📍 處理中
-                  </span>
+                  <>
+                    <span
+                      style={{
+                        backgroundColor: 'var(--crayon-orange)',
+                        color: 'white',
+                        border: '2px dashed var(--crayon-dark)',
+                        padding: '3px 9px',
+                        borderRadius: '12px',
+                        fontSize: forPrint ? '0.88rem' : '0.82rem',
+                        fontWeight: 'bold',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      📍 處理中
+                    </span>
+                    {!isWithinWorkingDays && (
+                      <span
+                        style={{
+                          backgroundColor: '#ffcdd2',
+                          color: '#b71c1c',
+                          border: '2px solid var(--crayon-red)',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          fontSize: forPrint ? '0.82rem' : '0.76rem',
+                          fontWeight: 'bold',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        ⚠️ 耗時超標
+                      </span>
+                    )}
+                  </>
                 ) : (
                   <span
                     style={{
