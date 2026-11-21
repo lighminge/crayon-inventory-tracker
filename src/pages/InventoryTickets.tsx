@@ -6,6 +6,9 @@ import type { HolidaySetting } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 import RecountPanel from '../components/RecountPanel';
 import WorkflowGanttChart from '../components/WorkflowGanttChart';
+import WorkflowSlaChart from '../components/WorkflowSlaChart';
+import WorkflowMetroChart from '../components/WorkflowMetroChart';
+import WorkflowKanbanBoard from '../components/WorkflowKanbanBoard';
 import StageNoteModal, { StageNoteViewModal } from '../components/StageNoteModal';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -66,13 +69,21 @@ export default function InventoryTicketsPage() {
     stageIndex: number;
   } | null>(null);
 
-  // Per-ticket Gantt View Toggle State
-  const [ganttViewTickets, setGanttViewTickets] = useState<Record<string, boolean>>({});
+  // Top-level Page View Mode ('list' | 'kanban')
+  const [pageViewMode, setPageViewMode] = useState<'list' | 'kanban'>('list');
 
-  const toggleGanttView = (ticketId: string) => {
-    setGanttViewTickets(prev => ({
+  // Per-ticket Workflow View Mode ('block' | 'gantt' | 'sla' | 'metro')
+  const [ticketChartModes, setTicketChartModes] = useState<
+    Record<string, 'block' | 'gantt' | 'sla' | 'metro'>
+  >({});
+
+  const setTicketChartMode = (
+    ticketId: string,
+    mode: 'block' | 'gantt' | 'sla' | 'metro'
+  ) => {
+    setTicketChartModes(prev => ({
       ...prev,
-      [ticketId]: !prev[ticketId]
+      [ticketId]: mode
     }));
   };
 
@@ -368,8 +379,38 @@ export default function InventoryTicketsPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '15px' }}>
         <h2 style={{ margin: 0, fontFamily: 'Caveat, cursive', fontSize: '2.5rem', color: 'var(--crayon-blue)' }}>📝 盤點單管理</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="doodle-button"
+            style={{
+              padding: '8px 18px',
+              fontSize: '1.05rem',
+              fontWeight: 'bold',
+              backgroundColor: pageViewMode === 'list' ? 'var(--crayon-blue)' : 'white',
+              color: pageViewMode === 'list' ? 'white' : 'var(--crayon-dark)'
+            }}
+            onClick={() => setPageViewMode('list')}
+          >
+            📄 清單卡片檢視
+          </button>
+          <button
+            type="button"
+            className="doodle-button"
+            style={{
+              padding: '8px 18px',
+              fontSize: '1.05rem',
+              fontWeight: 'bold',
+              backgroundColor: pageViewMode === 'kanban' ? 'var(--crayon-purple)' : 'white',
+              color: pageViewMode === 'kanban' ? 'white' : 'var(--crayon-dark)'
+            }}
+            onClick={() => setPageViewMode('kanban')}
+          >
+            📋 關卡看板檢視
+          </button>
+        </div>
       </div>
 
       {/* Filter & Sort Bar */}
@@ -461,30 +502,53 @@ export default function InventoryTicketsPage() {
           👉 目前符合條件共 {sortedTickets.length} 筆資料
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-          <div>
-            <label style={{ fontWeight: 'bold' }}>每頁筆數：</label>
-            <select className="doodle-input" style={{ width: 'auto' }} value={itemsPerPage} onChange={e => setItemsPerPage(Number(e.target.value))}>
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={15}>15</option>
-              <option value={20}>20</option>
-            </select>
-          </div>
-          
-          {/* Top Pagination Controls */}
-          {totalPages > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <button className="doodle-button" style={{ padding: '5px 15px', minHeight: 'auto' }} disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>上一頁</button>
-              <div style={{ padding: '5px 15px', fontWeight: 'bold' }}>{currentPage} / {totalPages}</div>
-              <button className="doodle-button" style={{ padding: '5px 15px', minHeight: 'auto' }} disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>下一頁</button>
+        {pageViewMode === 'list' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+            <div>
+              <label style={{ fontWeight: 'bold' }}>每頁筆數：</label>
+              <select className="doodle-input" style={{ width: 'auto' }} value={itemsPerPage} onChange={e => setItemsPerPage(Number(e.target.value))}>
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+              </select>
             </div>
-          )}
-        </div>
+            
+            {/* Top Pagination Controls */}
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button className="doodle-button" style={{ padding: '5px 15px', minHeight: 'auto' }} disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>上一頁</button>
+                <div style={{ padding: '5px 15px', fontWeight: 'bold' }}>{currentPage} / {totalPages}</div>
+                <button className="doodle-button" style={{ padding: '5px 15px', minHeight: 'auto' }} disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>下一頁</button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {currentTickets.map((t, index) => {
+      {pageViewMode === 'kanban' ? (
+        <WorkflowKanbanBoard
+          tickets={sortedTickets}
+          workflows={workflows}
+          tasks={tasks}
+          canEdit={canEdit}
+          showClosedColumn={filterStatus !== 'inProgress'}
+          getAssigneeName={getAssigneeName}
+          calculateDays={calculateDays}
+          getNextStage={getNextStage}
+          onAdvanceStage={openStageUpdate}
+          onApproveClose={handleOpenManagerForm}
+          onOpenStageNote={(ticketObj, wf, idx) =>
+            setNoteModalTarget({ ticket: ticketObj, workflow: wf, stageIndex: idx })
+          }
+          onViewStageNote={(ticketObj, wf, idx) =>
+            setViewNoteTarget({ ticket: ticketObj, workflow: wf, stageIndex: idx })
+          }
+        />
+      ) : (
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {currentTickets.map((t, index) => {
           const progress = getProgress(t);
           const nextStage = getNextStage(t);
           const isFinished = !nextStage && t.closeDate;
@@ -584,49 +648,98 @@ export default function InventoryTicketsPage() {
 
                 {/* Progress Bar & Stages Details */}
                 <div style={{ marginTop: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '0.9rem', flexWrap: 'wrap', gap: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: 'bold' }}>進度：{progress.completedStages} / {progress.totalStages}</span>
-                      <button
-                        type="button"
-                        className="doodle-button"
-                        style={{
-                          padding: '4px 12px',
-                          fontSize: '0.9rem',
-                          fontWeight: 'bold',
-                          minHeight: 'auto',
-                          backgroundColor: ganttViewTickets[t.id] ? 'var(--crayon-purple)' : 'var(--crayon-blue)',
-                          color: 'white'
-                        }}
-                        onClick={() => toggleGanttView(t.id)}
-                      >
-                        {ganttViewTickets[t.id] ? '📋 切換原流程顯示' : '📊 甘特圖表顯示'}
-                      </button>
-                    </div>
-                    <span style={{ fontWeight: 'bold' }}>{progress.percentage}%</span>
-                  </div>
-                  <div style={{ width: '100%', height: '15px', border: '2px solid var(--crayon-dark)', borderRadius: '15px', overflow: 'hidden' }}>
-                    <div style={{ width: `${progress.percentage}%`, height: '100%', backgroundColor: 'var(--crayon-green)' }}></div>
-                  </div>
-                  
-                  {ganttViewTickets[t.id] ? (
-                    <WorkflowGanttChart
-                      ticket={t}
-                      workflows={workflows}
-                      nextStage={nextStage}
-                      isFinished={Boolean(isFinished)}
-                      getAssigneeName={getAssigneeName}
-                      calculateDays={calculateDays}
-                      taskName={t.taskId ? (tasks.find(tk => tk.id === t.taskId)?.name || '') : ''}
-                      totalProcessingDays={currentTotalDays}
-                      onOpenStageNote={(w, wIndex) =>
-                        setNoteModalTarget({ ticket: t, workflow: w, stageIndex: wIndex })
-                      }
-                      onViewStageNote={(w, wIndex) =>
-                        setViewNoteTarget({ ticket: t, workflow: w, stageIndex: wIndex })
-                      }
-                    />
-                  ) : (
+                  {(() => {
+                    const activeChartMode = ticketChartModes[t.id] || 'block';
+                    return (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '0.9rem', flexWrap: 'wrap', gap: '10px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 'bold', marginRight: '4px' }}>進度：{progress.completedStages} / {progress.totalStages}</span>
+                            {[
+                              { key: 'block', label: '📋 原流程', activeBg: 'var(--crayon-dark)' },
+                              { key: 'gantt', label: '📊 甘特圖表', activeBg: 'var(--crayon-blue)' },
+                              { key: 'sla', label: '⚖️ 工時預警對比圖', activeBg: 'var(--crayon-purple)' },
+                              { key: 'metro', label: '🚇 捷運里程碑', activeBg: 'var(--crayon-orange)' }
+                            ].map(modeBtn => {
+                              const isActive = activeChartMode === modeBtn.key;
+                              return (
+                                <button
+                                  key={modeBtn.key}
+                                  type="button"
+                                  className="doodle-button"
+                                  style={{
+                                    padding: '4px 11px',
+                                    fontSize: '0.86rem',
+                                    fontWeight: 'bold',
+                                    minHeight: 'auto',
+                                    backgroundColor: isActive ? modeBtn.activeBg : 'white',
+                                    color: isActive ? 'white' : 'var(--crayon-dark)'
+                                  }}
+                                  onClick={() => setTicketChartMode(t.id, modeBtn.key as any)}
+                                >
+                                  {modeBtn.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <span style={{ fontWeight: 'bold' }}>{progress.percentage}%</span>
+                        </div>
+                        <div style={{ width: '100%', height: '15px', border: '2px solid var(--crayon-dark)', borderRadius: '15px', overflow: 'hidden' }}>
+                          <div style={{ width: `${progress.percentage}%`, height: '100%', backgroundColor: 'var(--crayon-green)' }}></div>
+                        </div>
+
+                        {activeChartMode === 'gantt' ? (
+                          <WorkflowGanttChart
+                            ticket={t}
+                            workflows={workflows}
+                            nextStage={nextStage}
+                            isFinished={Boolean(isFinished)}
+                            getAssigneeName={getAssigneeName}
+                            calculateDays={calculateDays}
+                            taskName={t.taskId ? (tasks.find(tk => tk.id === t.taskId)?.name || '') : ''}
+                            totalProcessingDays={currentTotalDays}
+                            onOpenStageNote={(w, wIndex) =>
+                              setNoteModalTarget({ ticket: t, workflow: w, stageIndex: wIndex })
+                            }
+                            onViewStageNote={(w, wIndex) =>
+                              setViewNoteTarget({ ticket: t, workflow: w, stageIndex: wIndex })
+                            }
+                          />
+                        ) : activeChartMode === 'sla' ? (
+                          <WorkflowSlaChart
+                            ticket={t}
+                            workflows={workflows}
+                            nextStage={nextStage}
+                            isFinished={Boolean(isFinished)}
+                            getAssigneeName={getAssigneeName}
+                            calculateDays={calculateDays}
+                            taskName={t.taskId ? (tasks.find(tk => tk.id === t.taskId)?.name || '') : ''}
+                            totalProcessingDays={currentTotalDays}
+                            onOpenStageNote={(w, wIndex) =>
+                              setNoteModalTarget({ ticket: t, workflow: w, stageIndex: wIndex })
+                            }
+                            onViewStageNote={(w, wIndex) =>
+                              setViewNoteTarget({ ticket: t, workflow: w, stageIndex: wIndex })
+                            }
+                          />
+                        ) : activeChartMode === 'metro' ? (
+                          <WorkflowMetroChart
+                            ticket={t}
+                            workflows={workflows}
+                            nextStage={nextStage}
+                            isFinished={Boolean(isFinished)}
+                            getAssigneeName={getAssigneeName}
+                            calculateDays={calculateDays}
+                            taskName={t.taskId ? (tasks.find(tk => tk.id === t.taskId)?.name || '') : ''}
+                            totalProcessingDays={currentTotalDays}
+                            onOpenStageNote={(w, wIndex) =>
+                              setNoteModalTarget({ ticket: t, workflow: w, stageIndex: wIndex })
+                            }
+                            onViewStageNote={(w, wIndex) =>
+                              setViewNoteTarget({ ticket: t, workflow: w, stageIndex: wIndex })
+                            }
+                          />
+                        ) : (
                   /* Stage Date Logs (Block style) */
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '30px' }}>
                     {workflows.map((w, wIndex) => {
@@ -789,7 +902,10 @@ export default function InventoryTicketsPage() {
                     );
                   })}
                   </div>
-                  )}
+                        )}
+                      </>
+                    );
+                  })()}
                   <RecountPanel ticket={t} onUpdate={loadData} canEdit={canEdit} personnel={personnel} />
                 </div>
               </div>
@@ -845,6 +961,8 @@ export default function InventoryTicketsPage() {
           <div style={{ padding: '8px 15px', fontWeight: 'bold' }}>{currentPage} / {totalPages}</div>
           <button className="doodle-button" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>下一頁</button>
         </div>
+      )}
+        </>
       )}
 
       {/* 刪除確認視窗 */}
