@@ -5,6 +5,7 @@ import { calculateBusinessDays } from '../utils/dateUtils';
 import type { HolidaySetting } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 import RecountPanel from '../components/RecountPanel';
+import WorkflowGanttChart from '../components/WorkflowGanttChart';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function InventoryTicketsPage() {
@@ -51,6 +52,16 @@ export default function InventoryTicketsPage() {
 
   // Confirm Delete Modal
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Per-ticket Gantt View Toggle State
+  const [ganttViewTickets, setGanttViewTickets] = useState<Record<string, boolean>>({});
+
+  const toggleGanttView = (ticketId: string) => {
+    setGanttViewTickets(prev => ({
+      ...prev,
+      [ticketId]: !prev[ticketId]
+    }));
+  };
 
   useEffect(() => {
     loadData();
@@ -559,15 +570,42 @@ export default function InventoryTicketsPage() {
 
                 {/* Progress Bar & Stages Details */}
                 <div style={{ marginTop: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '0.9rem' }}>
-                    <span>進度：{progress.completedStages} / {progress.totalStages}</span>
-                    <span>{progress.percentage}%</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '0.9rem', flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 'bold' }}>進度：{progress.completedStages} / {progress.totalStages}</span>
+                      <button
+                        type="button"
+                        className="doodle-button"
+                        style={{
+                          padding: '4px 12px',
+                          fontSize: '0.9rem',
+                          fontWeight: 'bold',
+                          minHeight: 'auto',
+                          backgroundColor: ganttViewTickets[t.id] ? 'var(--crayon-purple)' : 'var(--crayon-blue)',
+                          color: 'white'
+                        }}
+                        onClick={() => toggleGanttView(t.id)}
+                      >
+                        {ganttViewTickets[t.id] ? '📋 切換原流程顯示' : '📊 甘特圖表顯示'}
+                      </button>
+                    </div>
+                    <span style={{ fontWeight: 'bold' }}>{progress.percentage}%</span>
                   </div>
                   <div style={{ width: '100%', height: '15px', border: '2px solid var(--crayon-dark)', borderRadius: '15px', overflow: 'hidden' }}>
                     <div style={{ width: `${progress.percentage}%`, height: '100%', backgroundColor: 'var(--crayon-green)' }}></div>
                   </div>
                   
-                  {/* Stage Date Logs (Block style) */}
+                  {ganttViewTickets[t.id] ? (
+                    <WorkflowGanttChart
+                      ticket={t}
+                      workflows={workflows}
+                      nextStage={nextStage}
+                      isFinished={Boolean(isFinished)}
+                      getAssigneeName={getAssigneeName}
+                      calculateDays={calculateDays}
+                    />
+                  ) : (
+                  /* Stage Date Logs (Block style) */
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '30px' }}>
                     {workflows.map((w, wIndex) => {
                       const isDone = t.stageDates && t.stageDates[w.id];
@@ -658,6 +696,7 @@ export default function InventoryTicketsPage() {
                     );
                   })}
                   </div>
+                  )}
                   <RecountPanel ticket={t} onUpdate={loadData} canEdit={canEdit} personnel={personnel} />
                 </div>
               </div>
