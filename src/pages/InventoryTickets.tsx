@@ -6,6 +6,7 @@ import type { HolidaySetting } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 import RecountPanel from '../components/RecountPanel';
 import WorkflowGanttChart from '../components/WorkflowGanttChart';
+import StageNoteModal from '../components/StageNoteModal';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function InventoryTicketsPage() {
@@ -52,6 +53,13 @@ export default function InventoryTicketsPage() {
 
   // Confirm Delete Modal
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // Stage Note Modal State
+  const [noteModalTarget, setNoteModalTarget] = useState<{
+    ticket: InventoryTicket;
+    workflow: Workflow;
+    stageIndex: number;
+  } | null>(null);
 
   // Per-ticket Gantt View Toggle State
   const [ganttViewTickets, setGanttViewTickets] = useState<Record<string, boolean>>({});
@@ -310,6 +318,7 @@ export default function InventoryTicketsPage() {
             assigneeId: editFormData.assigneeId,
             dispatchDate: calculatedDispatchDate,
             stageDates: newStageDates,
+            stageNotes: editingTicket.stageNotes,
             closeDate: newCloseDate,
             managerName: editingTicket.managerName,
             totalProcessingDays: editingTicket.totalProcessingDays,
@@ -605,6 +614,9 @@ export default function InventoryTicketsPage() {
                       calculateDays={calculateDays}
                       taskName={t.taskId ? (tasks.find(tk => tk.id === t.taskId)?.name || '') : ''}
                       totalProcessingDays={currentTotalDays}
+                      onOpenStageNote={(w, wIndex) =>
+                        setNoteModalTarget({ ticket: t, workflow: w, stageIndex: wIndex })
+                      }
                     />
                   ) : (
                   /* Stage Date Logs (Block style) */
@@ -612,6 +624,7 @@ export default function InventoryTicketsPage() {
                     {workflows.map((w, wIndex) => {
                       const isDone = t.stageDates && t.stageDates[w.id];
                       const isCurrent = !isFinished && nextStage?.id === w.id;
+                      const stageNote = t.stageNotes?.[w.id];
                       
                       let spentDaysText = '';
                       let spentDays = 0;
@@ -676,6 +689,27 @@ export default function InventoryTicketsPage() {
                               負責: {getAssigneeName(w.assigneeId === 'DYNAMIC_ASSIGNEE' ? t.assigneeId : (w.assigneeId || ''))}
                             </div>
                             <div style={{ marginTop: '5px' }}>{isDone ? new Date(t.stageDates[w.id]).toLocaleDateString() : '-'}</div>
+                            {/* 備註按鈕 */}
+                            <div style={{ marginTop: '8px' }}>
+                              <button
+                                type="button"
+                                className="doodle-button"
+                                style={{
+                                  padding: '2px 10px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 'bold',
+                                  minHeight: 'auto',
+                                  backgroundColor: stageNote?.text ? 'var(--crayon-yellow)' : 'white',
+                                  color: 'var(--crayon-dark)',
+                                  border: '1.5px solid var(--crayon-dark)'
+                                }}
+                                onClick={() =>
+                                  setNoteModalTarget({ ticket: t, workflow: w, stageIndex: wIndex })
+                                }
+                              >
+                                {stageNote?.text ? '📝 修改備註' : '➕ 新增備註'}
+                              </button>
+                            </div>
                           </div>
                           {/* 耗時顯示 - 明顯的便利貼風格 */}
                           {isDone && spentDaysText && (
@@ -690,6 +724,52 @@ export default function InventoryTicketsPage() {
                               boxShadow: '1px 1px 0px rgba(0,0,0,0.5)'
                             }}>
                               耗時: {spentDaysText}
+                            </div>
+                          )}
+                          {/* 關卡備註內容顯示 */}
+                          {stageNote?.text && (
+                            <div
+                              onClick={() =>
+                                setNoteModalTarget({ ticket: t, workflow: w, stageIndex: wIndex })
+                              }
+                              title="點擊修改備註"
+                              style={{
+                                marginTop: '8px',
+                                padding: '6px 10px',
+                                minWidth: '160px',
+                                maxWidth: '240px',
+                                width: '100%',
+                                backgroundColor: '#fffde7',
+                                border: '2px dashed var(--crayon-orange)',
+                                borderRadius: '8px',
+                                boxShadow: '1px 1px 0px rgba(0,0,0,0.18)',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <div
+                                style={{
+                                  fontSize: '0.75rem',
+                                  fontWeight: 'bold',
+                                  color: '#e65100',
+                                  marginBottom: '2px',
+                                  textAlign: 'left'
+                                }}
+                              >
+                                📝 備註：
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: stageNote.fontSize || '16px',
+                                  color: stageNote.color || '#2c3e50',
+                                  textAlign: stageNote.textAlign || 'left',
+                                  fontWeight: 'bold',
+                                  whiteSpace: 'pre-wrap',
+                                  wordBreak: 'break-word',
+                                  lineHeight: '1.4'
+                                }}
+                              >
+                                {stageNote.text}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -929,6 +1009,17 @@ export default function InventoryTicketsPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* 流程關卡備註設定視窗 */}
+      {noteModalTarget && (
+        <StageNoteModal
+          ticket={noteModalTarget.ticket}
+          workflow={noteModalTarget.workflow}
+          stageIndex={noteModalTarget.stageIndex}
+          onClose={() => setNoteModalTarget(null)}
+          onSaved={loadData}
+        />
       )}
     </div>
   );

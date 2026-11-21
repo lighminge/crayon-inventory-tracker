@@ -24,6 +24,20 @@ export interface InventoryTask {
   totalItemCount: number;
 }
 
+export interface StageNote {
+  text: string;
+  fontSize?: string;
+  color?: string;
+  textAlign?: 'left' | 'center' | 'right';
+  updatedAt?: number;
+}
+
+export interface StageNoteTemplate {
+  id: string;
+  content: string;
+  createdAt: number;
+}
+
 export interface InventoryTicket {
   id: string; // Firestore document ID (can be the custom manual ID like '260701')
   title: string; // We can use this as description/notes or just the ID again
@@ -34,6 +48,7 @@ export interface InventoryTicket {
   dispatchDate: number | null; // Primary date used for stats/filtering
   closeDate: number | null; // Used to calculate processing days
   stageDates: Record<string, number>; // Maps workflow.id to timestamp
+  stageNotes?: Record<string, StageNote>; // Maps workflow.id to StageNote
   managerName?: string;
   totalProcessingDays: number | null;
   itemCount?: number; // 盤點項目數量

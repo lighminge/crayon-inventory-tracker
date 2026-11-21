@@ -11,6 +11,7 @@ interface WorkflowGanttChartProps {
   calculateDays: (startMs: number, endMs: number) => number;
   taskName?: string;
   totalProcessingDays?: number;
+  onOpenStageNote?: (workflow: Workflow, stageIndex: number) => void;
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -41,7 +42,8 @@ export default function WorkflowGanttChart({
   getAssigneeName,
   calculateDays,
   taskName,
-  totalProcessingDays
+  totalProcessingDays,
+  onOpenStageNote
 }: WorkflowGanttChartProps) {
   const [isPrinting, setIsPrinting] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
@@ -368,6 +370,28 @@ export default function WorkflowGanttChart({
                 >
                   👤 負責：{assigneeName}
                 </div>
+                {!forPrint && onOpenStageNote && (
+                  <div style={{ marginTop: '2px' }}>
+                    <button
+                      type="button"
+                      className="doodle-button"
+                      style={{
+                        padding: '2px 8px',
+                        fontSize: '0.78rem',
+                        fontWeight: 'bold',
+                        minHeight: 'auto',
+                        backgroundColor: ticket.stageNotes?.[w.id]?.text
+                          ? 'var(--crayon-yellow)'
+                          : 'white',
+                        color: 'var(--crayon-dark)',
+                        border: '1.5px solid var(--crayon-dark)'
+                      }}
+                      onClick={() => onOpenStageNote(w, wIndex)}
+                    >
+                      {ticket.stageNotes?.[w.id]?.text ? '📝 修改備註' : '➕ 新增備註'}
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Col 2: Status Badge */}
@@ -670,6 +694,48 @@ export default function WorkflowGanttChart({
                   </div>
                 )}
               </div>
+
+              {/* Stage Note Display Row (if note exists) */}
+              {ticket.stageNotes?.[w.id]?.text && (
+                <div
+                  onClick={() => !forPrint && onOpenStageNote && onOpenStageNote(w, wIndex)}
+                  title={!forPrint ? '點擊修改備註' : undefined}
+                  style={{
+                    gridColumn: '1 / -1',
+                    margin: '4px 10px 8px 10px',
+                    padding: '6px 12px',
+                    backgroundColor: '#fffde7',
+                    border: '2px dashed var(--crayon-orange)',
+                    borderRadius: '8px',
+                    cursor: !forPrint && onOpenStageNote ? 'pointer' : 'default'
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '0.78rem',
+                      fontWeight: 'bold',
+                      color: '#e65100',
+                      marginBottom: '2px',
+                      textAlign: 'left'
+                    }}
+                  >
+                    📝 關卡備註：
+                  </div>
+                  <div
+                    style={{
+                      fontSize: ticket.stageNotes[w.id].fontSize || '16px',
+                      color: ticket.stageNotes[w.id].color || '#2c3e50',
+                      textAlign: ticket.stageNotes[w.id].textAlign || 'left',
+                      fontWeight: 'bold',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      lineHeight: '1.45'
+                    }}
+                  >
+                    {ticket.stageNotes[w.id].text}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
