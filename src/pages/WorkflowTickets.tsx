@@ -596,7 +596,7 @@ export default function WorkflowTickets() {
                   <tr style={{ borderBottom: '4px solid var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fafafa' : '#fff' }}>
                     <td colSpan={7} style={{ padding: '0 15px 15px 15px' }}>
                       <div style={{ display: 'flex', gap: '20px', flexWrap: 'nowrap' }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ flex: 1, minWidth: '685px' }}>
                           {/* Progress Bar & Stages Details */}
                           <div style={{ marginTop: '10px' }}>
                         {(() => {
@@ -692,8 +692,8 @@ export default function WorkflowTickets() {
                                   }
                                 />
                               ) : (
-                        /* Stage Date Logs */
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '30px' }}>
+                        /* Stage Date Logs (固定一行 4 個流程) */
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 160px)', gap: '15px', marginTop: '30px' }}>
                           {workflows.map((w, wIndex) => {
                             const isDone = t.stageDates && t.stageDates[w.id];
                             const isCurrent = !t.closeDate && nextStage?.id === w.id;

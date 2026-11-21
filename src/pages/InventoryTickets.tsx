@@ -558,7 +558,7 @@ export default function InventoryTicketsPage() {
 
           return (
             <div key={t.id} className="doodle-border" style={{ padding: '15px', position: 'relative', display: 'flex', flexWrap: 'nowrap', gap: '15px' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ flex: 1, minWidth: '685px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
@@ -740,8 +740,8 @@ export default function InventoryTicketsPage() {
                             }
                           />
                         ) : (
-                  /* Stage Date Logs (Block style) */
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginTop: '30px' }}>
+                  /* Stage Date Logs (Block style - 固定一行 4 個流程) */
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 160px)', gap: '15px', marginTop: '30px' }}>
                     {workflows.map((w, wIndex) => {
                       const isDone = t.stageDates && t.stageDates[w.id];
                       const isCurrent = !isFinished && nextStage?.id === w.id;
