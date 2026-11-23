@@ -36,12 +36,13 @@ export default function PersonnelPage() {
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [itemsPerPage, setItemsPerPage] = useState(6);
   
   // Filter State
   const [filterRole, setFilterRole] = useState('');
 
   const [formData, setFormData] = useState<Omit<Personnel, 'id'>>({
+    employeeId: '',
     name: '',
     gender: 'Male',
     title: '',
@@ -67,6 +68,7 @@ export default function PersonnelPage() {
     if (person) {
       setEditingPerson(person);
       setFormData({
+        employeeId: person.employeeId || '',
         name: person.name,
         gender: person.gender,
         title: person.title,
@@ -75,7 +77,7 @@ export default function PersonnelPage() {
       });
     } else {
       setEditingPerson(null);
-      setFormData({ name: '', gender: 'Male', title: '', notes: '', roles: ['盤點'] });
+      setFormData({ employeeId: '', name: '', gender: 'Male', title: '', notes: '', roles: ['盤點'] });
     }
     setIsFormOpen(true);
   };
@@ -143,10 +145,10 @@ export default function PersonnelPage() {
           <div>
             <label style={{ fontWeight: 'bold' }}>每頁筆數：</label>
             <select className="doodle-input" style={{ width: 'auto' }} value={itemsPerPage} onChange={e => setItemsPerPage(Number(e.target.value))}>
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={15}>15</option>
-              <option value={20}>20</option>
+              <option value={6}>6</option>
+              <option value={12}>12</option>
+              <option value={18}>18</option>
+              <option value={24}>24</option>
             </select>
           </div>
           {canEdit && (
@@ -197,6 +199,7 @@ export default function PersonnelPage() {
                   {person.gender === 'Male' ? <><MaleIcon /> 男</> : person.gender === 'Female' ? <><FemaleIcon /> 女</> : <><OtherIcon /> 其他</>}
                 </span>
               </h3>
+              <p style={{ margin: '5px 0' }}><strong>工號：</strong>{person.employeeId || '未設定'}</p>
               <p style={{ margin: '5px 0' }}><strong>職稱：</strong>{person.title}</p>
               
               <div style={{ margin: '10px 0', display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
@@ -253,6 +256,10 @@ export default function PersonnelPage() {
             </button>
             <h3 style={{ marginTop: 0 }}>{editingPerson ? '編輯人員資料' : '新增人員資料'}</h3>
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' }}>
+              <div>
+                <label>工號：</label>
+                <input className="doodle-input" value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} placeholder="請輸入工號" />
+              </div>
               <div>
                 <label>姓名：</label>
                 <input className="doodle-input" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />

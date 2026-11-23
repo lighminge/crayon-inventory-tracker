@@ -1,5 +1,6 @@
 export interface Personnel {
   id: string;
+  employeeId?: string; // 工號
   name: string;
   gender: 'Male' | 'Female' | 'Other';
   title: string;

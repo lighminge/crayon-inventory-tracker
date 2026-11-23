@@ -210,6 +210,7 @@ export default function Dashboard() {
   const [printingAllPersonnel, setPrintingAllPersonnel] = useState<boolean>(false);
   const [personnelPrintMode, setPersonnelPrintMode] = useState<'detail' | 'summary'>('detail');
   const [excludeZeroPersonnel, setExcludeZeroPersonnel] = useState<boolean>(false);
+  const [personnelSortBy, setPersonnelSortBy] = useState<'employeeId' | 'name' | 'doingCount'>('employeeId');
   const printAllPersonnelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -443,8 +444,27 @@ export default function Dashboard() {
         totalCompletedItems,
         monthCompletedItems
       };
-    }).sort((a, b) => b.incompleteCount - a.incompleteCount);
-  }, [filteredTickets, personnel, selectedYear, selectedMonthNum, holidays]);
+    }).sort((a, b) => {
+      if (personnelSortBy === 'employeeId') {
+        const empA = (a.employeeId || '').trim();
+        const empB = (b.employeeId || '').trim();
+        if (empA && !empB) return -1;
+        if (!empA && empB) return 1;
+        if (empA !== empB) {
+          return empA.localeCompare(empB, 'zh-TW', { numeric: true });
+        }
+        return (a.name || '').localeCompare(b.name || '', 'zh-TW');
+      }
+      if (personnelSortBy === 'name') {
+        return (a.name || '').localeCompare(b.name || '', 'zh-TW');
+      }
+      // doingCount
+      if (b.doingCount !== a.doingCount) {
+        return b.doingCount - a.doingCount;
+      }
+      return b.doingItemCount - a.doingItemCount;
+    });
+  }, [filteredTickets, personnel, selectedYear, selectedMonthNum, holidays, personnelSortBy]);
 
   const personnelTotals = useMemo(() => {
     return personnelStats.reduce((acc, curr) => ({
@@ -1574,6 +1594,23 @@ export default function Dashboard() {
                 >
                   🏃 盤點中
                 </button>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <label style={{ fontWeight: 'bold' }}>排序：</label>
+                <select
+                  className="doodle-input"
+                  style={{ width: 'auto', backgroundColor: 'white', padding: '4px 10px', fontSize: '0.95rem' }}
+                  value={personnelSortBy}
+                  onChange={e =>
+                    setPersonnelSortBy(
+                      e.target.value as 'employeeId' | 'name' | 'doingCount'
+                    )
+                  }
+                >
+                  <option value="employeeId">依工號</option>
+                  <option value="name">依盤點人姓名</option>
+                  <option value="doingCount">依盤點中單據數量</option>
+                </select>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
