@@ -40,19 +40,19 @@ export default function WorkflowKanbanBoard({
   onViewStageNote
 }: WorkflowKanbanBoardProps) {
   const [isPrinting, setIsPrinting] = useState(false);
-  const boardRef = useRef<HTMLDivElement>(null);
+  const printRef = useRef<HTMLDivElement>(null);
   const nowMs = Date.now();
 
   useEffect(() => {
-    if (!isPrinting || !boardRef.current) return;
+    if (!isPrinting || !printRef.current) return;
     let cancelled = false;
     const capture = async () => {
       await new Promise(resolve =>
         requestAnimationFrame(() => requestAnimationFrame(resolve))
       );
-      if (cancelled || !boardRef.current) return;
+      if (cancelled || !printRef.current) return;
       try {
-        const canvas = await html2canvas(boardRef.current, {
+        const canvas = await html2canvas(printRef.current, {
           scale: 2,
           backgroundColor: '#f4f8fb'
         });
@@ -153,80 +153,8 @@ export default function WorkflowKanbanBoard({
   const totalActiveTickets = stageColumns.reduce((s, c) => s + c.items.length, 0);
   const totalOverdueTickets = stageColumns.reduce((s, c) => s + c.overdueCount, 0);
 
-  return (
-    <div
-      ref={boardRef}
-      className="doodle-border"
-      style={{
-        padding: '18px',
-        backgroundColor: '#f4f8fb',
-        marginBottom: '20px'
-      }}
-    >
-      {/* Kanban Top Summary Bar */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px',
-          paddingBottom: '12px',
-          marginBottom: '16px',
-          borderBottom: '3px dashed var(--crayon-dark)'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--crayon-dark)' }}>
-            📋 流程關卡控管看板（Kanban 泳道圖）
-          </h3>
-          <span
-            style={{
-              backgroundColor: '#e3f2fd',
-              color: 'var(--crayon-blue)',
-              border: '2px solid var(--crayon-blue)',
-              padding: '3px 12px',
-              borderRadius: '14px',
-              fontWeight: 'bold',
-              fontSize: '0.95rem'
-            }}
-          >
-            🏃 進行中單據：{totalActiveTickets} 單
-          </span>
-          <span
-            style={{
-              backgroundColor: totalOverdueTickets > 0 ? '#ffcdd2' : '#e8f5e9',
-              color: totalOverdueTickets > 0 ? '#b71c1c' : '#1b5e20',
-              border: `2px solid ${totalOverdueTickets > 0 ? 'var(--crayon-red)' : 'var(--crayon-green)'}`,
-              padding: '3px 12px',
-              borderRadius: '14px',
-              fontWeight: 'bold',
-              fontSize: '0.95rem'
-            }}
-          >
-            {totalOverdueTickets > 0
-              ? `🚨 本關耗時超標：${totalOverdueTickets} 單（已自動置頂警示）`
-              : '✅ 目前所有進行中單據皆在標準工時內'}
-          </span>
-        </div>
-
-        <button
-          type="button"
-          className="doodle-button success"
-          style={{
-            padding: '5px 14px',
-            fontSize: '0.92rem',
-            fontWeight: 'bold',
-            minHeight: 'auto'
-          }}
-          disabled={isPrinting}
-          onClick={() => setIsPrinting(true)}
-        >
-          {isPrinting ? '⏳ 匯出看板圖檔中...' : '🖨️ 匯出看板圖檔'}
-        </button>
-      </div>
-
-      {/* Kanban Swimlane Columns (上下分區網格排版，每排 3 欄，不超出畫面) */}
+  const renderKanbanGrid = (forPrint = false) => {
+    return (
       <div
         style={{
           display: 'grid',
@@ -253,7 +181,7 @@ export default function WorkflowKanbanBoard({
                 boxShadow: '4px 4px 0px rgba(0,0,0,0.12)',
                 display: 'flex',
                 flexDirection: 'column',
-                overflow: 'hidden'
+                overflow: forPrint ? 'visible' : 'hidden'
               }}
             >
               {/* Swimlane Header */}
@@ -261,6 +189,7 @@ export default function WorkflowKanbanBoard({
                 style={{
                   backgroundColor: overdueCount > 0 ? '#ffebee' : '#e3f2fd',
                   borderBottom: '2.5px solid var(--crayon-dark)',
+                  borderRadius: forPrint ? '9px 9px 0 0' : undefined,
                   padding: '12px'
                 }}
               >
@@ -312,7 +241,15 @@ export default function WorkflowKanbanBoard({
                   {w.name}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', flexWrap: 'wrap' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '6px',
+                    flexWrap: 'wrap'
+                  }}
+                >
                   <span
                     style={{
                       backgroundColor: 'var(--crayon-yellow)',
@@ -344,16 +281,17 @@ export default function WorkflowKanbanBoard({
                 </div>
               </div>
 
-              {/* Swimlane Cards Body */}
+              {/* Swimlane Cards Body (列印時 maxHeight: 'none' 完整展開所有盤點單) */}
               <div
                 style={{
                   padding: '10px',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '10px',
-                  maxHeight: '300px',
-                  overflowY: 'auto',
+                  maxHeight: forPrint ? 'none' : '300px',
+                  overflowY: forPrint ? 'visible' : 'auto',
                   backgroundColor: '#fafafa',
+                  borderRadius: forPrint ? '0 0 9px 9px' : undefined,
                   flex: 1
                 }}
               >
@@ -370,239 +308,341 @@ export default function WorkflowKanbanBoard({
                     目前無單據停留於此關卡 ✨
                   </div>
                 ) : (
-                  items.map(({ ticket: t, startMs, spentDays, standardDays, isOverdue, diffDays, totalDays }) => {
-                    const nextStage = getNextStage(t);
-                    const isPendingApproval = !nextStage && !t.closeDate;
-                    const stageNote = t.stageNotes?.[w.id];
-                    const taskName = t.taskId
-                      ? tasks.find(tk => tk.id === t.taskId)?.name || ''
-                      : '';
-                    const stageOwner = getAssigneeName(
-                      w.assigneeId === 'DYNAMIC_ASSIGNEE' ? t.assigneeId : w.assigneeId || ''
-                    );
+                  items.map(
+                    ({
+                      ticket: t,
+                      startMs,
+                      spentDays,
+                      standardDays,
+                      isOverdue,
+                      diffDays,
+                      totalDays
+                    }) => {
+                      const nextStage = getNextStage(t);
+                      const isPendingApproval = !nextStage && !t.closeDate;
+                      const stageNote = t.stageNotes?.[w.id];
+                      const taskName = t.taskId
+                        ? tasks.find(tk => tk.id === t.taskId)?.name || ''
+                        : '';
+                      const stageOwner = getAssigneeName(
+                        w.assigneeId === 'DYNAMIC_ASSIGNEE'
+                          ? t.assigneeId
+                          : w.assigneeId || ''
+                      );
 
-                    const cIdx = nextStage ? workflows.findIndex(wf => wf.id === nextStage.id) : -1;
-                    const nNext = cIdx !== -1 && cIdx + 1 < workflows.length ? workflows[cIdx + 1] : null;
-                    const btnText = nNext ? `推進至 ${nNext.name}` : '結案';
+                      const cIdx = nextStage
+                        ? workflows.findIndex(wf => wf.id === nextStage.id)
+                        : -1;
+                      const nNext =
+                        cIdx !== -1 && cIdx + 1 < workflows.length
+                          ? workflows[cIdx + 1]
+                          : null;
+                      const btnText = nNext ? `推進至 ${nNext.name}` : '結案';
 
-                    return (
-                      <div
-                        key={t.id}
-                        style={{
-                          backgroundColor: isOverdue ? '#fff5f5' : '#ffffff',
-                          border: `2.5px solid ${isOverdue ? 'var(--crayon-red)' : 'var(--crayon-dark)'}`,
-                          borderRadius: '10px',
-                          padding: '10px 12px',
-                          boxShadow: isOverdue
-                            ? '3px 3px 0px rgba(211,47,47,0.28)'
-                            : '2px 2px 0px rgba(0,0,0,0.12)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '7px'
-                        }}
-                      >
-                        {/* Card Top Row: Ticket ID & Type */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontWeight: 'bold', fontSize: '1.15rem', color: 'var(--crayon-dark)' }}>
-                            #{t.id}
-                          </span>
-                          <span
+                      return (
+                        <div
+                          key={t.id}
+                          style={{
+                            backgroundColor: isOverdue ? '#fff5f5' : '#ffffff',
+                            border: `2.5px solid ${
+                              isOverdue ? 'var(--crayon-red)' : 'var(--crayon-dark)'
+                            }`,
+                            borderRadius: '10px',
+                            padding: '10px 12px',
+                            boxShadow: isOverdue
+                              ? '3px 3px 0px rgba(211,47,47,0.28)'
+                              : '2px 2px 0px rgba(0,0,0,0.12)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '7px'
+                          }}
+                        >
+                          {/* Card Top Row: Ticket ID & Type */}
+                          <div
                             style={{
-                              backgroundColor:
-                                t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)',
-                              color: 'white',
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                              fontSize: '0.78rem',
-                              fontWeight: 'bold'
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              gap: '6px'
                             }}
                           >
-                            {t.ticketType || '未指定'}
-                          </span>
-                        </div>
+                            <span
+                              style={{
+                                fontWeight: 'bold',
+                                fontSize: '1.15rem',
+                                color: 'var(--crayon-dark)'
+                              }}
+                            >
+                              #{t.id}
+                            </span>
+                            <span
+                              style={{
+                                backgroundColor:
+                                  t.ticketType === 'TKW'
+                                    ? 'var(--crayon-purple)'
+                                    : 'var(--crayon-blue)',
+                                color: 'white',
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                fontSize: '0.78rem',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              {t.ticketType || '未指定'}
+                            </span>
+                          </div>
 
-                        {/* Personnel & Items */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
-                          <span
+                          {/* Personnel & Items */}
+                          <div
                             style={{
-                              backgroundColor: '#fff3e0',
-                              border: '1.5px dashed var(--crayon-orange)',
-                              color: '#e65100',
-                              padding: '2px 8px',
-                              borderRadius: '8px',
-                              fontSize: '0.84rem',
-                              fontWeight: 'bold'
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              gap: '6px',
+                              alignItems: 'center'
                             }}
                           >
-                            👤 盤點：{getAssigneeName(t.assigneeId)}
-                          </span>
-                          <span
-                            style={{
-                              backgroundColor: '#f3e5f5',
-                              border: '1.5px dashed var(--crayon-purple)',
-                              color: 'var(--crayon-purple)',
-                              padding: '2px 8px',
-                              borderRadius: '8px',
-                              fontSize: '0.84rem',
-                              fontWeight: 'bold'
-                            }}
-                          >
-                            📦 {t.itemCount || 0} 項
-                          </span>
-                        </div>
+                            <span
+                              style={{
+                                backgroundColor: '#fff3e0',
+                                border: '1.5px dashed var(--crayon-orange)',
+                                color: '#e65100',
+                                padding: '2px 8px',
+                                borderRadius: '8px',
+                                fontSize: '0.84rem',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              👤 盤點：{getAssigneeName(t.assigneeId)}
+                            </span>
+                            <span
+                              style={{
+                                backgroundColor: '#f3e5f5',
+                                border: '1.5px dashed var(--crayon-purple)',
+                                color: 'var(--crayon-purple)',
+                                padding: '2px 8px',
+                                borderRadius: '8px',
+                                fontSize: '0.84rem',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              📦 {t.itemCount || 0} 項
+                            </span>
+                          </div>
 
-                        {taskName && (
+                          {taskName && (
+                            <div
+                              style={{
+                                fontSize: '0.8rem',
+                                fontWeight: 'bold',
+                                color: '#2e7d32',
+                                backgroundColor: '#e8f5e9',
+                                padding: '2px 8px',
+                                borderRadius: '6px',
+                                border: '1px dashed #2e7d32'
+                              }}
+                            >
+                              🎯 任務：{taskName}
+                            </div>
+                          )}
+
                           <div
                             style={{
                               fontSize: '0.8rem',
-                              fontWeight: 'bold',
-                              color: '#2e7d32',
-                              backgroundColor: '#e8f5e9',
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                              border: '1px dashed #2e7d32'
+                              color: '#555',
+                              fontWeight: 'bold'
                             }}
                           >
-                            🎯 任務：{taskName}
+                            本關負責：
+                            <span style={{ color: 'var(--crayon-blue)' }}>
+                              {stageOwner}
+                            </span>{' '}
+                            ｜ 進站日：{formatFullDate(startMs)}
                           </div>
-                        )}
 
-                        <div style={{ fontSize: '0.8rem', color: '#555', fontWeight: 'bold' }}>
-                          本關負責：<span style={{ color: 'var(--crayon-blue)' }}>{stageOwner}</span> ｜ 進站日：{formatFullDate(startMs)}
-                        </div>
+                          {/* SLA Alert Pill */}
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              padding: '4px 8px',
+                              borderRadius: '8px',
+                              backgroundColor: isOverdue ? '#ffcdd2' : '#e8f5e9',
+                              border: `1.5px solid ${
+                                isOverdue ? 'var(--crayon-red)' : 'var(--crayon-green)'
+                              }`,
+                              fontWeight: 'bold',
+                              fontSize: '0.82rem',
+                              color: isOverdue ? '#b71c1c' : '#1b5e20'
+                            }}
+                          >
+                            <span>
+                              {isOverdue
+                                ? `⚠️ 本關停留 ${spentDays}天 (超標 +${diffDays}天)`
+                                : `⏱️ 本關停留 ${spentDays}天 / 標準 ${standardDays}天`}
+                            </span>
+                            <span style={{ fontSize: '0.76rem', color: '#444' }}>
+                              總計 {totalDays}天
+                            </span>
+                          </div>
 
-                        {/* SLA Alert Pill */}
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            padding: '4px 8px',
-                            borderRadius: '8px',
-                            backgroundColor: isOverdue ? '#ffcdd2' : '#e8f5e9',
-                            border: `1.5px solid ${isOverdue ? 'var(--crayon-red)' : 'var(--crayon-green)'}`,
-                            fontWeight: 'bold',
-                            fontSize: '0.82rem',
-                            color: isOverdue ? '#b71c1c' : '#1b5e20'
-                          }}
-                        >
-                          <span>
-                            {isOverdue
-                              ? `⚠️ 本關停留 ${spentDays}天 (超標 +${diffDays}天)`
-                              : `⏱️ 本關停留 ${spentDays}天 / 標準 ${standardDays}天`}
-                          </span>
-                          <span style={{ fontSize: '0.76rem', color: '#444' }}>
-                            總計 {totalDays}天
-                          </span>
-                        </div>
-
-                        {/* Bottom Action Row: Note Icon + Advance Button */}
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            gap: '8px',
-                            marginTop: '2px',
-                            paddingTop: '6px',
-                            borderTop: '1px dashed #ccc'
-                          }}
-                        >
-                          {stageNote?.text ? (
+                          {/* Print-only Note Content */}
+                          {forPrint && stageNote?.text && (
                             <div
-                              onClick={() => onViewStageNote(t, w, wIndex)}
-                              title="點擊查看此關卡備註內容"
                               style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '5px',
-                                cursor: 'pointer',
-                                whiteSpace: 'nowrap'
+                                padding: '6px 8px',
+                                backgroundColor: '#fffde7',
+                                border: '1.5px dashed var(--crayon-orange)',
+                                borderRadius: '6px',
+                                textAlign: 'left'
                               }}
                             >
-                              <span
+                              <div
                                 style={{
-                                  width: '28px',
-                                  height: '28px',
-                                  borderRadius: '50%',
-                                  backgroundColor: 'var(--crayon-yellow)',
-                                  border: '2px solid var(--crayon-dark)',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontSize: '0.92rem'
-                                }}
-                              >
-                                📝
-                              </span>
-                              <span
-                                style={{
-                                  fontSize: '0.8rem',
+                                  fontSize: '0.76rem',
                                   fontWeight: 'bold',
-                                  color: 'var(--crayon-red)',
-                                  backgroundColor: '#fffde7',
-                                  padding: '1px 6px',
-                                  borderRadius: '8px',
-                                  border: '1.5px dashed var(--crayon-orange)'
+                                  color: '#e65100',
+                                  marginBottom: '2px'
                                 }}
                               >
-                                有備註
-                              </span>
+                                📝 備註：
+                              </div>
+                              {stageNote.html ? (
+                                <div
+                                  style={{
+                                    fontSize: stageNote.fontSize || '14px',
+                                    color: stageNote.color || '#2c3e50',
+                                    textAlign: stageNote.textAlign || 'left',
+                                    wordBreak: 'break-word'
+                                  }}
+                                  dangerouslySetInnerHTML={{ __html: stageNote.html }}
+                                />
+                              ) : (
+                                <div
+                                  style={{
+                                    fontSize: stageNote.fontSize || '14px',
+                                    color: stageNote.color || '#2c3e50',
+                                    textAlign: stageNote.textAlign || 'left',
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-word'
+                                  }}
+                                >
+                                  {stageNote.text}
+                                </div>
+                              )}
                             </div>
-                          ) : (
-                            <button
-                              type="button"
-                              className="doodle-button"
-                              style={{
-                                padding: '2px 8px',
-                                fontSize: '0.76rem',
-                                fontWeight: 'bold',
-                                minHeight: 'auto',
-                                backgroundColor: 'white',
-                                color: 'var(--crayon-dark)',
-                                border: '1.5px solid var(--crayon-dark)'
-                              }}
-                              onClick={() => onOpenStageNote(t, w, wIndex)}
-                            >
-                              ➕ 新增備註
-                            </button>
                           )}
 
-                          {canEdit && nextStage && (
-                            <button
-                              type="button"
-                              className="doodle-button success"
+                          {/* Bottom Action Row: Note Icon + Advance Button (on-screen only) */}
+                          {!forPrint && (
+                            <div
                               style={{
-                                padding: '3px 10px',
-                                fontSize: '0.8rem',
-                                fontWeight: 'bold',
-                                minHeight: 'auto'
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                gap: '8px',
+                                marginTop: '2px',
+                                paddingTop: '6px',
+                                borderTop: '1px dashed #ccc'
                               }}
-                              onClick={() => onAdvanceStage(t, nextStage)}
                             >
-                              {btnText}
-                            </button>
-                          )}
-                          {canEdit && isPendingApproval && (
-                            <button
-                              type="button"
-                              className="doodle-button"
-                              style={{
-                                padding: '3px 10px',
-                                fontSize: '0.8rem',
-                                fontWeight: 'bold',
-                                minHeight: 'auto',
-                                backgroundColor: 'var(--crayon-orange)'
-                              }}
-                              onClick={() => onApproveClose(t)}
-                            >
-                              主管核准結案
-                            </button>
+                              {stageNote?.text ? (
+                                <div
+                                  onClick={() => onViewStageNote(t, w, wIndex)}
+                                  title="點擊查看此關卡備註內容"
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '5px',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  <span
+                                    style={{
+                                      width: '28px',
+                                      height: '28px',
+                                      borderRadius: '50%',
+                                      backgroundColor: 'var(--crayon-yellow)',
+                                      border: '2px solid var(--crayon-dark)',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontSize: '0.92rem'
+                                    }}
+                                  >
+                                    📝
+                                  </span>
+                                  <span
+                                    style={{
+                                      fontSize: '0.8rem',
+                                      fontWeight: 'bold',
+                                      color: 'var(--crayon-red)',
+                                      backgroundColor: '#fffde7',
+                                      padding: '1px 6px',
+                                      borderRadius: '8px',
+                                      border: '1.5px dashed var(--crayon-orange)'
+                                    }}
+                                  >
+                                    有備註
+                                  </span>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="doodle-button"
+                                  style={{
+                                    padding: '2px 8px',
+                                    fontSize: '0.76rem',
+                                    fontWeight: 'bold',
+                                    minHeight: 'auto',
+                                    backgroundColor: 'white',
+                                    color: 'var(--crayon-dark)',
+                                    border: '1.5px solid var(--crayon-dark)'
+                                  }}
+                                  onClick={() => onOpenStageNote(t, w, wIndex)}
+                                >
+                                  ➕ 新增備註
+                                </button>
+                              )}
+
+                              {canEdit && nextStage && (
+                                <button
+                                  type="button"
+                                  className="doodle-button success"
+                                  style={{
+                                    padding: '3px 10px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 'bold',
+                                    minHeight: 'auto'
+                                  }}
+                                  onClick={() => onAdvanceStage(t, nextStage)}
+                                >
+                                  {btnText}
+                                </button>
+                              )}
+                              {canEdit && isPendingApproval && (
+                                <button
+                                  type="button"
+                                  className="doodle-button"
+                                  style={{
+                                    padding: '3px 10px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 'bold',
+                                    minHeight: 'auto',
+                                    backgroundColor: 'var(--crayon-orange)'
+                                  }}
+                                  onClick={() => onApproveClose(t)}
+                                >
+                                  主管核准結案
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
-                      </div>
-                    );
-                  })
+                      );
+                    }
+                  )
                 )}
               </div>
             </div>
@@ -622,13 +662,14 @@ export default function WorkflowKanbanBoard({
               boxShadow: '4px 4px 0px rgba(0,0,0,0.12)',
               display: 'flex',
               flexDirection: 'column',
-              overflow: 'hidden'
+              overflow: forPrint ? 'visible' : 'hidden'
             }}
           >
             <div
               style={{
                 backgroundColor: '#e8f5e9',
                 borderBottom: '2.5px solid var(--crayon-dark)',
+                borderRadius: forPrint ? '9px 9px 0 0' : undefined,
                 padding: '12px'
               }}
             >
@@ -647,7 +688,14 @@ export default function WorkflowKanbanBoard({
                   ✅ 完成結案
                 </span>
               </div>
-              <div style={{ fontSize: '1.18rem', fontWeight: 'bold', color: 'var(--crayon-dark)', marginBottom: '8px' }}>
+              <div
+                style={{
+                  fontSize: '1.18rem',
+                  fontWeight: 'bold',
+                  color: 'var(--crayon-dark)',
+                  marginBottom: '8px'
+                }}
+              >
                 已結案單據
               </div>
               <span
@@ -671,21 +719,32 @@ export default function WorkflowKanbanBoard({
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '10px',
-                maxHeight: '300px',
-                overflowY: 'auto',
+                maxHeight: forPrint ? 'none' : '300px',
+                overflowY: forPrint ? 'visible' : 'auto',
                 backgroundColor: '#fafafa',
+                borderRadius: forPrint ? '0 0 9px 9px' : undefined,
                 flex: 1
               }}
             >
               {closedTickets.length === 0 ? (
-                <div style={{ padding: '28px 10px', textAlign: 'center', color: '#999', fontWeight: 'bold', fontSize: '0.92rem' }}>
+                <div
+                  style={{
+                    padding: '28px 10px',
+                    textAlign: 'center',
+                    color: '#999',
+                    fontWeight: 'bold',
+                    fontSize: '0.92rem'
+                  }}
+                >
                   無已結案單據
                 </div>
               ) : (
                 closedTickets.map(t => {
                   const firstDate = getFirstStageDate(t);
                   const totalDays =
-                    firstDate && t.closeDate ? calculateDays(firstDate, t.closeDate) : 0;
+                    firstDate && t.closeDate
+                      ? calculateDays(firstDate, t.closeDate)
+                      : 0;
 
                   return (
                     <div
@@ -700,14 +759,28 @@ export default function WorkflowKanbanBoard({
                         gap: '6px'
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'var(--crayon-dark)' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontWeight: 'bold',
+                            fontSize: '1.1rem',
+                            color: 'var(--crayon-dark)'
+                          }}
+                        >
                           #{t.id}
                         </span>
                         <span
                           style={{
                             backgroundColor:
-                              t.ticketType === 'TKW' ? 'var(--crayon-purple)' : 'var(--crayon-blue)',
+                              t.ticketType === 'TKW'
+                                ? 'var(--crayon-purple)'
+                                : 'var(--crayon-blue)',
                             color: 'white',
                             padding: '2px 8px',
                             borderRadius: '6px',
@@ -718,11 +791,24 @@ export default function WorkflowKanbanBoard({
                           {t.ticketType || '未指定'}
                         </span>
                       </div>
-                      <div style={{ fontSize: '0.84rem', fontWeight: 'bold', color: '#444' }}>
+                      <div
+                        style={{
+                          fontSize: '0.84rem',
+                          fontWeight: 'bold',
+                          color: '#444'
+                        }}
+                      >
                         👤 {getAssigneeName(t.assigneeId)} ｜ 📦 {t.itemCount || 0} 項
                       </div>
-                      <div style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#2e7d32' }}>
-                        ✓ 結案日：{t.closeDate ? formatFullDate(t.closeDate) : '-'}（總耗時 {totalDays} 天）
+                      <div
+                        style={{
+                          fontSize: '0.8rem',
+                          fontWeight: 'bold',
+                          color: '#2e7d32'
+                        }}
+                      >
+                        ✓ 結案日：{t.closeDate ? formatFullDate(t.closeDate) : '-'}
+                        （總耗時 {totalDays} 天）
                       </div>
                     </div>
                   );
@@ -732,6 +818,154 @@ export default function WorkflowKanbanBoard({
           </div>
         )}
       </div>
+    );
+  };
+
+  return (
+    <div
+      className="doodle-border"
+      style={{
+        padding: '18px',
+        backgroundColor: '#f4f8fb',
+        marginBottom: '20px'
+      }}
+    >
+      {/* Kanban Top Summary Bar */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+          paddingBottom: '12px',
+          marginBottom: '16px',
+          borderBottom: '3px dashed var(--crayon-dark)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <h3 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--crayon-dark)' }}>
+            📋 流程關卡控管看板（Kanban 泳道圖）
+          </h3>
+          <span
+            style={{
+              backgroundColor: '#e3f2fd',
+              color: 'var(--crayon-blue)',
+              border: '2px solid var(--crayon-blue)',
+              padding: '3px 12px',
+              borderRadius: '14px',
+              fontWeight: 'bold',
+              fontSize: '0.95rem'
+            }}
+          >
+            🏃 進行中單據：{totalActiveTickets} 單
+          </span>
+          <span
+            style={{
+              backgroundColor: totalOverdueTickets > 0 ? '#ffcdd2' : '#e8f5e9',
+              color: totalOverdueTickets > 0 ? '#b71c1c' : '#1b5e20',
+              border: `2px solid ${
+                totalOverdueTickets > 0 ? 'var(--crayon-red)' : 'var(--crayon-green)'
+              }`,
+              padding: '3px 12px',
+              borderRadius: '14px',
+              fontWeight: 'bold',
+              fontSize: '0.95rem'
+            }}
+          >
+            {totalOverdueTickets > 0
+              ? `🚨 本關耗時超標：${totalOverdueTickets} 單（已自動置頂警示）`
+              : '✅ 目前所有進行中單據皆在標準工時內'}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          className="doodle-button success"
+          style={{
+            padding: '5px 14px',
+            fontSize: '0.92rem',
+            fontWeight: 'bold',
+            minHeight: 'auto'
+          }}
+          disabled={isPrinting}
+          onClick={() => setIsPrinting(true)}
+        >
+          {isPrinting ? '⏳ 匯出看板圖檔中...' : '🖨️ 匯出看板圖檔'}
+        </button>
+      </div>
+
+      {/* On-screen Kanban Grid */}
+      {renderKanbanGrid(false)}
+
+      {/* Off-screen Full Printable Kanban Board (展開全部盤點單無捲軸截斷) */}
+      {isPrinting && (
+        <div style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1 }}>
+          <div
+            ref={printRef}
+            className="doodle-border"
+            style={{
+              width: '1200px',
+              padding: '24px',
+              backgroundColor: '#f4f8fb',
+              border: '3px solid var(--crayon-dark)',
+              borderRadius: '14px'
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '3px dashed var(--crayon-dark)',
+                paddingBottom: '12px',
+                marginBottom: '16px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <h3 style={{ margin: 0, fontSize: '1.7rem', color: 'var(--crayon-dark)' }}>
+                  📋 流程關卡控管看板（Kanban 泳道圖）
+                </h3>
+                <span
+                  style={{
+                    backgroundColor: '#e3f2fd',
+                    color: 'var(--crayon-blue)',
+                    border: '2px solid var(--crayon-blue)',
+                    padding: '3px 12px',
+                    borderRadius: '14px',
+                    fontWeight: 'bold',
+                    fontSize: '1rem'
+                  }}
+                >
+                  🏃 進行中單據：{totalActiveTickets} 單
+                </span>
+                <span
+                  style={{
+                    backgroundColor: totalOverdueTickets > 0 ? '#ffcdd2' : '#e8f5e9',
+                    color: totalOverdueTickets > 0 ? '#b71c1c' : '#1b5e20',
+                    border: `2px solid ${
+                      totalOverdueTickets > 0 ? 'var(--crayon-red)' : 'var(--crayon-green)'
+                    }`,
+                    padding: '3px 12px',
+                    borderRadius: '14px',
+                    fontWeight: 'bold',
+                    fontSize: '1rem'
+                  }}
+                >
+                  {totalOverdueTickets > 0
+                    ? `🚨 本關耗時超標：${totalOverdueTickets} 單`
+                    : '✅ 目前所有進行中單據皆在標準工時內'}
+                </span>
+              </div>
+              <div style={{ fontWeight: 'bold', fontSize: '1rem', color: '#333' }}>
+                列印日期：{formatFullDate(nowMs)}
+              </div>
+            </div>
+
+            {renderKanbanGrid(true)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

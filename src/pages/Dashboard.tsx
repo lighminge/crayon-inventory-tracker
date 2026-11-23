@@ -211,6 +211,7 @@ export default function Dashboard() {
   const [personnelPrintMode, setPersonnelPrintMode] = useState<'detail' | 'summary'>('detail');
   const [excludeZeroPersonnel, setExcludeZeroPersonnel] = useState<boolean>(false);
   const [personnelSortBy, setPersonnelSortBy] = useState<'employeeId' | 'name' | 'doingCount'>('employeeId');
+  const [personnelSortOrder, setPersonnelSortOrder] = useState<'asc' | 'desc'>('asc');
   const printAllPersonnelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -445,26 +446,30 @@ export default function Dashboard() {
         monthCompletedItems
       };
     }).sort((a, b) => {
+      const dir = personnelSortOrder === 'asc' ? 1 : -1;
       if (personnelSortBy === 'employeeId') {
         const empA = (a.employeeId || '').trim();
         const empB = (b.employeeId || '').trim();
         if (empA && !empB) return -1;
         if (!empA && empB) return 1;
         if (empA !== empB) {
-          return empA.localeCompare(empB, 'zh-TW', { numeric: true });
+          return empA.localeCompare(empB, 'zh-TW', { numeric: true }) * dir;
         }
-        return (a.name || '').localeCompare(b.name || '', 'zh-TW');
+        return (a.name || '').localeCompare(b.name || '', 'zh-TW') * dir;
       }
       if (personnelSortBy === 'name') {
-        return (a.name || '').localeCompare(b.name || '', 'zh-TW');
+        return (a.name || '').localeCompare(b.name || '', 'zh-TW') * dir;
       }
       // doingCount
-      if (b.doingCount !== a.doingCount) {
-        return b.doingCount - a.doingCount;
+      if (a.doingCount !== b.doingCount) {
+        return (a.doingCount - b.doingCount) * dir;
       }
-      return b.doingItemCount - a.doingItemCount;
+      if (a.doingItemCount !== b.doingItemCount) {
+        return (a.doingItemCount - b.doingItemCount) * dir;
+      }
+      return (a.name || '').localeCompare(b.name || '', 'zh-TW') * dir;
     });
-  }, [filteredTickets, personnel, selectedYear, selectedMonthNum, holidays, personnelSortBy]);
+  }, [filteredTickets, personnel, selectedYear, selectedMonthNum, holidays, personnelSortBy, personnelSortOrder]);
 
   const personnelTotals = useMemo(() => {
     return personnelStats.reduce((acc, curr) => ({
@@ -1595,7 +1600,7 @@ export default function Dashboard() {
                   🏃 盤點中
                 </button>
               </div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                 <label style={{ fontWeight: 'bold' }}>排序：</label>
                 <select
                   className="doodle-input"
@@ -1610,6 +1615,17 @@ export default function Dashboard() {
                   <option value="employeeId">依工號</option>
                   <option value="name">依盤點人姓名</option>
                   <option value="doingCount">依盤點中單據數量</option>
+                </select>
+                <select
+                  className="doodle-input"
+                  style={{ width: 'auto', backgroundColor: 'white', padding: '4px 10px', fontSize: '0.95rem' }}
+                  value={personnelSortOrder}
+                  onChange={e =>
+                    setPersonnelSortOrder(e.target.value as 'asc' | 'desc')
+                  }
+                >
+                  <option value="asc">由小到大</option>
+                  <option value="desc">由大到小</option>
                 </select>
               </div>
             </div>
