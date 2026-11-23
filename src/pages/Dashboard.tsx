@@ -2399,8 +2399,13 @@ export default function Dashboard() {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', width: '100%', paddingBottom: '8px' }}>
                       <div style={{ flex: 1 }}></div>
-                      <div style={{ flex: 2, textAlign: 'center', fontSize: '22pt', fontWeight: 'bold', color: '#000000' }}>
-                        本週盤點數量統計表
+                      <div style={{ flex: 2, textAlign: 'center', fontSize: '22pt', fontWeight: 'bold', color: '#000000', whiteSpace: 'nowrap' }}>
+                        {(() => {
+                          const s = weeklyCompletedCalendarData.days[0]?.date;
+                          const e = weeklyCompletedCalendarData.days[4]?.date;
+                          const rangeText = s && e ? `(${s.getMonth() + 1}/${s.getDate()} ~ ${e.getMonth() + 1}/${e.getDate()})` : '';
+                          return `本週${rangeText}盤點數量統計表`;
+                        })()}
                       </div>
                       <div style={{ flex: 1, textAlign: 'right', fontSize: '14pt', fontWeight: 'bold', color: '#000000' }}>
                         列印日期：{new Date().toLocaleDateString('zh-TW')}
