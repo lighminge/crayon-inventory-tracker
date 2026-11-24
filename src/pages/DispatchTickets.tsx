@@ -30,6 +30,10 @@ export default function DispatchTickets() {
   // Success Modal
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Personnel Sort State (預設：依未完成單數 由大到小)
+  const [sortBy, setSortBy] = useState<'unfinished' | 'employeeId' | 'name'>('unfinished');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
   useEffect(() => {
     loadData();
   }, []);
@@ -57,6 +61,34 @@ export default function DispatchTickets() {
   const getUnfinishedCount = (personId: string) => {
     return tickets.filter(t => t.assigneeId === personId && !t.closeDate).length;
   };
+
+  const sortedPersonnel = [...personnel].sort((a, b) => {
+    const dir = sortOrder === 'asc' ? 1 : -1;
+    if (sortBy === 'unfinished') {
+      const countA = getUnfinishedCount(a.id);
+      const countB = getUnfinishedCount(b.id);
+      if (countA !== countB) {
+        return (countA - countB) * dir;
+      }
+      const empA = (a.employeeId || '').trim();
+      const empB = (b.employeeId || '').trim();
+      if (empA !== empB) {
+        return empA.localeCompare(empB, 'zh-TW', { numeric: true });
+      }
+      return (a.name || '').localeCompare(b.name || '', 'zh-TW');
+    }
+    if (sortBy === 'employeeId') {
+      const empA = (a.employeeId || '').trim();
+      const empB = (b.employeeId || '').trim();
+      if (empA && !empB) return -1;
+      if (!empA && empB) return 1;
+      if (empA !== empB) {
+        return empA.localeCompare(empB, 'zh-TW', { numeric: true }) * dir;
+      }
+      return (a.name || '').localeCompare(b.name || '', 'zh-TW') * dir;
+    }
+    return (a.name || '').localeCompare(b.name || '', 'zh-TW') * dir;
+  });
 
   const handleOpenDispatchModal = (p: Personnel) => {
     setTargetPerson(p);
@@ -215,11 +247,35 @@ export default function DispatchTickets() {
         </div>
       </div>
 
-      <h3 style={{ marginBottom: '20px', color: 'var(--crayon-dark)' }}>👉 點選人員進行派送</h3>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
+        <h3 style={{ margin: 0, color: 'var(--crayon-dark)' }}>👉 點選人員進行派送</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <label style={{ fontWeight: 'bold', fontSize: '1rem', color: 'var(--crayon-dark)' }}>排序：</label>
+          <select
+            className="doodle-input"
+            style={{ width: 'auto', backgroundColor: 'white', padding: '5px 10px', fontSize: '0.95rem' }}
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value as 'unfinished' | 'employeeId' | 'name')}
+          >
+            <option value="unfinished">依未完成單數</option>
+            <option value="employeeId">依工號</option>
+            <option value="name">依姓名</option>
+          </select>
+          <select
+            className="doodle-input"
+            style={{ width: 'auto', backgroundColor: 'white', padding: '5px 10px', fontSize: '0.95rem' }}
+            value={sortOrder}
+            onChange={e => setSortOrder(e.target.value as 'asc' | 'desc')}
+          >
+            <option value="desc">由大到小</option>
+            <option value="asc">由小到大</option>
+          </select>
+        </div>
+      </div>
 
       {/* 人員卡片網格 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
-        {personnel.map(p => {
+        {sortedPersonnel.map(p => {
           const unfinished = getUnfinishedCount(p.id);
           return (
             <div 
