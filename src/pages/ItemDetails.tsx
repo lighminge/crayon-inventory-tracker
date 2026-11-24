@@ -603,86 +603,84 @@ export default function ItemDetails() {
               )}
             </div>
 
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '900px' }}>
+            <div style={{ overflowX: 'auto', width: '100%' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', tableLayout: 'fixed', minWidth: '860px' }}>
               <thead>
-                <tr style={{ backgroundColor: 'var(--crayon-dark)', color: 'white' }}>
-                  {canEdit && <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)', width: '120px', textAlign: 'center' }}>功能</th>}
-                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>序號</th>
-                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>物料品號</th>
-                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>日期</th>
-                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>物料總重量</th>
-                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>容器類型</th>
-                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>容器數量</th>
-                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>容器單重</th>
-                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>淨重</th>
-                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>物料單重</th>
-                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>物料總數</th>
+                <tr style={{ backgroundColor: 'var(--crayon-dark)', color: 'white', fontSize: '0.92rem' }}>
+                  {canEdit && <th style={{ padding: '8px 6px', border: '1px solid var(--crayon-dark)', width: '92px', textAlign: 'center' }}>功能</th>}
+                  <th style={{ padding: '8px 6px', border: '1px solid var(--crayon-dark)', width: '78px' }}>序號</th>
+                  <th style={{ padding: '8px 6px', border: '1px solid var(--crayon-dark)', width: '96px' }}>物料品號</th>
+                  <th style={{ padding: '8px 6px', border: '1px solid var(--crayon-dark)', width: '106px' }}>日期</th>
+                  <th style={{ padding: '8px 6px', border: '1px solid var(--crayon-dark)', width: '78px' }}>物料總重量</th>
+                  <th style={{ padding: '8px 6px', border: '1px solid var(--crayon-dark)', width: '70px' }}>容器類型</th>
+                  <th style={{ padding: '8px 6px', border: '1px solid var(--crayon-dark)', width: '62px' }}>容器數量</th>
+                  <th style={{ padding: '8px 6px', border: '1px solid var(--crayon-dark)', width: '74px' }}>容器單重</th>
+                  <th style={{ padding: '8px 6px', border: '1px solid var(--crayon-dark)', width: '74px' }}>淨重</th>
+                  <th style={{ padding: '8px 6px', border: '1px solid var(--crayon-dark)', width: '74px' }}>物料單重</th>
+                  <th style={{ padding: '8px 6px', border: '1px solid var(--crayon-dark)', width: '88px' }}>物料總數</th>
                 </tr>
               </thead>
               <tbody>
                 {isAddingNew && (
                   <tr style={{ backgroundColor: '#e8f5e9', borderBottom: '2px solid var(--crayon-green)' }}>
-                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                        <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', minHeight: 'auto', backgroundColor: 'var(--crayon-green)', color: 'white' }} onClick={saveNew}>儲存</button>
-                        <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', minHeight: 'auto' }} onClick={() => setIsAddingNew(false)}>取消</button>
+                    <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                        <button className="doodle-button" style={{ padding: '2px 6px', fontSize: '0.78rem', minHeight: 'auto', backgroundColor: 'var(--crayon-green)', color: 'white' }} onClick={saveNew}>儲存</button>
+                        <button className="doodle-button" style={{ padding: '2px 6px', fontSize: '0.78rem', minHeight: 'auto' }} onClick={() => setIsAddingNew(false)}>取消</button>
                       </div>
                     </td>
-                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>
+                    <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>
                       <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
-                        <select className="doodle-input" style={{ width: '60px', padding: '2px', textAlign: 'center' }} value={newData.itemSeq || ''} onChange={e => handleNewChange('itemSeq', e.target.value)}>
+                        <select className="doodle-input" style={{ width: '42px', padding: '2px 1px', fontSize: '0.82rem', textAlign: 'center' }} value={newData.itemSeq || ''} onChange={e => handleNewChange('itemSeq', e.target.value)}>
                           {allTicketItemSeqs.map(seq => (
                             <option key={seq} value={seq}>{seq}</option>
                           ))}
                         </select>
-                        -
-                        <input type="text" className="doodle-input" style={{ width: '30px', padding: '2px', textAlign: 'center' }} placeholder="子項" value={newData.subItemSeq || ''} onChange={e => handleNewChange('subItemSeq', e.target.value)} />
+                        <span>-</span>
+                        <input type="text" className="doodle-input" style={{ width: '24px', padding: '2px 1px', fontSize: '0.82rem', textAlign: 'center' }} placeholder="子" value={newData.subItemSeq || ''} onChange={e => handleNewChange('subItemSeq', e.target.value)} />
                       </div>
                     </td>
-                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                    <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
                       <input
                         type="text"
                         list="item-details-material-codes"
                         className="doodle-input"
-                        style={{ width: '120px', padding: '2px 6px' }}
+                        style={{ width: '100%', padding: '3px 5px', fontSize: '0.85rem' }}
                         placeholder="選填品號"
                         value={newData.materialCode || ''}
                         onChange={e => handleNewChange('materialCode', e.target.value)}
                       />
                     </td>
-                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                      <div style={{ width: '130px' }}>
-                        <CrayonDatePicker value={newData.date || ''} onChange={val => handleNewChange('date', val)} />
-                      </div>
+                    <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
+                      <CrayonDatePicker compact value={newData.date || ''} onChange={val => handleNewChange('date', val)} />
                     </td>
-                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                      <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={newData.grossWeight || ''} onChange={e => handleNewChange('grossWeight', Number(e.target.value))} />
+                    <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
+                      <input type="number" className="doodle-input" style={{ width: '100%', padding: '3px 4px', fontSize: '0.85rem' }} value={newData.grossWeight || ''} onChange={e => handleNewChange('grossWeight', Number(e.target.value))} />
                     </td>
-                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                      <select className="doodle-input" style={{ width: '90px', padding: '2px' }} value={newData.containerType || ''} onChange={e => handleNewChange('containerType', e.target.value)}>
+                    <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
+                      <select className="doodle-input" style={{ width: '100%', padding: '3px 2px', fontSize: '0.82rem' }} value={newData.containerType || ''} onChange={e => handleNewChange('containerType', e.target.value)}>
                         <option value="">無</option>
-                        <option value="T">鐵桶 (T)</option>
-                        <option value="P">塑膠箱 (P)</option>
-                        <option value="B">紙箱 (B)</option>
-                        <option value="L">摺疊籠 (L)</option>
-                        <option value="J">鐵架 (J)</option>
+                        <option value="T">鐵桶(T)</option>
+                        <option value="P">塑膠(P)</option>
+                        <option value="B">紙箱(B)</option>
+                        <option value="L">摺疊(L)</option>
+                        <option value="J">鐵架(J)</option>
                       </select>
                     </td>
-                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                      <input type="number" className="doodle-input" style={{ width: '50px', padding: '2px' }} value={newData.containerCount || ''} onChange={e => handleNewChange('containerCount', Number(e.target.value))} />
+                    <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
+                      <input type="number" className="doodle-input" style={{ width: '100%', padding: '3px 4px', fontSize: '0.85rem' }} value={newData.containerCount || ''} onChange={e => handleNewChange('containerCount', Number(e.target.value))} />
                     </td>
-                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                      <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={newData.containerUnitWeight || ''} onChange={e => handleNewChange('containerUnitWeight', Number(e.target.value))} />
+                    <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
+                      <input type="number" className="doodle-input" style={{ width: '100%', padding: '3px 4px', fontSize: '0.85rem' }} value={newData.containerUnitWeight || ''} onChange={e => handleNewChange('containerUnitWeight', Number(e.target.value))} />
                     </td>
-                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                      <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={newData.netWeight || ''} onChange={e => handleNewChange('netWeight', Number(e.target.value))} />
+                    <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
+                      <input type="number" className="doodle-input" style={{ width: '100%', padding: '3px 4px', fontSize: '0.85rem' }} value={newData.netWeight || ''} onChange={e => handleNewChange('netWeight', Number(e.target.value))} />
                     </td>
-                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                      <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={newData.materialUnitWeight || ''} onChange={e => handleNewChange('materialUnitWeight', Number(e.target.value))} />
+                    <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
+                      <input type="number" className="doodle-input" style={{ width: '100%', padding: '3px 4px', fontSize: '0.85rem' }} value={newData.materialUnitWeight || ''} onChange={e => handleNewChange('materialUnitWeight', Number(e.target.value))} />
                     </td>
-                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                      <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={newData.totalItemCount || ''} onChange={e => handleNewChange('totalItemCount', Number(e.target.value))} />
+                    <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
+                      <input type="number" className="doodle-input" style={{ width: '100%', padding: '3px 4px', fontSize: '0.85rem' }} value={newData.totalItemCount || ''} onChange={e => handleNewChange('totalItemCount', Number(e.target.value))} />
                     </td>
                   </tr>
                 )}
@@ -725,65 +723,63 @@ export default function ItemDetails() {
                         if (editingId === d.id) {
                           return (
                             <tr key={d.id} style={{ backgroundColor: '#fffbe6', borderBottom: '2px solid var(--crayon-blue)' }}>
-                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
-                                <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                                  <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', minHeight: 'auto', backgroundColor: 'var(--crayon-green)', color: 'white' }} onClick={saveEdit}>儲存</button>
-                                  <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', minHeight: 'auto' }} onClick={() => setEditingId(null)}>取消</button>
+                              <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
+                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                                  <button className="doodle-button" style={{ padding: '2px 6px', fontSize: '0.78rem', minHeight: 'auto', backgroundColor: 'var(--crayon-green)', color: 'white' }} onClick={saveEdit}>儲存</button>
+                                  <button className="doodle-button" style={{ padding: '2px 6px', fontSize: '0.78rem', minHeight: 'auto' }} onClick={() => setEditingId(null)}>取消</button>
                                 </div>
                               </td>
-                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>
+                              <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)', fontWeight: 'bold' }}>
                                 <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
-                                  <input type="text" className="doodle-input" style={{ width: '40px', padding: '2px', textAlign: 'center' }} value={editData.itemSeq || ''} onChange={e => handleEditChange('itemSeq', e.target.value)} />
-                                  -
-                                  <input type="text" className="doodle-input" style={{ width: '30px', padding: '2px', textAlign: 'center' }} value={editData.subItemSeq || ''} onChange={e => handleEditChange('subItemSeq', e.target.value)} />
+                                  <input type="text" className="doodle-input" style={{ width: '38px', padding: '2px 2px', fontSize: '0.82rem', textAlign: 'center' }} value={editData.itemSeq || ''} onChange={e => handleEditChange('itemSeq', e.target.value)} />
+                                  <span>-</span>
+                                  <input type="text" className="doodle-input" style={{ width: '24px', padding: '2px 2px', fontSize: '0.82rem', textAlign: 'center' }} value={editData.subItemSeq || ''} onChange={e => handleEditChange('subItemSeq', e.target.value)} />
                                 </div>
                               </td>
-                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                              <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
                                 <input
                                   type="text"
                                   list="item-details-material-codes"
                                   className="doodle-input"
-                                  style={{ width: '120px', padding: '2px 6px' }}
+                                  style={{ width: '100%', padding: '3px 5px', fontSize: '0.85rem' }}
                                   placeholder="選填品號"
                                   value={editData.materialCode || ''}
                                   onChange={e => handleEditChange('materialCode', e.target.value)}
                                 />
                               </td>
-                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                                <div style={{ width: '130px' }}>
-                                  <CrayonDatePicker value={editData.date || ''} onChange={val => handleEditChange('date', val)} />
-                                </div>
+                              <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
+                                <CrayonDatePicker compact value={editData.date || ''} onChange={val => handleEditChange('date', val)} />
                               </td>
-                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                                <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={editData.grossWeight || ''} onChange={e => handleEditChange('grossWeight', Number(e.target.value))} />
+                              <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
+                                <input type="number" className="doodle-input" style={{ width: '100%', padding: '3px 4px', fontSize: '0.85rem' }} value={editData.grossWeight || ''} onChange={e => handleEditChange('grossWeight', Number(e.target.value))} />
                               </td>
-                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                                <select className="doodle-input" style={{ width: '90px', padding: '2px' }} value={editData.containerType || ''} onChange={e => handleEditChange('containerType', e.target.value)}>
+                              <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
+                                <select className="doodle-input" style={{ width: '100%', padding: '3px 2px', fontSize: '0.82rem' }} value={editData.containerType || ''} onChange={e => handleEditChange('containerType', e.target.value)}>
                                   <option value="">無</option>
-                                  <option value="T">鐵桶 (T)</option>
-                                  <option value="P">塑膠箱 (P)</option>
-                                  <option value="B">紙箱 (B)</option>
-                                  <option value="L">摺疊籠 (L)</option>
-                                  <option value="J">鐵架 (J)</option>
+                                  <option value="T">鐵桶(T)</option>
+                                  <option value="P">塑膠(P)</option>
+                                  <option value="B">紙箱(B)</option>
+                                  <option value="L">摺疊(L)</option>
+                                  <option value="J">鐵架(J)</option>
                                   {editData.containerType && !['', 'T', 'P', 'B', 'L', 'J'].includes(editData.containerType) && (
                                     <option value={editData.containerType}>{editData.containerType}</option>
                                   )}
                                 </select>
                               </td>
-                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                                <input type="number" className="doodle-input" style={{ width: '50px', padding: '2px' }} value={editData.containerCount || ''} onChange={e => handleEditChange('containerCount', Number(e.target.value))} />
+                              <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
+                                <input type="number" className="doodle-input" style={{ width: '100%', padding: '3px 4px', fontSize: '0.85rem' }} value={editData.containerCount || ''} onChange={e => handleEditChange('containerCount', Number(e.target.value))} />
                               </td>
-                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                                <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={editData.containerUnitWeight || ''} onChange={e => handleEditChange('containerUnitWeight', Number(e.target.value))} />
+                              <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
+                                <input type="number" className="doodle-input" style={{ width: '100%', padding: '3px 4px', fontSize: '0.85rem' }} value={editData.containerUnitWeight || ''} onChange={e => handleEditChange('containerUnitWeight', Number(e.target.value))} />
                               </td>
-                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                                <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={editData.netWeight || ''} onChange={e => handleEditChange('netWeight', Number(e.target.value))} />
+                              <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
+                                <input type="number" className="doodle-input" style={{ width: '100%', padding: '3px 4px', fontSize: '0.85rem' }} value={editData.netWeight || ''} onChange={e => handleEditChange('netWeight', Number(e.target.value))} />
                               </td>
-                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                                <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={editData.materialUnitWeight || ''} onChange={e => handleEditChange('materialUnitWeight', Number(e.target.value))} />
+                              <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
+                                <input type="number" className="doodle-input" style={{ width: '100%', padding: '3px 4px', fontSize: '0.85rem' }} value={editData.materialUnitWeight || ''} onChange={e => handleEditChange('materialUnitWeight', Number(e.target.value))} />
                               </td>
-                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                                <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={editData.totalItemCount || ''} onChange={e => handleEditChange('totalItemCount', Number(e.target.value))} />
+                              <td style={{ padding: '6px 4px', border: '1px solid var(--crayon-dark)' }}>
+                                <input type="number" className="doodle-input" style={{ width: '100%', padding: '3px 4px', fontSize: '0.85rem' }} value={editData.totalItemCount || ''} onChange={e => handleEditChange('totalItemCount', Number(e.target.value))} />
                               </td>
                             </tr>
                           );
@@ -792,64 +788,64 @@ export default function ItemDetails() {
                         return (
                           <tr key={d.id} style={{ borderBottom: '1px dashed var(--crayon-dark)', backgroundColor: index % 2 === 0 ? '#fff' : '#f9f9f9' }}>
                             {canEdit && (
-                              <td style={{ padding: '10px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', textAlign: 'center' }}>
-                                <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                                  <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', backgroundColor: 'var(--crayon-purple)', color: 'white', minHeight: 'auto' }} onClick={() => startEdit(d)}>修改</button>
-                                  <button className="doodle-button" style={{ padding: '2px 8px', fontSize: '0.8rem', backgroundColor: 'var(--crayon-red)', color: 'white', minHeight: 'auto' }} onClick={() => setDeleteConfirmId(d.id)}>刪除</button>
+                              <td style={{ padding: '8px 4px', borderLeft: '1px solid var(--crayon-dark)', borderRight: '1px solid var(--crayon-dark)', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                                <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+                                  <button className="doodle-button" style={{ padding: '2px 6px', fontSize: '0.78rem', backgroundColor: 'var(--crayon-purple)', color: 'white', minHeight: 'auto' }} onClick={() => startEdit(d)}>修改</button>
+                                  <button className="doodle-button" style={{ padding: '2px 6px', fontSize: '0.78rem', backgroundColor: 'var(--crayon-red)', color: 'white', minHeight: 'auto' }} onClick={() => setDeleteConfirmId(d.id)}>刪除</button>
                                 </div>
                               </td>
                             )}
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
-                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-green)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-dark)', fontWeight: 'bold' }}>
+                          <td style={{ padding: '8px 6px', borderRight: '1px solid var(--crayon-dark)', whiteSpace: 'nowrap' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-green)', padding: '2px 6px', borderRadius: '10px', color: 'var(--crayon-dark)', fontWeight: 'bold', fontSize: '0.88rem' }}>
                               {d.itemSeq} {d.subItemSeq ? `- ${d.subItemSeq}` : ''}
                             </span>
                           </td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
+                          <td style={{ padding: '8px 6px', borderRight: '1px solid var(--crayon-dark)', wordBreak: 'break-all' }}>
                             {d.materialCode ? (
-                              <span style={{ display: 'inline-block', backgroundColor: '#fff8e1', border: '1px dashed var(--crayon-orange)', padding: '2px 8px', borderRadius: '10px', color: '#e65100', fontWeight: 'bold' }}>
+                              <span style={{ display: 'inline-block', backgroundColor: '#fff8e1', border: '1px dashed var(--crayon-orange)', padding: '2px 6px', borderRadius: '10px', color: '#e65100', fontWeight: 'bold', fontSize: '0.88rem' }}>
                                 {d.materialCode}
                               </span>
                             ) : (
                               <span style={{ color: '#999', fontSize: '0.9rem' }}>-</span>
                             )}
                           </td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
-                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-blue)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
+                          <td style={{ padding: '8px 6px', borderRight: '1px solid var(--crayon-dark)', whiteSpace: 'nowrap' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-blue)', padding: '2px 6px', borderRadius: '10px', color: 'var(--crayon-blue)', fontWeight: 'bold', fontSize: '0.88rem' }}>
                               {d.date || '無'}
                             </span>
                           </td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
-                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-dark)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-dark)', fontWeight: 'bold' }}>
+                          <td style={{ padding: '8px 6px', borderRight: '1px solid var(--crayon-dark)', whiteSpace: 'nowrap' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-dark)', padding: '2px 6px', borderRadius: '10px', color: 'var(--crayon-dark)', fontWeight: 'bold', fontSize: '0.88rem' }}>
                               {d.grossWeight} 公斤
                             </span>
                           </td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
-                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-purple)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-purple)', fontWeight: 'bold' }}>
+                          <td style={{ padding: '8px 6px', borderRight: '1px solid var(--crayon-dark)', whiteSpace: 'nowrap' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-purple)', padding: '2px 6px', borderRadius: '10px', color: 'var(--crayon-purple)', fontWeight: 'bold', fontSize: '0.88rem' }}>
                               {mapContainerType(d.containerType)}
                             </span>
                           </td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
-                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-purple)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-purple)', fontWeight: 'bold' }}>
+                          <td style={{ padding: '8px 6px', borderRight: '1px solid var(--crayon-dark)', whiteSpace: 'nowrap' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-purple)', padding: '2px 6px', borderRadius: '10px', color: 'var(--crayon-purple)', fontWeight: 'bold', fontSize: '0.88rem' }}>
                               {d.containerCount}
                             </span>
                           </td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
-                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-purple)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-purple)', fontWeight: 'bold' }}>
+                          <td style={{ padding: '8px 6px', borderRight: '1px solid var(--crayon-dark)', whiteSpace: 'nowrap' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-purple)', padding: '2px 6px', borderRadius: '10px', color: 'var(--crayon-purple)', fontWeight: 'bold', fontSize: '0.88rem' }}>
                               {d.containerUnitWeight} 公斤
                             </span>
                           </td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
-                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-red)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-red)', fontWeight: 'bold' }}>
+                          <td style={{ padding: '8px 6px', borderRight: '1px solid var(--crayon-dark)', whiteSpace: 'nowrap' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-red)', padding: '2px 6px', borderRadius: '10px', color: 'var(--crayon-red)', fontWeight: 'bold', fontSize: '0.88rem' }}>
                               {d.netWeight !== undefined ? `${d.netWeight} 公斤` : '無'}
                             </span>
                           </td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
-                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed #20b2aa', padding: '2px 8px', borderRadius: '10px', color: '#20b2aa', fontWeight: 'bold' }}>
+                          <td style={{ padding: '8px 6px', borderRight: '1px solid var(--crayon-dark)', whiteSpace: 'nowrap' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed #20b2aa', padding: '2px 6px', borderRadius: '10px', color: '#20b2aa', fontWeight: 'bold', fontSize: '0.88rem' }}>
                               {d.materialUnitWeight} 公克
                             </span>
                           </td>
-                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
-                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed #ff69b4', padding: '2px 8px', borderRadius: '10px', color: '#ff69b4', fontWeight: 'bold' }}>
+                          <td style={{ padding: '8px 6px', borderRight: '1px solid var(--crayon-dark)', whiteSpace: 'nowrap' }}>
+                            <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed #ff69b4', padding: '2px 6px', borderRadius: '10px', color: '#ff69b4', fontWeight: 'bold', fontSize: '0.88rem' }}>
                               {d.totalItemCount} 個 (PCS)
                             </span>
                           </td>

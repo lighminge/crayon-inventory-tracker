@@ -1,30 +1,71 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 interface CrayonDatePickerProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  compact?: boolean;
 }
 
-export default function CrayonDatePicker({ value, onChange, placeholder = '選擇日期', disabled = false }: CrayonDatePickerProps) {
+export default function CrayonDatePicker({ value, onChange, placeholder = '選擇日期', disabled = false, compact = false }: CrayonDatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [popupPos, setPopupPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const [currentMonth, setCurrentMonth] = useState(() => {
     const d = value ? new Date(value) : new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
   
   const containerRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  const updatePosition = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const popupWidth = 260;
+    const popupHeight = 340;
+    let top = rect.bottom + 6;
+    let left = rect.left;
+
+    if (top + popupHeight > window.innerHeight - 10 && rect.top - popupHeight - 6 > 10) {
+      top = rect.top - popupHeight - 6;
+    } else if (top + popupHeight > window.innerHeight - 10) {
+      top = Math.max(10, window.innerHeight - popupHeight - 10);
+    }
+
+    if (left + popupWidth > window.innerWidth - 10) {
+      left = Math.max(10, window.innerWidth - popupWidth - 10);
+    }
+
+    setPopupPos({ top, left });
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(target) &&
+        (!popupRef.current || !popupRef.current.contains(target))
+      ) {
         setIsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isOpen, updatePosition]);
 
   // Update current month when value changes
   useEffect(() => {
@@ -74,29 +115,37 @@ export default function CrayonDatePicker({ value, onChange, placeholder = '選�
           justifyContent: 'space-between',
           alignItems: 'center',
           cursor: disabled ? 'not-allowed' : 'pointer',
-          padding: '8px 12px',
+          padding: compact ? '3px 6px' : '8px 12px',
           border: '2px solid var(--crayon-dark)',
-          borderRadius: '10px',
+          borderRadius: compact ? '6px' : '10px',
           backgroundColor: disabled ? '#f0f0f0' : 'white',
           opacity: disabled ? 0.7 : 1,
-          boxShadow: disabled ? 'none' : '3px 3px 0 var(--crayon-dark)',
+          boxShadow: disabled ? 'none' : (compact ? '1px 1px 0 var(--crayon-dark)' : '3px 3px 0 var(--crayon-dark)'),
           fontFamily: "'Caveat', 'Noto Sans TC', sans-serif",
-          fontSize: '1.1rem'
+          fontSize: compact ? '0.85rem' : '1.1rem',
+          whiteSpace: 'nowrap',
+          gap: '4px'
         }}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
+        onClick={() => {
+          if (!disabled) {
+            if (!isOpen) updatePosition();
+            setIsOpen(!isOpen);
+          }
+        }}
       >
-        <span style={{ color: value ? '#000' : '#888' }}>{value || placeholder}</span>
-        <span>📅</span>
+        <span style={{ color: value ? '#000' : '#888', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value || placeholder}</span>
+        <span style={{ fontSize: compact ? '0.8rem' : '1rem' }}>📅</span>
       </div>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <div 
+          ref={popupRef}
           className="doodle-border"
           style={{
-            position: 'absolute',
-            top: '110%',
-            left: 0,
-            zIndex: 1000,
+            position: 'fixed',
+            top: `${popupPos.top}px`,
+            left: `${popupPos.left}px`,
+            zIndex: 20000,
             backgroundColor: 'var(--crayon-paper)',
             padding: '15px',
             width: '260px',
@@ -175,7 +224,8 @@ export default function CrayonDatePicker({ value, onChange, placeholder = '選�
                清除日期
              </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
