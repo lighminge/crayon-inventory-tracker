@@ -79,7 +79,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const hasPermission = (module: keyof ModulePermissions, level: 'view' | 'edit'): boolean => {
     if (!currentUser) return false;
-    const userLevel = currentUser.permissions[module];
+    let userLevel = currentUser.permissions[module];
+    if (module === 'materials' && userLevel === undefined) {
+      userLevel =
+        currentUser.permissions.itemDetails ||
+        currentUser.permissions.tickets ||
+        'edit';
+    }
     
     if (level === 'view') {
       return userLevel === 'view' || userLevel === 'edit';

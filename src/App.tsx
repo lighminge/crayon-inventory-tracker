@@ -11,6 +11,7 @@ import Statistics from './pages/Statistics';
 import Login from './pages/Login';
 import InventoryTasks from './pages/InventoryTasks';
 import ItemDetails from './pages/ItemDetails';
+import Materials from './pages/Materials';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import SystemManagement from './pages/SystemManagement';
 import CalendarManagement from './pages/CalendarManagement';
@@ -37,6 +38,7 @@ function App() {
           <Route path="additional-tickets" element={<AdditionalTickets />} />
           <Route path="workflow-tickets" element={<WorkflowTickets />} />
           <Route path="workflow" element={<WorkflowManagement />} />
+          <Route path="materials" element={<Materials />} />
           <Route path="item-details" element={<ItemDetails />} />
           <Route path="personnel" element={<Personnel />} />
           <Route path="statistics" element={<Statistics />} />

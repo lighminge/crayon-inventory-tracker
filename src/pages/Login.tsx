@@ -40,6 +40,7 @@ export default function Login() {
             workflowTickets: 'edit',
             tasks: 'edit',
             workflow: 'edit',
+            materials: 'edit',
             itemDetails: 'edit',
             personnel: 'edit',
             statistics: 'edit',

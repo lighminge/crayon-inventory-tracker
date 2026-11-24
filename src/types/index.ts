@@ -87,6 +87,26 @@ export interface HolidaySetting {
 
 export type PermissionLevel = 'none' | 'view' | 'edit';
 
+export interface MaterialItem {
+  id?: string;
+  name: string; // 物料品號
+  partName?: string; // 物料品名
+  headType?: string; // 頭型
+  stock: number; // 庫存數量
+  unit: string; // 單位 ('PCS' | 'KG')
+  category?: string; // 物料分類 ('未分類' | 'TKW' | '夾鉗')
+}
+
+export interface MaterialHistoryLog {
+  id: string;
+  controlId: string;
+  materialId: string;
+  materialName: string;
+  restockDate: string;
+  requiredQuantity?: number;
+  notes?: string;
+}
+
 export interface ModulePermissions {
   dashboard: PermissionLevel;
   dispatch: PermissionLevel;
@@ -94,6 +114,7 @@ export interface ModulePermissions {
   workflowTickets: PermissionLevel;
   tasks: PermissionLevel;
   workflow: PermissionLevel;
+  materials?: PermissionLevel;
   itemDetails: PermissionLevel;
   personnel: PermissionLevel;
   statistics: PermissionLevel;

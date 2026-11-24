@@ -197,6 +197,11 @@ export default function Layout() {
                 🔀 流程管理
               </NavLink>
             )}
+            {hasPermission('materials', 'view') && (
+              <NavLink to="/materials" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
+                📦 物料庫存
+              </NavLink>
+            )}
             {hasPermission('itemDetails', 'view') && (
               <NavLink to="/item-details" className={({isActive}) => isActive ? "nav-link active" : "nav-link"}>
                 📑 盤點項目明細

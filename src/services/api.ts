@@ -1,6 +1,6 @@
-import { collection, getDocs, setDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, getDoc, setDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
-import type { Personnel, InventoryTicket, Workflow, InventoryTask, SystemUser, SystemLoginRecord } from '../types';
+import type { Personnel, InventoryTicket, Workflow, InventoryTask, SystemUser, SystemLoginRecord, MaterialItem, MaterialHistoryLog } from '../types';
 
 // Feature Flag to use local storage if Firebase is not configured properly
 export const USE_MOCK = false;
@@ -206,4 +206,145 @@ export const addLoginRecord = async (record: Omit<SystemLoginRecord, 'id'>): Pro
 
 export const updateLoginRecord = async (id: string, record: Partial<SystemLoginRecord>): Promise<void> => {
   await updateDoc(doc(db, 'system_login_records', id), record);
+};
+
+// --- Materials Inventory API ---
+const LOCAL_MATERIALS_KEY = 'crayon_materials_v1';
+const LOCAL_HEAD_TYPES_KEY = 'crayon_head_types_v1';
+
+const getLocalMaterials = (): MaterialItem[] => {
+  try {
+    const raw = localStorage.getItem(LOCAL_MATERIALS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  return [];
+};
+
+const setLocalMaterials = (items: MaterialItem[]) => {
+  try {
+    localStorage.setItem(LOCAL_MATERIALS_KEY, JSON.stringify(items));
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+export const getMaterials = async (): Promise<MaterialItem[]> => {
+  try {
+    const snapshot = await getDocs(collection(db, 'materials'));
+    const remoteItems = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as MaterialItem));
+    if (remoteItems.length > 0 || localStorage.getItem(LOCAL_MATERIALS_KEY) === null) {
+      setLocalMaterials(remoteItems);
+      return remoteItems;
+    }
+    return getLocalMaterials();
+  } catch {
+    return getLocalMaterials();
+  }
+};
+
+export const addMaterial = async (mat: Omit<MaterialItem, 'id'>): Promise<MaterialItem> => {
+  const newRef = doc(collection(db, 'materials'));
+  const newItem: MaterialItem = { ...mat, id: newRef.id };
+  const current = getLocalMaterials();
+  setLocalMaterials([...current, newItem]);
+  try {
+    await setDoc(newRef, mat);
+  } catch (e) {
+    console.warn('Fallback to localStorage for addMaterial:', e);
+  }
+  return newItem;
+};
+
+export const updateMaterial = async (id: string, mat: Partial<MaterialItem>): Promise<void> => {
+  const current = getLocalMaterials();
+  setLocalMaterials(current.map(m => (m.id === id ? { ...m, ...mat, id } : m)));
+  try {
+    const payload = { ...mat };
+    delete (payload as any).id;
+    await updateDoc(doc(db, 'materials', id), payload);
+  } catch (e) {
+    console.warn('Fallback to localStorage for updateMaterial:', e);
+  }
+};
+
+export const deleteMaterial = async (id: string): Promise<void> => {
+  const current = getLocalMaterials();
+  setLocalMaterials(current.filter(m => m.id !== id));
+  try {
+    await deleteDoc(doc(db, 'materials', id));
+  } catch (e) {
+    console.warn('Fallback to localStorage for deleteMaterial:', e);
+  }
+};
+
+export const getHeadTypes = async (): Promise<string[]> => {
+  const defaultTypes = ['A型', 'B型', 'C型'];
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'headTypes'));
+    if (snap.exists() && Array.isArray(snap.data().types)) {
+      const types = snap.data().types as string[];
+      localStorage.setItem(LOCAL_HEAD_TYPES_KEY, JSON.stringify(types));
+      return types;
+    }
+    const localRaw = localStorage.getItem(LOCAL_HEAD_TYPES_KEY);
+    if (localRaw) {
+      const parsed = JSON.parse(localRaw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+    await setDoc(doc(db, 'settings', 'headTypes'), { types: defaultTypes });
+    localStorage.setItem(LOCAL_HEAD_TYPES_KEY, JSON.stringify(defaultTypes));
+    return defaultTypes;
+  } catch {
+    try {
+      const localRaw = localStorage.getItem(LOCAL_HEAD_TYPES_KEY);
+      if (localRaw) {
+        const parsed = JSON.parse(localRaw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    localStorage.setItem(LOCAL_HEAD_TYPES_KEY, JSON.stringify(defaultTypes));
+    return defaultTypes;
+  }
+};
+
+export const saveHeadTypes = async (types: string[]): Promise<void> => {
+  try {
+    localStorage.setItem(LOCAL_HEAD_TYPES_KEY, JSON.stringify(types));
+    await setDoc(doc(db, 'settings', 'headTypes'), { types });
+  } catch (e) {
+    console.warn('Fallback to localStorage for saveHeadTypes:', e);
+  }
+};
+
+export const getMaterialHistoryLogs = async (): Promise<MaterialHistoryLog[]> => {
+  try {
+    const snapshot = await getDocs(collection(db, 'controls'));
+    const logs: MaterialHistoryLog[] = [];
+    snapshot.docs.forEach(d => {
+      const c = { id: d.id, ...d.data() } as any;
+      (c.items || []).forEach((item: any) => {
+        if (item.missingQuantity === 0 && item.restockDate) {
+          logs.push({
+            id: `${c.id}_${item.materialId}`,
+            controlId: c.displayId || c.id?.slice(0, 8),
+            materialId: item.materialId,
+            materialName: item.materialName,
+            restockDate: item.restockDate,
+            requiredQuantity: item.requiredQuantity,
+            notes: item.notes
+          });
+        }
+      });
+    });
+    return logs;
+  } catch {
+    return [];
+  }
 };
