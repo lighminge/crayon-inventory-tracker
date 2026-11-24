@@ -38,7 +38,7 @@ const moduleNames: Record<keyof ModulePermissions, string> = {
 };
 
 export default function SystemManagement() {
-  const { hasPermission, currentUser } = useAuth();
+  const { hasPermission, currentUser, syncCurrentUser } = useAuth();
   const canEdit = hasPermission('system', 'edit');
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -242,8 +242,26 @@ export default function SystemManagement() {
     setIsEditing(true);
   };
 
+  const normalizePermissions = (perms?: Partial<ModulePermissions>): ModulePermissions => ({
+    dashboard: perms?.dashboard || 'none',
+    dispatch: perms?.dispatch || 'none',
+    tickets: perms?.tickets || 'none',
+    workflowTickets: perms?.workflowTickets || 'none',
+    tasks: perms?.tasks || 'none',
+    workflow: perms?.workflow || 'none',
+    materials: perms?.materials || 'none',
+    itemDetails: perms?.itemDetails || 'none',
+    personnel: perms?.personnel || 'none',
+    statistics: perms?.statistics || 'none',
+    system: perms?.system || 'none',
+    calendar: perms?.calendar || 'none'
+  });
+
   const handleEdit = (user: SystemUser) => {
-    setEditingUser(user);
+    setEditingUser({
+      ...user,
+      permissions: normalizePermissions(user.permissions)
+    });
     setIsEditing(true);
   };
 
@@ -252,18 +270,26 @@ export default function SystemManagement() {
     if (!editingUser.username || !editingUser.name || !editingUser.permissions) {
       return alert('請填寫必填欄位');
     }
+
+    const normalizedUser = {
+      ...editingUser,
+      permissions: normalizePermissions(editingUser.permissions)
+    };
     
     try {
-      if (editingUser.id) {
+      if (normalizedUser.id) {
         // Edit
-        await updateSystemUser(editingUser.id, editingUser);
+        await updateSystemUser(normalizedUser.id, normalizedUser);
+        if (currentUser && (currentUser.id === normalizedUser.id || currentUser.username === normalizedUser.username)) {
+          syncCurrentUser(normalizedUser as SystemUser);
+        }
       } else {
         // Add
-        if (!editingUser.password) return alert('新帳號必須輸入密碼');
-        const exists = users.find(u => u.username === editingUser.username);
+        if (!normalizedUser.password) return alert('新帳號必須輸入密碼');
+        const exists = users.find(u => u.username === normalizedUser.username);
         if (exists) return alert('此帳號已被使用');
         
-        await addSystemUser(editingUser as Omit<SystemUser, 'id'>);
+        await addSystemUser(normalizedUser as Omit<SystemUser, 'id'>);
       }
       setIsEditing(false);
       loadUsers();

@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { SystemUser, ModulePermissions } from '../types';
-import { addLoginRecord, updateLoginRecord } from '../services/api';
+import { addLoginRecord, updateLoginRecord, getSystemUsers } from '../services/api';
 
 interface AuthContextType {
   currentUser: SystemUser | null;
   login: (user: SystemUser) => Promise<void>;
   logout: () => Promise<void>;
+  syncCurrentUser: (user: SystemUser) => void;
   hasPermission: (module: keyof ModulePermissions, level: 'view' | 'edit') => boolean;
 }
 
@@ -16,14 +17,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [currentUser, setCurrentUser] = useState<SystemUser | null>(null);
 
   useEffect(() => {
-    // Check localStorage on mount
+    // Check localStorage on mount and sync latest permissions from DB
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
       try {
-        setCurrentUser(JSON.parse(savedUser));
+        const parsed: SystemUser = JSON.parse(savedUser);
+        setCurrentUser(parsed);
+        getSystemUsers()
+          .then(users => {
+            const latest = users.find(u => u.id === parsed.id || u.username === parsed.username);
+            if (latest) {
+              setCurrentUser(latest);
+              localStorage.setItem('currentUser', JSON.stringify(latest));
+            }
+          })
+          .catch(() => {});
       } catch (e) {}
     }
   }, []);
+
+  const syncCurrentUser = (user: SystemUser) => {
+    setCurrentUser(user);
+    localStorage.setItem('currentUser', JSON.stringify(user));
+  };
 
   const login = async (user: SystemUser) => {
     setCurrentUser(user);
@@ -79,13 +95,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const hasPermission = (module: keyof ModulePermissions, level: 'view' | 'edit'): boolean => {
     if (!currentUser) return false;
-    let userLevel = currentUser.permissions[module];
-    if (module === 'materials' && userLevel === undefined) {
-      userLevel =
-        currentUser.permissions.itemDetails ||
-        currentUser.permissions.tickets ||
-        'edit';
-    }
+    const userLevel = currentUser.permissions?.[module] || 'none';
     
     if (level === 'view') {
       return userLevel === 'view' || userLevel === 'edit';
@@ -99,7 +109,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, login, logout, hasPermission }}>
+    <AuthContext.Provider value={{ currentUser, login, logout, syncCurrentUser, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );

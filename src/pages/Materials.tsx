@@ -356,6 +356,15 @@ export default function MaterialsPage() {
     URL.revokeObjectURL(url);
   };
 
+  if (!hasPermission('materials', 'view')) {
+    return (
+      <div className="doodle-border" style={{ padding: '40px', textAlign: 'center', backgroundColor: '#fff', marginTop: '20px' }}>
+        <h2 style={{ color: 'var(--crayon-red)', marginTop: 0 }}>🚫 無權限存取「物料庫存」功能</h2>
+        <p style={{ fontSize: '1.1rem', color: '#666' }}>您的帳號目前未被授權檢視此頁面，請聯絡系統管理員。</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* 頂部標題與新增物料按鈕 */}
