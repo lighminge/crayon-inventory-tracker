@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getTickets, getAllItemDetails, deleteItemDetail, saveItemDetail } from '../services/api';
-import type { InventoryTicket, InventoryItemDetail } from '../types';
+import { getTickets, getAllItemDetails, deleteItemDetail, saveItemDetail, getMaterials } from '../services/api';
+import type { InventoryTicket, InventoryItemDetail, MaterialItem } from '../types';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -12,6 +12,7 @@ export default function ItemDetails() {
   const canEdit = hasPermission('itemDetails', 'edit');
   const [tickets, setTickets] = useState<InventoryTicket[]>([]);
   const [details, setDetails] = useState<InventoryItemDetail[]>([]);
+  const [materialList, setMaterialList] = useState<MaterialItem[]>([]);
   
   // Filter state
   const [filterStartDate, setFilterStartDate] = useState(() => {
@@ -39,6 +40,16 @@ export default function ItemDetails() {
   // Add New State
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newData, setNewData] = useState<Partial<InventoryItemDetail>>({});
+
+  // Quick Manual Add (物料品號 & 數量) Modal State
+  const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
+  const [quickAddRows, setQuickAddRows] = useState<Array<{
+    itemSeq: string;
+    subItemSeq: string;
+    date: string;
+    materialCode: string;
+    totalItemCount: number | '';
+  }>>([]);
   
   // Custom Modals
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
@@ -69,10 +80,14 @@ export default function ItemDetails() {
 
   const loadData = async () => {
     try {
-      const t = await getTickets();
+      const [t, d, mats] = await Promise.all([
+        getTickets(),
+        getAllItemDetails(),
+        getMaterials().catch(() => [] as MaterialItem[])
+      ]);
       setTickets(t.sort((a, b) => (b.dispatchDate || 0) - (a.dispatchDate || 0)));
-      const d = await getAllItemDetails();
       setDetails(d);
+      setMaterialList(mats);
     } catch (e) {
       console.error(e);
     }
@@ -136,11 +151,29 @@ export default function ItemDetails() {
   });
   
   const currentTicket = tickets.find(t => t.id === selectedTicketId);
-  const allTicketItemSeqs = currentTicket?.itemCount 
+  const ticketDefinedSeqs = currentTicket?.itemCount
     ? Array.from({ length: currentTicket.itemCount }, (_, i) => (i + 1).toString().padStart(3, '0'))
-    : Array.from(new Set(baseDetails.map(d => d.itemSeq))).sort();
+    : [];
+  const detailDefinedSeqs = Array.from(new Set(baseDetails.map(d => d.itemSeq)));
+  const mergedSeqs = Array.from(new Set([...ticketDefinedSeqs, ...detailDefinedSeqs])).sort();
+  const allTicketItemSeqs = mergedSeqs.length > 0
+    ? mergedSeqs
+    : Array.from({ length: 10 }, (_, i) => (i + 1).toString().padStart(3, '0'));
   
   const currentDetails = baseDetails.filter(d => filterItemSeq === 'all' || d.itemSeq === filterItemSeq);
+
+  const getNextSubSeqForSeq = (seq: string, extraRows: Array<{ itemSeq: string; subItemSeq: string }> = []) => {
+    const existingSubSeqs = [
+      ...baseDetails.filter(d => d.itemSeq === seq).map(d => parseInt(d.subItemSeq || '', 10)),
+      ...extraRows.filter(r => r.itemSeq === seq).map(r => parseInt(r.subItemSeq || '', 10))
+    ].filter(n => !isNaN(n));
+    return (existingSubSeqs.length > 0 ? Math.max(...existingSubSeqs) + 1 : 1).toString();
+  };
+
+  const getExistingMaterialCodeForSeq = (seq: string) => {
+    const found = baseDetails.find(d => d.itemSeq === seq && d.materialCode && d.materialCode.trim());
+    return found?.materialCode || '';
+  };
 
   const handleDelete = async (id: string) => {
     try {
@@ -176,17 +209,14 @@ export default function ItemDetails() {
 
   const startAddNew = () => {
     const initialItemSeq = filterItemSeq !== 'all' ? filterItemSeq : (allTicketItemSeqs[0] || '001');
-    const existingSubSeqs = baseDetails
-      .filter(d => d.itemSeq === initialItemSeq)
-      .map(d => parseInt(d.subItemSeq || '', 10))
-      .filter(n => !isNaN(n));
-    const nextSubSeq = existingSubSeqs.length > 0 ? Math.max(...existingSubSeqs) + 1 : 1;
+    const nextSubSeq = getNextSubSeqForSeq(initialItemSeq);
 
     setIsAddingNew(true);
     setNewData({ 
       ticketId: selectedTicketId!,
       itemSeq: initialItemSeq,
-      subItemSeq: nextSubSeq.toString(),
+      subItemSeq: nextSubSeq,
+      materialCode: getExistingMaterialCodeForSeq(initialItemSeq),
       date: new Date().toISOString().split('T')[0],
       containerType: 'T',
       grossWeight: 0,
@@ -203,12 +233,10 @@ export default function ItemDetails() {
       const data = { ...prev, [field]: value };
       
       if (field === 'itemSeq') {
-        const existingSubSeqs = baseDetails
-          .filter(d => d.itemSeq === value)
-          .map(d => parseInt(d.subItemSeq || '', 10))
-          .filter(n => !isNaN(n));
-        const nextSubSeq = existingSubSeqs.length > 0 ? Math.max(...existingSubSeqs) + 1 : 1;
-        data.subItemSeq = nextSubSeq.toString();
+        data.subItemSeq = getNextSubSeqForSeq(value);
+        if (!data.materialCode) {
+          data.materialCode = getExistingMaterialCodeForSeq(value);
+        }
       }
 
       if (['grossWeight', 'containerCount', 'containerUnitWeight', 'materialUnitWeight'].includes(field as string)) {
@@ -223,6 +251,107 @@ export default function ItemDetails() {
       }
       return data;
     });
+  };
+
+  const startQuickAdd = () => {
+    const initialItemSeq = filterItemSeq !== 'all' ? filterItemSeq : (allTicketItemSeqs[0] || '001');
+    const todayStr = new Date().toISOString().split('T')[0];
+    setQuickAddRows([
+      {
+        itemSeq: initialItemSeq,
+        subItemSeq: getNextSubSeqForSeq(initialItemSeq),
+        date: todayStr,
+        materialCode: getExistingMaterialCodeForSeq(initialItemSeq),
+        totalItemCount: ''
+      }
+    ]);
+    setIsQuickAddOpen(true);
+  };
+
+  const addQuickAddRow = () => {
+    setQuickAddRows(prev => {
+      const lastRow = prev[prev.length - 1];
+      const lastSeqNum = lastRow ? parseInt(lastRow.itemSeq, 10) : 1;
+      const nextSeqCandidate = !isNaN(lastSeqNum)
+        ? (lastSeqNum + 1).toString().padStart(3, '0')
+        : (allTicketItemSeqs[0] || '001');
+      const targetSeq = allTicketItemSeqs.includes(nextSeqCandidate)
+        ? nextSeqCandidate
+        : (lastRow?.itemSeq || allTicketItemSeqs[0] || '001');
+      const todayStr = lastRow?.date || new Date().toISOString().split('T')[0];
+      return [
+        ...prev,
+        {
+          itemSeq: targetSeq,
+          subItemSeq: getNextSubSeqForSeq(targetSeq, prev),
+          date: todayStr,
+          materialCode: getExistingMaterialCodeForSeq(targetSeq),
+          totalItemCount: ''
+        }
+      ];
+    });
+  };
+
+  const updateQuickAddRow = (index: number, field: string, value: any) => {
+    setQuickAddRows(prev => {
+      const next = [...prev];
+      const updated = { ...next[index], [field]: value };
+      if (field === 'itemSeq') {
+        const otherRows = next.filter((_, idx) => idx !== index);
+        updated.subItemSeq = getNextSubSeqForSeq(value, otherRows);
+        if (!updated.materialCode) {
+          updated.materialCode = getExistingMaterialCodeForSeq(value);
+        }
+      }
+      next[index] = updated;
+      return next;
+    });
+  };
+
+  const removeQuickAddRow = (index: number) => {
+    setQuickAddRows(prev => (prev.length <= 1 ? prev : prev.filter((_, idx) => idx !== index)));
+  };
+
+  const saveQuickAdd = async () => {
+    for (let i = 0; i < quickAddRows.length; i++) {
+      const row = quickAddRows[i];
+      if (!row.itemSeq.trim()) {
+        setAlertMessage(`第 ${i + 1} 筆請填寫項目序號`);
+        return;
+      }
+      if (row.totalItemCount === '' || Number(row.totalItemCount) <= 0) {
+        setAlertMessage(`第 ${i + 1} 筆請填寫大於 0 的數量`);
+        return;
+      }
+    }
+
+    try {
+      const nowTs = new Date().getTime();
+      for (let i = 0; i < quickAddRows.length; i++) {
+        const row = quickAddRows[i];
+        const detailToSave: Omit<InventoryItemDetail, 'id'> = {
+          ticketId: selectedTicketId!,
+          itemSeq: row.itemSeq.trim(),
+          subItemSeq: (row.subItemSeq || '1').trim(),
+          materialCode: (row.materialCode || '').trim(),
+          date: row.date || new Date().toISOString().split('T')[0],
+          grossWeight: 0,
+          containerType: '',
+          containerCount: 0,
+          containerUnitWeight: 0,
+          materialUnitWeight: 0,
+          netWeight: 0,
+          totalItemCount: Number(row.totalItemCount),
+          createdAt: nowTs + i
+        };
+        await saveItemDetail(detailToSave);
+      }
+      setIsQuickAddOpen(false);
+      loadData();
+    } catch (e) {
+      console.error(e);
+      setAlertMessage('新增失敗');
+    }
   };
 
   const saveNew = async () => {
@@ -302,16 +431,42 @@ export default function ItemDetails() {
   if (viewMode === 'detail') {
     return (
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <datalist id="item-details-material-codes">
+          {materialList.map(m => (
+            <option key={m.id || m.name} value={m.name}>
+              {m.partName ? `${m.name} (${m.partName})` : m.name}
+            </option>
+          ))}
+        </datalist>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
           <h2 style={{ margin: 0, fontFamily: 'Caveat, cursive', fontSize: '2.5rem', color: 'var(--crayon-blue)' }}>📋 單號 {selectedTicketId} - 項目明細</h2>
           <button className="doodle-button" onClick={() => { setViewMode('list'); setSelectedTicketId(null); loadData(); }}>
             🔙 返回清單
           </button>
         </div>
         
-        {baseDetails.length === 0 ? (
-          <div className="doodle-border" style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
-            目前沒有任何明細資料。
+        {baseDetails.length === 0 && !isAddingNew ? (
+          <div className="doodle-border" style={{ padding: '40px', textAlign: 'center', color: '#666', backgroundColor: 'white' }}>
+            <div style={{ fontSize: '1.15rem', marginBottom: canEdit ? '20px' : '0' }}>目前沒有任何明細資料。</div>
+            {canEdit && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <button
+                  className="doodle-button"
+                  style={{ backgroundColor: 'var(--crayon-orange)', color: 'white' }}
+                  onClick={startQuickAdd}
+                >
+                  📦 手動新增品號與數量
+                </button>
+                <button
+                  className="doodle-button"
+                  style={{ backgroundColor: 'var(--crayon-purple)', color: 'white' }}
+                  onClick={startAddNew}
+                >
+                  ＋ 手動新增明細
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -388,10 +543,11 @@ export default function ItemDetails() {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '5px' }}>
                       {itemSeqList.map((seq, index) => {
                         const sum = groupedDetails[seq].reduce((acc, d) => acc + (d.totalItemCount || 0), 0);
+                        const codes = Array.from(new Set(groupedDetails[seq].map(d => (d.materialCode || '').trim()).filter(Boolean))).join(', ');
                         return (
                           <span key={seq} style={{ position: 'relative', backgroundColor: 'white', border: '2px dashed #ff69b4', padding: '6px 14px', borderRadius: '10px', fontSize: '1rem', color: '#ff69b4', fontWeight: '900', display: 'inline-flex', alignItems: 'center', margin: '12px 12px 8px 12px' }}>
                             <span style={{ position: 'absolute', top: '-15px', left: '-15px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#ff69b4', color: '#fff', borderRadius: '50%', width: '32px', height: '32px', fontSize: '1.2rem', fontWeight: '900', border: '3px solid white', boxShadow: '2px 2px 0px rgba(0,0,0,0.3)', transform: 'rotate(-5deg)', zIndex: 1 }}>{index + 1}</span>
-                            項目 {seq}: {sum} 個
+                            項目 {seq}{codes ? ` (${codes})` : ''}: {sum} 個
                           </span>
                         );
                       })}
@@ -428,18 +584,32 @@ export default function ItemDetails() {
                 </div>
               )}
               {canEdit && (
-                <button className="doodle-button" style={{ marginLeft: 'auto', backgroundColor: 'var(--crayon-purple)', color: 'white' }} onClick={startAddNew}>
-                  ＋ 手動新增明細
-                </button>
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    className="doodle-button"
+                    style={{ backgroundColor: 'var(--crayon-orange)', color: 'white' }}
+                    onClick={startQuickAdd}
+                  >
+                    📦 手動新增品號與數量
+                  </button>
+                  <button
+                    className="doodle-button"
+                    style={{ backgroundColor: 'var(--crayon-purple)', color: 'white' }}
+                    onClick={startAddNew}
+                  >
+                    ＋ 手動新增明細
+                  </button>
+                </div>
               )}
             </div>
 
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '900px' }}>
               <thead>
                 <tr style={{ backgroundColor: 'var(--crayon-dark)', color: 'white' }}>
                   {canEdit && <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)', width: '120px', textAlign: 'center' }}>功能</th>}
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>序號</th>
+                  <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>物料品號</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>日期</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>物料總重量</th>
                   <th style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>容器類型</th>
@@ -469,6 +639,17 @@ export default function ItemDetails() {
                         -
                         <input type="text" className="doodle-input" style={{ width: '30px', padding: '2px', textAlign: 'center' }} placeholder="子項" value={newData.subItemSeq || ''} onChange={e => handleNewChange('subItemSeq', e.target.value)} />
                       </div>
+                    </td>
+                    <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                      <input
+                        type="text"
+                        list="item-details-material-codes"
+                        className="doodle-input"
+                        style={{ width: '120px', padding: '2px 6px' }}
+                        placeholder="選填品號"
+                        value={newData.materialCode || ''}
+                        onChange={e => handleNewChange('materialCode', e.target.value)}
+                      />
                     </td>
                     <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
                       <div style={{ width: '130px' }}>
@@ -536,6 +717,7 @@ export default function ItemDetails() {
                   const countStr = types.map(t => `${t}: ${byType[t].count}`).join(' | ');
                   const netWtStr = types.map(t => `${t}: ${byType[t].netWeight.toFixed(2)}`).join(' | ');
                   const unitWtStr = types.map(t => `${t}: ${byType[t].unitWeight.toFixed(2)}`).join(' | ');
+                  const groupMaterialCodes = Array.from(new Set(group.map(d => (d.materialCode || '').trim()).filter(Boolean))).join(', ');
 
                   return (
                     <React.Fragment key={itemSeq}>
@@ -557,6 +739,17 @@ export default function ItemDetails() {
                                 </div>
                               </td>
                               <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
+                                <input
+                                  type="text"
+                                  list="item-details-material-codes"
+                                  className="doodle-input"
+                                  style={{ width: '120px', padding: '2px 6px' }}
+                                  placeholder="選填品號"
+                                  value={editData.materialCode || ''}
+                                  onChange={e => handleEditChange('materialCode', e.target.value)}
+                                />
+                              </td>
+                              <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
                                 <div style={{ width: '130px' }}>
                                   <CrayonDatePicker value={editData.date || ''} onChange={val => handleEditChange('date', val)} />
                                 </div>
@@ -565,13 +758,16 @@ export default function ItemDetails() {
                                 <input type="number" className="doodle-input" style={{ width: '60px', padding: '2px' }} value={editData.grossWeight || ''} onChange={e => handleEditChange('grossWeight', Number(e.target.value))} />
                               </td>
                               <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
-                                <select className="doodle-input" style={{ width: '90px', padding: '2px' }} value={editData.containerType || 'T'} onChange={e => handleEditChange('containerType', e.target.value)}>
+                                <select className="doodle-input" style={{ width: '90px', padding: '2px' }} value={editData.containerType || ''} onChange={e => handleEditChange('containerType', e.target.value)}>
+                                  <option value="">無</option>
                                   <option value="T">鐵桶 (T)</option>
                                   <option value="P">塑膠箱 (P)</option>
                                   <option value="B">紙箱 (B)</option>
                                   <option value="L">摺疊籠 (L)</option>
                                   <option value="J">鐵架 (J)</option>
-                                  <option value={editData.containerType || ''}>{editData.containerType}</option>
+                                  {editData.containerType && !['', 'T', 'P', 'B', 'L', 'J'].includes(editData.containerType) && (
+                                    <option value={editData.containerType}>{editData.containerType}</option>
+                                  )}
                                 </select>
                               </td>
                               <td style={{ padding: '10px', border: '1px solid var(--crayon-dark)' }}>
@@ -607,6 +803,15 @@ export default function ItemDetails() {
                             <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-green)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-dark)', fontWeight: 'bold' }}>
                               {d.itemSeq} {d.subItemSeq ? `- ${d.subItemSeq}` : ''}
                             </span>
+                          </td>
+                          <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
+                            {d.materialCode ? (
+                              <span style={{ display: 'inline-block', backgroundColor: '#fff8e1', border: '1px dashed var(--crayon-orange)', padding: '2px 8px', borderRadius: '10px', color: '#e65100', fontWeight: 'bold' }}>
+                                {d.materialCode}
+                              </span>
+                            ) : (
+                              <span style={{ color: '#999', fontSize: '0.9rem' }}>-</span>
+                            )}
                           </td>
                           <td style={{ padding: '10px', borderRight: '1px solid var(--crayon-dark)' }}>
                             <span style={{ display: 'inline-block', backgroundColor: 'white', border: '1px dashed var(--crayon-blue)', padding: '2px 8px', borderRadius: '10px', color: 'var(--crayon-blue)', fontWeight: 'bold' }}>
@@ -658,6 +863,9 @@ export default function ItemDetails() {
                             小計 ({itemSeq})
                             <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>共 {group.length} 項</div>
                           </td>
+                          <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '0.95rem', fontWeight: 'bold', color: '#e65100' }}>
+                            {groupMaterialCodes || '-'}
+                          </td>
                           <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)' }}></td>
                           <td style={{ padding: '15px 10px', borderRight: '2px dashed var(--crayon-purple)', fontSize: '1.0rem', fontWeight: 'bold' }}>
                             <div style={{ color: 'var(--crayon-red)', marginBottom: '5px' }}>總計: {totalGross.toFixed(2)} 公斤</div>
@@ -679,6 +887,150 @@ export default function ItemDetails() {
             </table>
           </div>
           </>
+        )}
+
+        {/* 手動新增物料品號與數量 Modal */}
+        {isQuickAddOpen && (
+          <div style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.55)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 10000,
+            padding: '15px'
+          }}>
+            <div className="doodle-border" style={{ backgroundColor: 'white', padding: '25px', width: '100%', maxWidth: '820px', maxHeight: '90vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px dashed var(--crayon-dark)', paddingBottom: '10px', marginBottom: '15px' }}>
+                <h3 style={{ margin: 0, color: 'var(--crayon-orange)', fontSize: '1.5rem' }}>
+                  📦 手動新增物料品號與數量（單號：{selectedTicketId}）
+                </h3>
+                <button
+                  onClick={() => setIsQuickAddOpen(false)}
+                  style={{ background: 'none', border: 'none', fontSize: '1.6rem', cursor: 'pointer', color: 'var(--crayon-red)', fontWeight: 'bold' }}
+                >
+                  ×
+                </button>
+              </div>
+
+              <div style={{ marginBottom: '12px', fontSize: '0.95rem', color: '#555', fontWeight: 'bold' }}>
+                💡 可直接輸入或選取「物料品號」（選填）與「數量」（必填），系統將自動帶入對應項目序號與子項。
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '18px' }}>
+                {quickAddRows.map((row, idx) => (
+                  <div
+                    key={idx}
+                    className="doodle-border"
+                    style={{
+                      padding: '12px 15px',
+                      backgroundColor: '#fffdf7',
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                      alignItems: 'flex-end'
+                    }}
+                  >
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '4px' }}>項目序號</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <select
+                          className="doodle-input"
+                          style={{ width: '75px', padding: '5px', backgroundColor: 'white', textAlign: 'center' }}
+                          value={row.itemSeq}
+                          onChange={e => updateQuickAddRow(idx, 'itemSeq', e.target.value)}
+                        >
+                          {allTicketItemSeqs.map(seq => (
+                            <option key={seq} value={seq}>{seq}</option>
+                          ))}
+                        </select>
+                        <span style={{ fontWeight: 'bold' }}>-</span>
+                        <input
+                          type="text"
+                          className="doodle-input"
+                          style={{ width: '48px', padding: '5px', textAlign: 'center' }}
+                          placeholder="子項"
+                          value={row.subItemSeq}
+                          onChange={e => updateQuickAddRow(idx, 'subItemSeq', e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ width: '140px' }}>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '4px' }}>日期</label>
+                      <CrayonDatePicker value={row.date} onChange={val => updateQuickAddRow(idx, 'date', val)} />
+                    </div>
+
+                    <div style={{ flex: '1 1 180px' }}>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '4px' }}>
+                        物料品號 <span style={{ color: '#888', fontWeight: 'normal' }}>(選填)</span>
+                      </label>
+                      <input
+                        type="text"
+                        list="item-details-material-codes"
+                        className="doodle-input"
+                        style={{ width: '100%', padding: '6px 10px' }}
+                        placeholder="輸入或選擇物料品號"
+                        value={row.materialCode}
+                        onChange={e => updateQuickAddRow(idx, 'materialCode', e.target.value)}
+                      />
+                    </div>
+
+                    <div style={{ width: '140px' }}>
+                      <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '4px', color: 'var(--crayon-red)' }}>
+                        數量 (PCS) *
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        className="doodle-input"
+                        style={{ width: '100%', padding: '6px 10px' }}
+                        placeholder="輸入數量"
+                        value={row.totalItemCount}
+                        onChange={e => updateQuickAddRow(idx, 'totalItemCount', e.target.value === '' ? '' : Number(e.target.value))}
+                      />
+                    </div>
+
+                    {quickAddRows.length > 1 && (
+                      <button
+                        type="button"
+                        className="doodle-button"
+                        style={{ backgroundColor: 'var(--crayon-red)', color: 'white', padding: '6px 12px', minHeight: 'auto' }}
+                        onClick={() => removeQuickAddRow(idx)}
+                      >
+                        刪除
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                <button
+                  type="button"
+                  className="doodle-button"
+                  style={{ backgroundColor: 'var(--crayon-blue)', color: 'white' }}
+                  onClick={addQuickAddRow}
+                >
+                  ＋ 再新增一列
+                </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button type="button" className="doodle-button" onClick={() => setIsQuickAddOpen(false)}>
+                    取消
+                  </button>
+                  <button
+                    type="button"
+                    className="doodle-button"
+                    style={{ backgroundColor: 'var(--crayon-green)', color: 'white' }}
+                    onClick={saveQuickAdd}
+                  >
+                    💾 確認新增 ({quickAddRows.length} 筆)
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
         
         {deleteConfirmId && (

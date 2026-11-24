@@ -67,6 +67,7 @@ export interface InventoryItemDetail {
   ticketId: string; // 盤點單號
   itemSeq: string; // 項目編號 (e.g. '001')
   subItemSeq?: string; // 明細子項 (e.g. '1')
+  materialCode?: string; // 物料品號 (非必要欄位)
   grossWeight: number; // 物料總重量
   containerType: string; // 容器類型
   containerCount: number; // 容器數量
