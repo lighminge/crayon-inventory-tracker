@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { getSystemUsers, addSystemUser, updateSystemUser, deleteSystemUser, getPersonnel, getLoginRecords } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { hashPassword, sanitizeSpreadsheetRow } from '../utils/security';
 import type { SystemUser, ModulePermissions, PermissionLevel, Personnel, SystemLoginRecord } from '../types';
 import ExcelJS from 'exceljs';
 import html2canvas from 'html2canvas';
@@ -204,7 +205,7 @@ export default function SystemManagement() {
     const ws = wb.addWorksheet("登入記錄");
     if (exportData.length > 0) {
       ws.columns = Object.keys(exportData[0]).map(k => ({ header: k, key: k }));
-      exportData.forEach(d => ws.addRow(d));
+      exportData.forEach(d => ws.addRow(sanitizeSpreadsheetRow(d)));
     }
     
     const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
@@ -260,6 +261,7 @@ export default function SystemManagement() {
   const handleEdit = (user: SystemUser) => {
     setEditingUser({
       ...user,
+      password: '', // 不將密碼或雜湊值回填至輸入框，留白代表不修改密碼
       permissions: normalizePermissions(user.permissions)
     });
     setIsEditing(true);
@@ -271,7 +273,7 @@ export default function SystemManagement() {
       return alert('請填寫必填欄位');
     }
 
-    const normalizedUser = {
+    const normalizedUser: Partial<SystemUser> = {
       ...editingUser,
       permissions: normalizePermissions(editingUser.permissions)
     };
@@ -279,16 +281,22 @@ export default function SystemManagement() {
     try {
       if (normalizedUser.id) {
         // Edit
+        if (normalizedUser.password && normalizedUser.password.trim()) {
+          normalizedUser.password = await hashPassword(normalizedUser.password.trim(), normalizedUser.username);
+        } else {
+          delete normalizedUser.password;
+        }
         await updateSystemUser(normalizedUser.id, normalizedUser);
         if (currentUser && (currentUser.id === normalizedUser.id || currentUser.username === normalizedUser.username)) {
           syncCurrentUser(normalizedUser as SystemUser);
         }
       } else {
         // Add
-        if (!normalizedUser.password) return alert('新帳號必須輸入密碼');
+        if (!normalizedUser.password || !normalizedUser.password.trim()) return alert('新帳號必須輸入密碼');
         const exists = users.find(u => u.username === normalizedUser.username);
         if (exists) return alert('此帳號已被使用');
         
+        normalizedUser.password = await hashPassword(normalizedUser.password.trim(), normalizedUser.username);
         await addSystemUser(normalizedUser as Omit<SystemUser, 'id'>);
       }
       setIsEditing(false);
@@ -416,7 +424,8 @@ export default function SystemManagement() {
                 className="doodle-input" 
                 style={{ width: '100%' }}
                 required={!editingUser.id}
-                type="text"
+                type="password"
+                autoComplete="new-password"
                 value={editingUser.password || ''} 
                 onChange={e => setEditingUser({...editingUser, password: e.target.value})} 
                 placeholder={editingUser.id ? "留白代表不修改密碼" : "設定登入密碼"} 

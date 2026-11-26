@@ -3,6 +3,7 @@ import { collection, getDocs, setDoc, deleteDoc, doc } from 'firebase/firestore'
 import { db } from '../firebase';
 import type { InventoryTicket, Workflow, StageNote, StageNoteTemplate } from '../types';
 import { updateTicket } from '../services/api';
+import { sanitizeRichHtml } from '../utils/security';
 
 const LOCAL_STORAGE_KEY = 'crayon_stage_note_templates_v1';
 
@@ -215,7 +216,7 @@ export function StageNoteViewModal({
                 wordBreak: 'break-word',
                 lineHeight: '1.55'
               }}
-              dangerouslySetInnerHTML={{ __html: stageNote.html }}
+              dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(stageNote.html) }}
             />
           ) : stageNote?.text ? (
             <div
@@ -349,7 +350,7 @@ export default function StageNoteModal({
     const el = editorRef.current;
     if (!el) return;
     if (existingNote?.html) {
-      el.innerHTML = existingNote.html;
+      el.innerHTML = sanitizeRichHtml(existingNote.html);
     } else if (existingNote?.text) {
       el.innerHTML = convertPlainTextToHtml(
         existingNote.text,
@@ -788,7 +789,7 @@ export default function StageNoteModal({
   const handleSaveNote = async () => {
     const el = editorRef.current;
     const currentText = el ? (el.innerText || '').replace(/\u200B/g, '') : plainText;
-    const currentHtml = el ? el.innerHTML.replace(/\u200B/g, '') : '';
+    const currentHtml = el ? sanitizeRichHtml(el.innerHTML.replace(/\u200B/g, '')) : '';
 
     setIsSaving(true);
     try {

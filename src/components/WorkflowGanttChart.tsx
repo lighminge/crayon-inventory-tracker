@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import type { InventoryTicket, Workflow } from '../types';
+import { sanitizeRichHtml } from '../utils/security';
 
 interface WorkflowGanttChartProps {
   ticket: InventoryTicket;
@@ -779,7 +780,7 @@ export default function WorkflowGanttChart({
                         wordBreak: 'break-word',
                         lineHeight: '1.45'
                       }}
-                      dangerouslySetInnerHTML={{ __html: ticket.stageNotes[w.id].html! }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(ticket.stageNotes[w.id].html!) }}
                     />
                   ) : (
                     <div

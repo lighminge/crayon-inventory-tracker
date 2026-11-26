@@ -12,6 +12,7 @@ import {
 } from '../services/api';
 import CrayonDatePicker from '../components/CrayonDatePicker';
 import { useAuth } from '../contexts/AuthContext';
+import { sanitizeSpreadsheetRow } from '../utils/security';
 
 const HEAD_TYPE_STYLES: { bg: string; color: string; border: string }[] = [
   { bg: '#f3e8ff', color: '#7e22ce', border: '#d8b4fe' }, // purple (A型)
@@ -341,7 +342,7 @@ export default function MaterialsPage() {
       key: h,
       width: Math.max(14, h.length * 2 + 4)
     }));
-    exportData.forEach(r => ws.addRow(r));
+    exportData.forEach(r => ws.addRow(sanitizeSpreadsheetRow(r)));
     ws.getRow(1).font = { bold: true };
 
     const buffer = await wb.xlsx.writeBuffer();
